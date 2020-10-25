@@ -71,7 +71,7 @@ async def repo_installation_added(
     )
     sender_name = event.data["sender"]["login"]
     try:
-        repositories = event.data["repositores"]
+        repositories = event.data["repositories"]
     except KeyError:
         repositories = event.data["repositories_added"]
 
