@@ -52,7 +52,7 @@ async def webhook(request):
         return web.Response(status=500)
 
 
-@router.register("installation", action="created")
+@router.register("installation_repositories", action="added")
 async def repo_installation_added(
     event: sansio.Event, gh: gh_aiohttp.GitHubAPI, *args, **kwargs
 ):
@@ -62,7 +62,7 @@ async def repo_installation_added(
     :param gh: :class:`gidget.aiohttp.GitHubAPI`, gidgethub GitHub API object
     """
     installation_id = event.data["installation"]["id"]
-    installation_access_token = apps.get_installation_access_token(
+    installation_access_token = await apps.get_installation_access_token(
         gh,
         installation_id=installation_id,
         app_id=os.environ.get("GITHUB_APP_ID"),
@@ -70,7 +70,7 @@ async def repo_installation_added(
     )
     sender_name = event.data["sender"]["login"]
 
-    for repository in event.data["repositories"]:
+    for repository in event.data["repositories_added"]:
         url = f"/repos/{repository['full_name']}/issues"
         response = await gh.post(
             url,
