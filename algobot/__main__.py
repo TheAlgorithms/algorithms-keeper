@@ -11,9 +11,16 @@ from gidgethub import routing
 from gidgethub import sansio
 from gidgethub import apps
 
+# Create a Router instance
+# This allows for individual async functions to be written per event type
+# to help keep logic separated and focused instead of having to differentiate
+# between different events manually in user code.
 router = routing.Router()
+
 cache = cachetools.LRUCache(maxsize=500)
 
+# Create a route table
+# Use the decorator .get, .post, ... to add all the routes to the table
 routes = web.RouteTableDef()
 
 
@@ -26,7 +33,7 @@ async def handle_get(request):
 async def webhook(request):
     try:
         body = await request.read()
-        secret = os.environ.get("GH_SECRET")
+        secret = os.environ.get("GITHUB_SECRET")
         event = sansio.Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
             return web.Response(status=200)
@@ -46,14 +53,45 @@ async def webhook(request):
 
 
 @router.register("installation", action="created")
-async def repo_installation_added(event, gh, *args, **kwargs):
+async def repo_installation_added(
+    event: sansio.Event, gh: gh_aiohttp.GitHubAPI, *args, **kwargs
+):
+    """Give the repository a heads up that the app has been installed.
+
+    :param event: Representation of GitHub's webhook event, access it with event.data
+    :param gh: :class:`gidget.aiohttp.GitHubAPI`, gidgethub GitHub API object
+    """
     installation_id = event.data["installation"]["id"]
-    pass
+    installation_access_token = apps.get_installation_access_token(
+        gh,
+        installation_id=installation_id,
+        app_id=os.environ.get("GITHUB_APP_ID"),
+        private_key=os.environ.get("GITHUB_PRIVATE_KEY"),
+    )
+    sender_name = event.data["sender"]["login"]
+
+    for repository in event.data["repositories"]:
+        url = f"/repos/{repository['full_name']}/issues"
+        response = await gh.post(
+            url,
+            data={
+                "title": "Installation successful!",
+                "body": f"This is the Algorithms bot at your service! Thank you for installing me @{sender_name}",
+            },
+            oauth_token=installation_access_token["token"],
+        )
+        issue_url = response["url"]
+        await gh.patch(
+            issue_url,
+            data={"state": "closed"},
+            oauth_token=installation_access_token["token"],
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover
+    # Create an web Application instance
     app = web.Application()
-
+    # Add the route table to our app
     app.router.add_routes(routes)
     port = os.environ.get("PORT")
     if port is not None:

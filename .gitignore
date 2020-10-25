@@ -3,3 +3,4 @@
 .mypy_cache/
 .env
 __pycache__/
+private/
