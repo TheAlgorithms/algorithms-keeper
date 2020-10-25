@@ -52,6 +52,7 @@ async def webhook(request):
         return web.Response(status=500)
 
 
+@router.register("installation", action="created")
 @router.register("installation_repositories", action="added")
 async def repo_installation_added(
     event: sansio.Event, gh: gh_aiohttp.GitHubAPI, *args, **kwargs
@@ -69,8 +70,12 @@ async def repo_installation_added(
         private_key=os.environ.get("GITHUB_PRIVATE_KEY"),
     )
     sender_name = event.data["sender"]["login"]
+    try:
+        repositories = event.data["repositores"]
+    except KeyError:
+        repositories = event.data["repositories_added"]
 
-    for repository in event.data["repositories_added"]:
+    for repository in repositories:
         url = f"/repos/{repository['full_name']}/issues"
         response = await gh.post(
             url,
