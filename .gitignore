@@ -1,0 +1,5 @@
+*.DS_Store
+.vscode/
+.mypy_cache/
+.env
+__pycache__/
