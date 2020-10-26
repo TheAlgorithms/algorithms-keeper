@@ -13,14 +13,9 @@ from . import check_runs, installations
 
 router = routing.Router(installations.router, check_runs.router)
 
-lru_cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
-# Timed cache for installation access token (1 hour)
-ttl_cache = cachetools.TTLCache(maxsize=500, ttl=3600)  # type: cachetools.TTLCache
-
-routes = web.RouteTableDef()
+cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
 
 
-@routes.post("/webhook")
 async def main(request: web.Request):
     try:
         body = await request.read()
@@ -29,15 +24,15 @@ async def main(request: web.Request):
         if event.event == "ping":
             return web.Response(status=200)
         async with aiohttp.ClientSession() as session:
-            gh = gh_aiohttp.GitHubAPI(session, "algorithms-bot", cache=lru_cache)
+            gh = gh_aiohttp.GitHubAPI(session, "algorithms-bot", cache=cache)
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
-            await router.dispatch(event, gh, ttl_cache)
+            await router.dispatch(event, gh)
         try:
             print(
                 f"GH requests remaining: {gh.rate_limit.remaining}\n"
                 f"Reset time: {gh.rate_limit.reset_datetime:%b-%d-%Y %H:%M:%S %Z}\n"
-                f"GH delivery ID: {event.delivery_id}\n"
+                f"GH delivery ID: {event.delivery_id}"
             )
         except AttributeError:
             pass
@@ -49,7 +44,7 @@ async def main(request: web.Request):
 
 if __name__ == "__main__":  # pragma: no cover
     app = web.Application()
-    app.router.add_routes(routes)
+    app.router.add_post("/webhook", main)
     port = os.environ.get("PORT")
     if port is not None:
         port = int(port)  # type: ignore

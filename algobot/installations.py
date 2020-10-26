@@ -1,6 +1,5 @@
 from typing import Any
 
-import cachetools
 from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
@@ -14,7 +13,6 @@ router = routing.Router()
 async def repo_installation_added(
     event: sansio.Event,
     gh: gh_aiohttp.GitHubAPI,
-    cache: cachetools.TTLCache,
     *args: Any,
     **kwargs: Any,
 ):
@@ -25,7 +23,7 @@ async def repo_installation_added(
     2. When a new repository is added in an existing installation
     """
     installation_id = event.data["installation"]["id"]
-    installation_access_token = await utils.get_access_token(gh, installation_id, cache)
+    installation_access_token = await utils.get_access_token(gh, installation_id)
     sender_name = event.data["sender"]["login"]
     try:
         repositories = event.data["repositories"]
