@@ -26,7 +26,7 @@ async def main(request: web.Request):
         if event.event == "ping":
             return web.Response(status=200)
         async with aiohttp.ClientSession() as session:
-            gh = gh_aiohttp.GitHubAPI(session, "TheAlgorithms/Python", cache=lru_cache)
+            gh = gh_aiohttp.GitHubAPI(session, "algorithms-bot", cache=lru_cache)
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             await router.dispatch(event, gh, ttl_cache)
@@ -46,7 +46,7 @@ async def main(request: web.Request):
 
 if __name__ == "__main__":  # pragma: no cover
     app = web.Application()
-    app.router.add_post("/", main)
+    app.router.add_post("/webhook", main)
     port = os.environ.get("PORT")
     if port is not None:
         port = int(port)  # type: ignore
