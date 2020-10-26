@@ -17,7 +17,10 @@ lru_cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
 # Timed cache for installation access token (1 hour)
 ttl_cache = cachetools.TTLCache(maxsize=500, ttl=3600)  # type: cachetools.TTLCache
 
+routes = web.RouteTableDef()
 
+
+@routes.post("/webhook")
 async def main(request: web.Request):
     try:
         body = await request.read()
@@ -46,7 +49,7 @@ async def main(request: web.Request):
 
 if __name__ == "__main__":  # pragma: no cover
     app = web.Application()
-    app.router.add_post("/webhook", main)
+    app.router.add_routes(routes)
     port = os.environ.get("PORT")
     if port is not None:
         port = int(port)  # type: ignore
