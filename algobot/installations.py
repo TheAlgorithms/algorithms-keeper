@@ -15,7 +15,7 @@ async def repo_installation_added(
     gh: gh_aiohttp.GitHubAPI,
     *args: Any,
     **kwargs: Any,
-):
+) -> None:
     """Give the repository a heads up that the app has been installed.
 
     This callback will be triggered by two events:

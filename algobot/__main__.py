@@ -16,7 +16,7 @@ router = routing.Router(installations.router, check_runs.router)
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
 
 
-async def main(request: web.Request):
+async def main(request: web.Request) -> web.Response:
     try:
         body = await request.read()
         secret = os.environ.get("GITHUB_SECRET")

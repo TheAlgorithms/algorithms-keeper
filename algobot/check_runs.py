@@ -16,7 +16,7 @@ async def check_run_completed(
     gh: gh_aiohttp.GitHubAPI,
     *args: Any,
     **kwargs: Any,
-):
+) -> None:
     """Handler for check run completed event.
 
     We will get the event payload everytime a check run is completed which is
@@ -51,18 +51,19 @@ async def check_run_completed(
         and "queued" not in all_check_run_status
     ):  # wait until all check runs are completed
         pr_number = pr_for_commit["number"]
+        pr_labels = [label["name"] for label in pr_for_commit["labels"]]
         if any(
             element in [None, "failure", "timed_out"]
             for element in all_check_run_conclusions
-        ):  # Add the failure label
-            print(f"Failure detected in PR {pr_number!r}")
-            await utils.add_label_to_pr(
-                FAILURE_LABEL, pr_number, gh, installation_id, repository
-            )
-        else:
-            # Check run is successful so if the label exist, remove it
-            pr_labels = [label["name"] for label in pr_for_commit["labels"]]
-            if FAILURE_LABEL in pr_labels:
-                await utils.remove_label_from_pr(
+        ):
+            print(f"Failure detected in PR: {pr_number}")
+            # Add the failure label only if it doesn't exist
+            if FAILURE_LABEL not in pr_labels:
+                await utils.add_label_to_pr(
                     FAILURE_LABEL, pr_number, gh, installation_id, repository
                 )
+        # Check run is successful so if the label exist, remove it
+        elif FAILURE_LABEL in pr_labels:
+            await utils.remove_label_from_pr(
+                FAILURE_LABEL, pr_number, gh, installation_id, repository
+            )
