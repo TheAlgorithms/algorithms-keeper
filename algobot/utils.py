@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 
 import cachetools
 from gidgethub import aiohttp as gh_aiohttp
@@ -9,14 +10,17 @@ cache = cachetools.TTLCache(maxsize=500, ttl=3600)  # type: cachetools.TTLCache
 
 
 async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int):
-    """Get the installation access token after it expires
+    """Return the installation access token if it is present in the cache else
+    create a new token and store it for later use.
 
     Currently, the token lasts for 1 hour so we will give the
     time to live parameter in TTLCache 3600 seconds.
     https://docs.github.com/en/developers/apps/differences-between-github-apps-and-oauth-apps#token-based-identification
     """
     if "access_token" in cache:
-        return cache["access_token"]
+        token = cache["access_token"]
+        print(f"Using the cached token: {token[-4:]!r} (last 4 characters)")
+        return token
     installation_access_token = await apps.get_installation_access_token(
         gh,
         installation_id=installation_id,
@@ -54,19 +58,6 @@ async def get_check_runs_for_commit(
     )
 
 
-async def get_pull_request(
-    pr_number: int,
-    gh: gh_aiohttp.GitHubAPI,
-    installation_id: int,
-    repository: str,
-):
-    installation_access_token = await get_access_token(gh, installation_id)
-    return await gh.getitem(
-        f"/repos/{repository}/pulls/{pr_number}",
-        oauth_token=installation_access_token,
-    )
-
-
 async def add_label_to_pr(
     label: str,
     pr_number: int,
@@ -74,12 +65,36 @@ async def add_label_to_pr(
     installation_id: int,
     repository: str,
 ):
-    """Add the given labels to the pull request number provided."""
+    """Add the given label to the pull request number provided.
+
+    Note: GitHub's REST API v3 considers every pull request an issue,
+    but not every issue is a pull request.
+    https://docs.github.com/en/rest/reference/issues#list-issues-assigned-to-the-authenticated-user
+    """
     installation_access_token = await get_access_token(gh, installation_id)
-    pr = await get_pull_request(pr_number, gh, installation_id, repository)
-    issue_url = pr["issue_url"]
     await gh.post(
-        f"{issue_url}/labels",
+        f"/repos/{repository}/issues/{pr_number}/labels",
         data={"labels": [label]},
+        oauth_token=installation_access_token,
+    )
+
+
+async def remove_label_from_pr(
+    label: str,
+    pr_number: int,
+    gh: gh_aiohttp.GitHubAPI,
+    installation_id: int,
+    repository: str,
+):
+    """Remove the given label from the pull request number provided.
+
+    Note: GitHub's REST API v3 considers every pull request an issue,
+    but not every issue is a pull request.
+    https://docs.github.com/en/rest/reference/issues#list-issues-assigned-to-the-authenticated-user
+    """
+    installation_access_token = await get_access_token(gh, installation_id)
+    parse_label = urllib.parse.quote(label)
+    await gh.delete(
+        f"/repos/{repository}/issues/{pr_number}/labels/{parse_label}",
         oauth_token=installation_access_token,
     )

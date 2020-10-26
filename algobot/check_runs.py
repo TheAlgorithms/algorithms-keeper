@@ -54,11 +54,15 @@ async def check_run_completed(
         if any(
             element in [None, "failure", "timed_out"]
             for element in all_check_run_conclusions
-        ):
-            print(
-                f"Failure detected in PR {pr_number!r}\n"
-                f"Adding label {FAILURE_LABEL!r}"
-            )
+        ):  # Add the failure label
+            print(f"Failure detected in PR {pr_number!r}")
             await utils.add_label_to_pr(
                 FAILURE_LABEL, pr_number, gh, installation_id, repository
             )
+        else:
+            # Check run is successful so if the label exist, remove it
+            pr_labels = [label["name"] for label in pr_for_commit["labels"]]
+            if FAILURE_LABEL in pr_labels:
+                await utils.remove_label_from_pr(
+                    FAILURE_LABEL, pr_number, gh, installation_id, repository
+                )
