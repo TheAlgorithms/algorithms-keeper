@@ -80,6 +80,6 @@ async def add_label_to_pr(
     issue_url = pr["issue_url"]
     await gh.post(
         f"{issue_url}/labels",
-        data={"labels": label},
+        data={"labels": [label]},
         oauth_token=installation_access_token,
     )
