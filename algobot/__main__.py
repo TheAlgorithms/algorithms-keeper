@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 import traceback
+from typing import Any
 
 import aiohttp
 from aiohttp import web
@@ -17,37 +18,37 @@ from gidgethub import apps
 # between different events manually in user code.
 router = routing.Router()
 
-cache = cachetools.LRUCache(maxsize=500)
-
-# Create a route table
-# Use the decorator .get, .post, ... to add all the routes to the table
-routes = web.RouteTableDef()
+cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
 
 
-@routes.get("/", name="home")
-async def handle_get(request):
-    return web.Response(text="Hello world")
-
-
-@routes.post("/webhook")
-async def webhook(request):
+async def main(request: web.Request) -> web.Response:
     try:
         body = await request.read()
         secret = os.environ.get("GITHUB_SECRET")
         event = sansio.Event.from_http(request.headers, body, secret=secret)
+        print("GH delivery ID:", event.delivery_id, file=sys.stderr)
         if event.event == "ping":
             return web.Response(status=200)
+        oauth_token = os.environ.get("GITHUB_OAUTH_TOKEN")
         async with aiohttp.ClientSession() as session:
-            gh = gh_aiohttp.GitHubAPI(session, "demo", cache=cache)
-
+            gh = gh_aiohttp.GitHubAPI(
+                session, "TheAlgorithms/Python", oauth_token=oauth_token, cache=cache
+            )
+            # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
         try:
-            print("GH requests remaining:", gh.rate_limit.remaining)
+            print(
+                f"GH requests remaining: {gh.rate_limit.remaining}\n"
+                f"Reset time: {gh.rate_limit.reset_datetime:%b-%d-%Y %H:%M:%S %Z}\n"
+                f"oauth token length: {len(oauth_token)}\n"
+                f"Last 4 digits: {oauth_token[-4:]}\n"
+                f"GH delivery ID: {event.delivery_id}\n"
+            )
         except AttributeError:
             pass
         return web.Response(status=200)
-    except Exception as exc:
+    except Exception:
         traceback.print_exc(file=sys.stderr)
         return web.Response(status=500)
 
@@ -55,20 +56,21 @@ async def webhook(request):
 @router.register("installation", action="created")
 @router.register("installation_repositories", action="added")
 async def repo_installation_added(
-    event: sansio.Event, gh: gh_aiohttp.GitHubAPI, *args, **kwargs
+    event: sansio.Event, gh: gh_aiohttp.GitHubAPI, *args: Any, **kwargs: Any
 ):
     """Give the repository a heads up that the app has been installed.
 
-    :param event: Representation of GitHub's webhook event, access it with event.data
+    :param event: :class:`gidgethub.sansio.Event`,
+                Representation of GitHub's webhook event, access it with event.data
     :param gh: :class:`gidget.aiohttp.GitHubAPI`, gidgethub GitHub API object
     """
-    installation_id = event.data["installation"]["id"]
-    installation_access_token = await apps.get_installation_access_token(
-        gh,
-        installation_id=installation_id,
-        app_id=os.environ.get("GITHUB_APP_ID"),
-        private_key=os.environ.get("GITHUB_PRIVATE_KEY"),
-    )
+    # installation_id = event.data["installation"]["id"]
+    # installation_access_token = await apps.get_installation_access_token(
+    #     gh,
+    #     installation_id=installation_id,
+    #     app_id=os.environ.get("GITHUB_APP_ID"),
+    #     private_key=os.environ.get("GITHUB_PRIVATE_KEY"),
+    # )
     sender_name = event.data["sender"]["login"]
     try:
         repositories = event.data["repositories"]
@@ -81,24 +83,25 @@ async def repo_installation_added(
             url,
             data={
                 "title": "Installation successful!",
-                "body": f"This is the Algorithms bot at your service! Thank you for installing me @{sender_name}",
+                "body": (
+                    f"This is the Algorithms bot at your service! "
+                    f"Thank you for installing me @{sender_name}"
+                ),
             },
-            oauth_token=installation_access_token["token"],
+            # oauth_token=installation_access_token["token"],
         )
         issue_url = response["url"]
         await gh.patch(
             issue_url,
             data={"state": "closed"},
-            oauth_token=installation_access_token["token"],
+            # oauth_token=installation_access_token["token"],
         )
 
 
 if __name__ == "__main__":  # pragma: no cover
-    # Create an web Application instance
     app = web.Application()
-    # Add the route table to our app
-    app.router.add_routes(routes)
+    app.router.add_post("/", main)
     port = os.environ.get("PORT")
     if port is not None:
-        port = int(port)
+        port = int(port)  # type: ignore
     web.run_app(app, port=port)
