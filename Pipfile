@@ -4,6 +4,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pytest = "*"
+pytest-cov = "*"
+pytest-asyncio = "*"
+pytest-aiohttp = "*"
 
 [packages]
 aiohttp = "*"
