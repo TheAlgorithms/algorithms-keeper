@@ -1,6 +1,19 @@
 *.DS_Store
+
+# Editors
 .vscode/
+.idea/
+
+# Tests
+.pytest_cache/
 .mypy_cache/
-.env
 __pycache__/
+
+# Private stuff
 private/
+.env
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
