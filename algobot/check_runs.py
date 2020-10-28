@@ -30,9 +30,12 @@ async def check_run_completed(
     pr_for_commit = await utils.get_pr_for_commit(
         commit_sha, gh, installation_id, repository
     )
-    # The hook came from a check run committed directly on master branch
+    # The hook came from a check run not made in any pull request
     if not pr_for_commit:
-        print(f"This commit is not from a PR: {commit_sha!r}")
+        print(
+            f"This commit is not from a PR: "
+            f"https://api.github.com/repos/{repository}/commits/{commit_sha}"
+        )
         return None
 
     check_runs = await utils.get_check_runs_for_commit(
