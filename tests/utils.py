@@ -1,5 +1,12 @@
 from gidgethub import sansio
 
+MOCK_TOKEN = 19
+MOCK_INSTALLATION_ID = 1234
+
+
+async def mock_return(*args, **kwargs):
+    return {"token": MOCK_TOKEN}
+
 
 class MockGitHubAPI:
     def __init__(
