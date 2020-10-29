@@ -19,7 +19,7 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pipenv-
       - uses: actions/setup-python@v2
         with:
           python-version: "${{ matrix.python-version }}"
@@ -43,7 +43,7 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-lint-${{ hashFiles('**/Pipfile.lock') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-lint-
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
