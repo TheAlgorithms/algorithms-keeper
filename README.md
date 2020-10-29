@@ -13,4 +13,4 @@ Open an issue with the message greeting the user who either installed the app or
 Add a label to indicate that the tests are failing for this PR if it is not present and removes it when the tests pass. It does nothing if the tests are already passing.
 
 ---
-###### TODO: https://github.com/dhruvmanila/algobot/.github/TODO.md
+###### TODO: https://github.com/dhruvmanila/algobot/blob/master/.github/TODO.md
