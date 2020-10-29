@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: test (Python ${{ matrix.python-version }})
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: Install pipenv and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade pipenv
+          pipenv install --dev --skip-lock
+      - name: Run tests
+        run: pipenv run pytest --cov=algobot
+      - name: Upload coverage to Codecov
+        run: bash <(curl -s https://codecov.io/bash)
+        if: ${{ success() }}
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: Install black mypy
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade black mypy
+      - run: |
+          black --check .
+          mypy --ignore-missing-imports algobot tests
