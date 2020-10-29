@@ -1,5 +1,5 @@
 # algorithms-bot
-[![Travis (.com)](https://img.shields.io/travis/com/dhruvmanila/algobot?logo=travis&style=flat-square)](https://travis-ci.com/dhruvmanila/algobot)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dhruvmanila/algobot/CI?label=CI&logo=github&style=flat-square)
 ![Codecov](https://img.shields.io/codecov/c/gh/dhruvmanila/algobot?logo=codecov&style=flat-square)
 [![code style: black](https://img.shields.io/static/v1?label=code%20style&message=black&color=black&style=flat-square)](https://github.com/psf/black)
 
