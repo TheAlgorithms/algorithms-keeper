@@ -5,13 +5,12 @@
 
 A bot for [TheAlgorithms/Python](https://www.github.com/TheAlgorithms/Python) repository. This bot is highly inspired by the ones working for CPython repository which are [miss-islington](https://github.com/python/miss-islington), [bedevere](https://github.com/python/bedevere) and [the-knights-who-say-ni](https://github.com/python/the-knights-who-say-ni)
 
+## Greet the user for installing the app
+Open an issue with the message greeting the user who either installed the app or added a new repository to the installed app.
+
+
 ## Add and remove label to PRs when any test fails
 Add a label to indicate that the tests are failing for this PR if it is not present and removes it when the tests pass. It does nothing if the tests are already passing.
 
 ---
-### TODO: 
-- [ ] Add a comment indicating the user for where to look in case of failed tests
-- [ ] Auto close a pull request which do not contain any tests (`doctest`/`unittest`/`pytest`)
-- [ ] Auto close a pull request which do not contain any type hints (use `ast` or `inspect`?)
-- [ ] Auto close a pull request by a user who already has an open pull request (maybe allow 2 open pull requests at a time?)
-
+###### TODO: https://github.com/dhruvmanila/algobot/.github/TODO.md
