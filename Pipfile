@@ -13,6 +13,3 @@ pytest-cov = "2.10.1"
 aiohttp = "3.7.1"
 cachetools = "4.1.1"
 gidgethub = "4.1.1"
-
-[requires]
-python_version = "3.8"
