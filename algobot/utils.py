@@ -245,4 +245,4 @@ async def get_file_content(
     """Return the file content decoded into Python bytes object."""
     installation_access_token = await get_access_token(gh, installation_id)
     data = await gh.getitem(file["contents_url"], oauth_token=installation_access_token)
-    return base64.decodebytes(data["content"])
+    return base64.decodebytes(data["content"].encode())
