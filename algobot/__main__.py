@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import os
 import sys
 import traceback
@@ -9,9 +10,9 @@ from aiohttp import web
 from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
-from . import check_runs, installations
+from . import check_runs, installations, pull_requests
 
-router = routing.Router(installations.router, check_runs.router)
+router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
 
@@ -29,10 +30,12 @@ async def main(request: web.Request) -> web.Response:
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
         try:
+            time_remaining = gh.rate_limit.reset_datetime - datetime.datetime.now(
+                datetime.timezone.utc
+            )
             print(
-                f"GH requests remaining: {gh.rate_limit.remaining}\n"
-                f"Reset time: {gh.rate_limit.reset_datetime:%b-%d-%Y %H:%M:%S %Z}\n"
-                f"GH delivery ID: {event.delivery_id}"
+                f"GH Ratelimit: {gh.rate_limit} (UTC) which is in {time_remaining}\n"
+                f"Received {event.event!r} event with delivery ID: {event.delivery_id}"
             )
         except AttributeError:
             pass

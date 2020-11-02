@@ -1,13 +1,24 @@
+"""Utility module for the algorithms-bot
+
+All functions must have only two positional arguments:
+`gh`: This is the GithubAPI object used to make all the API calls.
+`installation_id`: The installation ID for the GitHub app (bot).
+
+The rest of the arguments must be keyword-only arguments. This is done to
+maintain consistency throughout the module and improve readability in files
+that uses all the given functions.
+"""
+import base64
 import os
 import urllib.parse
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Optional, Union
 
 import cachetools
 from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import apps
 
 # Timed cache for installation access token (1 hour)
-cache = cachetools.TTLCache(maxsize=500, ttl=3600)  # type: cachetools.TTLCache
+cache = cachetools.TTLCache(maxsize=1, ttl=3600)  # type: cachetools.TTLCache
 
 
 async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> str:
@@ -19,34 +30,41 @@ async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> st
     """
     if "access_token" in cache:
         return cache["access_token"]
-    installation_access_token = await apps.get_installation_access_token(
+    data = await apps.get_installation_access_token(
         gh,
-        installation_id=installation_id,
+        installation_id=str(installation_id),
         app_id=os.environ.get("GITHUB_APP_ID"),
         private_key=os.environ.get("GITHUB_PRIVATE_KEY"),
     )
-    cache["access_token"] = installation_access_token["token"]
+    cache["access_token"] = data["token"]
     return cache["access_token"]
 
 
-async def get_pr_for_commit(
-    sha: str, gh: gh_aiohttp.GitHubAPI, installation_id: int, repository: str
+async def get_issue_for_commit(
+    gh: gh_aiohttp.GitHubAPI, installation_id: int, *, sha: str, repository: str
 ) -> Union[None, Dict[str, Any]]:
-    """Return the pull request object for the given SHA of a commit."""
+    """Return the issue object for the given SHA of a commit.
+
+    GitHub's REST API v3 considers every pull request an issue, but not every issue
+    is a pull request. This means when we search for a pull request, we get the issue
+    object with the pull request url information in it as `issue["pull_request"]`.
+
+    If `issue["pull_request"]` is an empty `dict` then the associated object
+    is actually an issue and not a pull request.
+    """
     installation_access_token = await get_access_token(gh, installation_id)
-    prs_for_commit = await gh.getitem(
-        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}",
+    data = await gh.getitem(
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}",
         oauth_token=installation_access_token,
     )
-    if prs_for_commit["total_count"] > 0:
+    if data["total_count"] > 0:
         # There should only be one
-        pr_for_commit = prs_for_commit["items"][0]
-        return pr_for_commit
+        return data["items"][0]
     return None
 
 
 async def get_check_runs_for_commit(
-    sha: str, gh: gh_aiohttp.GitHubAPI, installation_id: int, repository: str
+    gh: gh_aiohttp.GitHubAPI, installation_id: int, *, sha: str, repository: str
 ) -> Any:
     """Return the check runs object for the given SHA of a commit."""
     installation_access_token = await get_access_token(gh, installation_id)
@@ -56,43 +74,175 @@ async def get_check_runs_for_commit(
     )
 
 
-async def add_label_to_pr(
-    label: str,
-    pr_number: int,
+async def add_label_to_pr_or_issue(
     gh: gh_aiohttp.GitHubAPI,
     installation_id: int,
-    repository: str,
+    *,
+    label: Union[str, List[str]],
+    pr_or_issue: Dict[str, Any],
 ) -> None:
-    """Add the given label to the pull request number provided.
+    """Add the given label to the pull request or issue provided.
 
-    Note: GitHub's REST API v3 considers every pull request an issue,
-    but not every issue is a pull request.
-    https://docs.github.com/en/rest/reference/issues#list-issues-assigned-to-the-authenticated-user
+    The issue object contains the labels url in it but for pull request object we need
+    to add the labels part to the issue_url. This is done to make this function
+    versatile so that we can add a label to either the issue or pull request.
     """
     installation_access_token = await get_access_token(gh, installation_id)
+    labels_url = (
+        pr_or_issue["labels_url"]
+        if "labels_url" in pr_or_issue
+        else pr_or_issue["issue_url"] + "/labels"
+    )
     await gh.post(
-        f"/repos/{repository}/issues/{pr_number}/labels",
-        data={"labels": [label]},
+        labels_url,
+        data={"labels": [label] if isinstance(label, str) else label},
         oauth_token=installation_access_token,
     )
 
 
-async def remove_label_from_pr(
-    label: str,
-    pr_number: int,
+async def remove_label_from_pr_or_issue(
     gh: gh_aiohttp.GitHubAPI,
     installation_id: int,
-    repository: str,
+    *,
+    label: str,
+    pr_or_issue: Dict[str, Any],
 ) -> None:
-    """Remove the given label from the pull request number provided.
+    """Remove the given label from pull request or issue provided.
 
-    Note: GitHub's REST API v3 considers every pull request an issue,
-    but not every issue is a pull request.
-    https://docs.github.com/en/rest/reference/issues#list-issues-assigned-to-the-authenticated-user
+    The issue object contains the labels url in it but for pull request object we need
+    to add the labels part to the issue_url. This is done to make this function
+    versatile so that we can remove a label from either the issue or pull request.
     """
     installation_access_token = await get_access_token(gh, installation_id)
+    labels_url = (
+        pr_or_issue["labels_url"]
+        if "labels_url" in pr_or_issue
+        else pr_or_issue["issue_url"] + "/labels"
+    )
     parse_label = urllib.parse.quote(label)
     await gh.delete(
-        f"/repos/{repository}/issues/{pr_number}/labels/{parse_label}",
+        f"{labels_url}/{parse_label}",
         oauth_token=installation_access_token,
     )
+
+
+async def get_total_open_prs(
+    gh: gh_aiohttp.GitHubAPI,
+    installation_id: int,
+    *,
+    repository: str,
+    user_login: Optional[str] = None,
+    count: Optional[bool] = True,
+) -> Any:
+    """Return the total number of open pull requests in the repository.
+
+    If the `user_login` value is given, then return the total number of open
+    pull request by that user in the repository.
+
+    If the `count` parameter is `False`, it returns the list of pull request
+    numbers instead.
+
+    For GitHub's REST API v3, issues and pull requests are the same so
+    `repository["open_issues_count"]` returns the total number of open
+    issues and pull requests. As we only want the pull request count,
+    we can make a search API call for open pull requests.
+    """
+    installation_access_token = await get_access_token(gh, installation_id)
+    search_url = f"/searh/issues?q=type:pr+state:open+repo:{repository}"
+    if user_login:
+        search_url += f"+author:{user_login}"
+    if not count:
+        pr_numbers = []
+        async for pull in gh.getiter(search_url, oauth_token=installation_access_token):
+            pr_numbers.append(pull["number"])
+        return pr_numbers
+    data = await gh.getitem(search_url, oauth_token=installation_access_token)
+    return data["total_count"]
+
+
+async def add_comment_to_pr_or_issue(
+    gh: gh_aiohttp.GitHubAPI,
+    installation_id: int,
+    *,
+    comment: str,
+    pr_or_issue: Dict[str, Any],
+) -> None:
+    """Add a comment to the given pull request or issue object."""
+    installation_access_token = await get_access_token(gh, installation_id)
+    await gh.post(
+        pr_or_issue["comments_url"],
+        data={"body": comment},
+        oauth_token=installation_access_token,
+    )
+
+
+async def close_pr_or_issue(
+    gh: gh_aiohttp.GitHubAPI,
+    installation_id: int,
+    *,
+    comment: str,
+    pr_or_issue: Dict[str, Any],
+    label: Optional[Union[str, List[str]]] = None,
+) -> None:
+    """Close the given pull request or issue with a comment and an optional label.
+
+    As everything is going to be done by the bot, we will make comments compulsory
+    so as to know why was this pr or issue closed.
+    """
+    installation_access_token = await get_access_token(gh, installation_id)
+    await add_comment_to_pr_or_issue(
+        gh, installation_id, comment=comment, pr_or_issue=pr_or_issue
+    )
+    if label:
+        await add_label_to_pr_or_issue(
+            gh, installation_id, label=label, pr_or_issue=pr_or_issue
+        )
+    await gh.patch(
+        pr_or_issue["url"],
+        data={"state": "closed"},
+        oauth_token=installation_access_token,
+    )
+
+
+async def remove_requested_reviewers_from_pr(
+    gh: gh_aiohttp.GitHubAPI,
+    installation_id: int,
+    *,
+    pull_request: Dict[str, Any],
+):
+    """Remove all the requested reviewers from a pull request."""
+    installation_access_token = await get_access_token(gh, installation_id)
+    reviewers = [reviewer["login"] for reviewer in pull_request["requested_reviewers"]]
+    await gh.delete(
+        pull_request["url"] + "/requested_reviewers",
+        data={"reviewers": reviewers},
+        oauth_token=installation_access_token,
+    )
+
+
+async def get_pr_files(
+    gh: gh_aiohttp.GitHubAPI, installation_id: int, *, pull_request: Dict[str, Any]
+) -> List[Dict[str, str]]:
+    """Return the list of files data from a given pull request.
+
+    The data will include `filename` and `contents_url`. The `contents_url` will be
+    used to download and parse the Python code and check for tests and type hints.
+    """
+    installation_access_token = await get_access_token(gh, installation_id)
+    files = []
+    async for data in gh.getiter(
+        pull_request["url"] + "/files", oauth_token=installation_access_token
+    ):
+        files.append(
+            {"filename": data["filename"], "contents_url": data["contents_url"]}
+        )
+    return files
+
+
+async def get_file_content(
+    gh: gh_aiohttp.GitHubAPI, installation_id: int, *, file: Dict[str, str]
+) -> bytes:
+    """Return the file content decoded into Python bytes object."""
+    installation_access_token = await get_access_token(gh, installation_id)
+    data = await gh.getitem(file["contents_url"], oauth_token=installation_access_token)
+    return base64.decodebytes(data["content"])

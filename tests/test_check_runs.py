@@ -3,9 +3,11 @@ from _pytest.monkeypatch import MonkeyPatch
 from gidgethub import apps, sansio
 
 from algobot import check_runs
-from algobot.check_runs import FAILURE_LABEL
+from algobot.constants import Label
 
 from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return
+
+BASE_URL = "https://api.github.com"
 
 
 def setup_module(module, monkeypatch=MonkeyPatch()):
@@ -58,7 +60,7 @@ async def test_check_run_not_from_pr_commit():
     }
     event = sansio.Event(data, event="check_run", delivery_id="2")
     getitem = {
-        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}": {
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}": {
             "total_count": 0,
             "incomplete_results": False,
             "items": [],
@@ -66,7 +68,10 @@ async def test_check_run_not_from_pr_commit():
     }
     gh = MockGitHubAPI(getitem=getitem)
     result = await check_runs.router.dispatch(event, gh)
-    assert gh.getitem_url == f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}"
+    assert (
+        gh.getitem_url
+        == f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}"
+    )
     assert result is None
 
 
@@ -87,7 +92,7 @@ async def test_check_run_completed_some_in_progress():
     }
     event = sansio.Event(data, event="check_run", delivery_id="3")
     getitem = {
-        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}": {
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}": {
             "total_count": 1,
             "incomplete_results": False,
             "items": [
@@ -142,7 +147,7 @@ async def test_check_run_completed_passing_no_label():
     }
     event = sansio.Event(data, event="check_run", delivery_id="4")
     getitem = {
-        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}": {
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}": {
             "total_count": 1,
             "incomplete_results": False,
             "items": [
@@ -197,7 +202,7 @@ async def test_check_run_completed_passing_with_label():
     }
     event = sansio.Event(data, event="check_run", delivery_id="5")
     getitem = {
-        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}": {
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}": {
             "total_count": 1,
             "incomplete_results": False,
             "items": [
@@ -207,8 +212,9 @@ async def test_check_run_completed_passing_with_label():
                     "state": "open",
                     "labels": [
                         {"name": "Status: awaiting reviews"},
-                        {"name": FAILURE_LABEL},
+                        {"name": Label.FAILED_TEST},
                     ],
+                    "labels_url": f"{BASE_URL}/repos/{repository}/issues/3378/labels",
                 }
             ],
         },
@@ -233,9 +239,9 @@ async def test_check_run_completed_passing_with_label():
     result = await check_runs.router.dispatch(event, gh)
     assert result is None
     assert gh.post_data is None  # does not add any label
-    assert (
-        gh.delete_url
-        == f"/repos/{repository}/issues/3378/labels/Status%3A%20Tests%20are%20failing"
+    assert gh.delete_url == (
+        f"{BASE_URL}/repos/{repository}/issues/3378/labels/"
+        f"Status%3A%20Tests%20are%20failing"
     )
 
 
@@ -256,7 +262,7 @@ async def test_check_run_completed_failing_no_label():
     }
     event = sansio.Event(data, event="check_run", delivery_id="6")
     getitem = {
-        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}": {
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}": {
             "total_count": 1,
             "incomplete_results": False,
             "items": [
@@ -267,6 +273,7 @@ async def test_check_run_completed_failing_no_label():
                     "labels": [
                         {"name": "Status: awaiting reviews"},
                     ],
+                    "labels_url": f"{BASE_URL}/repos/{repository}/issues/3378/labels",
                 }
             ],
         },
@@ -288,14 +295,14 @@ async def test_check_run_completed_failing_no_label():
     }
     post = [
         {"name": "Status: awaiting reviews"},
-        {"name": FAILURE_LABEL},
+        {"name": Label.FAILED_TEST},
     ]
     gh = MockGitHubAPI(getitem=getitem, post=post)
     result = await check_runs.router.dispatch(event, gh)
     assert result is None
     assert gh.delete_url is None  # does not delete any label
-    assert gh.post_url == f"/repos/{repository}/issues/3378/labels"
-    assert gh.post_data == {"labels": [FAILURE_LABEL]}
+    assert gh.post_url == f"{BASE_URL}/repos/{repository}/issues/3378/labels"
+    assert gh.post_data == {"labels": [Label.FAILED_TEST]}
 
 
 @pytest.mark.asyncio
@@ -315,7 +322,7 @@ async def test_check_run_completed_failing_with_label():
     }
     event = sansio.Event(data, event="check_run", delivery_id="7")
     getitem = {
-        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}": {
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}": {
             "total_count": 1,
             "incomplete_results": False,
             "items": [
@@ -325,8 +332,9 @@ async def test_check_run_completed_failing_with_label():
                     "state": "open",
                     "labels": [
                         {"name": "Status: awaiting reviews"},
-                        {"name": FAILURE_LABEL},
+                        {"name": Label.FAILED_TEST},
                     ],
+                    "labels_url": f"{BASE_URL}/repos/{repository}/issues/3378/labels",
                 }
             ],
         },
