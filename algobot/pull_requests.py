@@ -269,22 +269,23 @@ def labels_to_add_and_remove(
     labels_to_remove = []
 
     # Add or remove REQUIRE_TEST label
-    if parser.require_doctest and Label.REQUIRE_TEST not in pr_labels:
-        labels_to_add.append(Label.REQUIRE_TEST)
+    if parser.require_doctest:
+        if Label.REQUIRE_TEST not in pr_labels:
+            labels_to_add.append(Label.REQUIRE_TEST)
     elif Label.REQUIRE_TEST in pr_labels:
         labels_to_remove.append(Label.REQUIRE_TEST)
 
     # Add or remove DESCRIPTIVE_NAMES label
-    if parser.require_descriptive_names and Label.DESCRIPTIVE_NAMES not in pr_labels:
-        labels_to_add.append(Label.DESCRIPTIVE_NAMES)
+    if parser.require_descriptive_names:
+        if Label.DESCRIPTIVE_NAMES not in pr_labels:
+            labels_to_add.append(Label.DESCRIPTIVE_NAMES)
     elif Label.DESCRIPTIVE_NAMES in pr_labels:
         labels_to_remove.append(Label.DESCRIPTIVE_NAMES)
 
     # Add or remove ANNOTATIONS label
-    if (
-        parser.require_annotations or parser.require_return_annotation
-    ) and Label.ANNOTATIONS not in pr_labels:
-        labels_to_add.append(Label.ANNOTATIONS)
+    if parser.require_annotations or parser.require_return_annotation:
+        if Label.ANNOTATIONS not in pr_labels:
+            labels_to_add.append(Label.ANNOTATIONS)
     elif Label.ANNOTATIONS in pr_labels:
         labels_to_remove.append(Label.ANNOTATIONS)
 
