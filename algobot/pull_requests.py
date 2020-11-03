@@ -24,16 +24,15 @@ User opened pull requests (including this one): {pr_number}
 """
 
 EMPTY_BODY_COMMENT = """\
-# Invalid Pull Request
+# Closing this pull request as invalid
 
-### Pull request author: @{user_login}
-
-This pull request is being closed as the description is empty. If this has been done \
-by mistake, please read the [Contributing guidelines]\
-(https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md) and open a new \
-pull request with the provided [pull request template]\
+@{user_login}, this pull request is being closed because the description is empty. \
+If you believe that this is being done by mistake, please read our \
+[Contributing guidelines]\
+(https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md) before opening \
+a new pull request with our [template]\
 (https://github.com/TheAlgorithms/Python/blob/master/.github/pull_request_template.md) \
-along with all the appropriate checkboxes marked.
+properly filled out. Thanks for your interest in our project.
 """
 
 CHECKBOX_NOT_TICKED_COMMENT = """\
@@ -96,7 +95,6 @@ async def close_invalid_pr(
     **kwargs: Any,
 ) -> None:
     """Close an invalid pull request and dismiss all the review request from it.
-    The review request will be coming from the CODEOWNERS file.
 
     A pull request is considered invalid if:
     - It doesn't contain any description
@@ -109,13 +107,25 @@ async def close_invalid_pr(
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
+    author_association = pull_request["author_association"].lower()
 
-    if pull_request["author_association"] in {"OWNER", "MEMBER"}:
+    if author_association in {"owner", "member"}:
+        print(
+            f"[SKIPPED] This PR was by a/an {author_association!r}: "
+            f"{pull_request['html_url']}"
+        )
+        return None
+    elif pull_request["state"] == "closed":
+        print(
+            f"[CLOSED] This PR was closed by {event.data['sender']['login']!r}: "
+            f"{pull_request['html_url']}"
+        )
         return None
 
     pr_body = pull_request["body"]
     pr_author = pull_request["user"]["login"]
     comment = None
+
     if not pr_body:
         comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
     elif not re.search(r"\[x]", pr_body):
@@ -130,12 +140,6 @@ async def close_invalid_pr(
             label="invalid",
         )
 
-        # We only want to dismiss the review request when a PR is invalid
-        if pull_request["requested_reviewers"]:
-            await utils.remove_requested_reviewers_from_pr(
-                gh, installation_id, pull_request=pull_request
-            )
-
 
 @router.register("pull_request", action="opened")
 async def close_additional_prs_by_user(
@@ -144,7 +148,8 @@ async def close_additional_prs_by_user(
     *args: Any,
     **kwargs: Any,
 ) -> None:
-    """Close additional pull requests made by the user.
+    """Close additional pull requests made by the user and dismiss all the review
+    requests from it.
 
     A user will be allowed a fix number of pull requests at a time which will be
     indicated by the `MAX_PR_BY_USER` constant. This is done so as to avoid spam PRs.
@@ -152,8 +157,19 @@ async def close_additional_prs_by_user(
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
+    author_association = pull_request["author_association"].lower()
 
-    if pull_request["author_association"] in {"OWNER", "MEMBER"}:
+    if author_association in {"owner", "member"}:
+        print(
+            f"[SKIPPED] This PR was by a/an {author_association!r}: "
+            f"{pull_request['html_url']}"
+        )
+        return None
+    elif pull_request["state"] == "closed":
+        print(
+            f"[CLOSED] This PR was closed by {event.data['sender']['login']!r}: "
+            f"{pull_request['html_url']}"
+        )
         return None
 
     pr_author = pull_request["user"]["login"]
@@ -165,6 +181,7 @@ async def close_additional_prs_by_user(
         user_login=pr_author,
         count=False,
     )
+
     if len(user_pr_numbers) > MAX_PR_PER_USER:
         pr_number = "#{}".format(", #".join(str(num) for num in user_pr_numbers))
         await utils.close_pr_or_issue(
@@ -191,13 +208,20 @@ async def check_pr_files(
     This function will accomplish the following tasks:
     - Check for file extension and close the PR if a file do not contain any extension.
       Ignores all non-python files.
-    - Check for type hints and tests in the submitted files and label it appropriately
-      (close it when there are more number of open PRs)
+    - Check for type hints and tests in the submitted files and label it appropriately.
+      Send the report if there are any errors when a PR is opened.
 
     This function will also be triggered when new commits are pushed to the PR.
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
+
+    if pull_request["state"] == "closed":
+        print(
+            f"[CLOSED] This PR was closed by {event.data['sender']['login']!r}: "
+            f"{pull_request['html_url']}"
+        )
+        return None
 
     pr_labels = [label["name"] for label in pull_request["labels"]]
     pr_author = pull_request["user"]["login"]
@@ -242,10 +266,9 @@ async def check_pr_files(
             gh, installation_id, label=labels_to_add, pr_or_issue=pull_request
         )
 
-    # We can only remove labels one at a time or all at once.
-    for remove_label in labels_to_remove:
+    if labels_to_remove:
         await utils.remove_label_from_pr_or_issue(
-            gh, installation_id, label=remove_label, pr_or_issue=pull_request
+            gh, installation_id, label=labels_to_remove, pr_or_issue=pull_request
         )
 
     # Comment the report data only when the pull request is opened.
