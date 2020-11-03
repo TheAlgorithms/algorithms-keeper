@@ -127,20 +127,21 @@ class CodeParser:
         *,
         cls_name: Optional[str] = None,
     ) -> None:
-        # Helper function for parsing the function node
-        # The order of checking is important:
-        #
-        # First check all the function related checks:
-        # - Function name is descriptive or not
-        # - `doctest` is present in the function docstring or not
-        # - Function has return annotation or not
-        #
-        # Then check all the argument related checks:
-        # - Argument name is descriptive or not
-        # - Argument has return annotation or not
-        #
-        # If the `cls_name` argument is not None, it means that the function is inside
-        # the class. This will make sure the node path is constructed appropriately.
+        """Helper function for parsing the function node
+        The order of checking is important:
+
+        First check all the function related checks:
+        - Function name is descriptive or not
+        - `doctest` is present in the function docstring or not
+        - Function has return annotation or not
+
+        Then check all the argument related checks:
+        - Argument name is descriptive or not
+        - Argument has return annotation or not
+
+        If the `cls_name` argument is not None, it means that the function is inside
+        the class. This will make sure the node path is constructed appropriately.
+        """
         func_name = function.name
         if len(func_name) == 1:
             self._require_descriptive_names.append(
@@ -169,6 +170,8 @@ class CodeParser:
             )
         for arg in function.args.args:
             arg_name = arg.arg
+            if arg_name == "self":
+                continue
             if len(arg_name) == 1:
                 self._require_descriptive_names.append(
                     self._node_path(
