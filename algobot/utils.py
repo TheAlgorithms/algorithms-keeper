@@ -54,7 +54,7 @@ async def get_issue_for_commit(
     """
     installation_access_token = await get_access_token(gh, installation_id)
     data = await gh.getitem(
-        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}",
+        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}",
         oauth_token=installation_access_token,
     )
     if data["total_count"] > 0:
@@ -83,6 +83,8 @@ async def add_label_to_pr_or_issue(
 ) -> None:
     """Add the given label to the pull request or issue provided.
 
+    `label` can be either one label (string) or a list of labels.
+
     The issue object contains the labels url in it but for pull request object we need
     to add the labels part to the issue_url. This is done to make this function
     versatile so that we can add a label to either the issue or pull request.
@@ -104,10 +106,12 @@ async def remove_label_from_pr_or_issue(
     gh: gh_aiohttp.GitHubAPI,
     installation_id: int,
     *,
-    label: str,
+    label: Union[str, List[str]],
     pr_or_issue: Dict[str, Any],
 ) -> None:
     """Remove the given label from pull request or issue provided.
+
+    `label` can be either one label (string) or a list of labels.
 
     The issue object contains the labels url in it but for pull request object we need
     to add the labels part to the issue_url. This is done to make this function
@@ -119,11 +123,15 @@ async def remove_label_from_pr_or_issue(
         if "labels_url" in pr_or_issue
         else pr_or_issue["issue_url"] + "/labels"
     )
-    parse_label = urllib.parse.quote(label)
-    await gh.delete(
-        f"{labels_url}/{parse_label}",
-        oauth_token=installation_access_token,
-    )
+    label_list = [label] if isinstance(label, str) else label
+    # We can only remove labels one at a time or all (all labels in the PR or issue)
+    # at once.
+    for label in label_list:
+        parse_label = urllib.parse.quote(label)
+        await gh.delete(
+            f"{labels_url}/{parse_label}",
+            oauth_token=installation_access_token,
+        )
 
 
 async def get_total_open_prs(
@@ -185,6 +193,7 @@ async def close_pr_or_issue(
     label: Optional[Union[str, List[str]]] = None,
 ) -> None:
     """Close the given pull request or issue with a comment and an optional label.
+    If it is a pull request then dismiss all the requested reviews from it as well.
 
     As everything is going to be done by the bot, we will make comments compulsory
     so as to know why was this pr or issue closed.
@@ -202,6 +211,14 @@ async def close_pr_or_issue(
         data={"state": "closed"},
         oauth_token=installation_access_token,
     )
+    try:
+        # The review requests will be coming from the CODEOWNERS file
+        if pr_or_issue["requested_reviewers"]:
+            await remove_requested_reviewers_from_pr(
+                gh, installation_id, pull_request=pr_or_issue
+            )
+    except KeyError:
+        pass
 
 
 async def remove_requested_reviewers_from_pr(
