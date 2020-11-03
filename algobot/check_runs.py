@@ -29,11 +29,17 @@ async def check_run_completed(
     issue_for_commit = await utils.get_issue_for_commit(
         gh, installation_id, sha=commit_sha, repository=repository
     )
-    # The hook came from a check run not made in any pull request
+
     if not issue_for_commit:
         print(
-            f"This commit is not from a PR: "
-            f"https://api.github.com/repos/{repository}/commits/{commit_sha}"
+            f"[SKIPPED] This commit was not from a PR: "
+            f"https://github.com/{repository}/commit/{commit_sha}"
+        )
+        return None
+    elif issue_for_commit["state"] == "closed":
+        print(
+            f"[CLOSED] This PR was closed by {event.data['sender']['login']!r}: "
+            f"{issue_for_commit['pull_request']['html_url']}"
         )
         return None
 
