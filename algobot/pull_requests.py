@@ -155,8 +155,9 @@ async def close_additional_prs_by_user(
     indicated by the `MAX_PR_BY_USER` constant. This is done so as to avoid spam PRs.
     This limit won't be applied to a member or owner of the organization.
     """
+    # In case we want to stop the checks for all users
     if MAX_PR_PER_USER < 1:
-        return
+        return None
 
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
