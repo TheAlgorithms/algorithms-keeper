@@ -6,6 +6,11 @@ from algobot import installations
 
 from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return
 
+repository = "TheAlgorithms/Python"
+number = 1
+
+issue_url = f"https://api.github.com/repos/{repository}/issues/{number}"
+
 
 def setup_module(module, monkeypatch=MonkeyPatch()):
     """Monkeypatch for this module to store the MOCK_TOKEN in cache.
@@ -23,7 +28,6 @@ def setup_module(module, monkeypatch=MonkeyPatch()):
 
 @pytest.mark.asyncio
 async def test_installation_created():
-    repository = "dhruvmanila/testing"
     data = {
         "action": "created",
         "installation": {"id": MOCK_INSTALLATION_ID},
@@ -33,38 +37,42 @@ async def test_installation_created():
     event = sansio.Event(data, event="installation", delivery_id="1")
 
     post = {
-        "url": "https://api.github.com/repos/dhruvmanila/testing/issues/8",
-        "number": 8,
-        "title": "Installation successful!",
-        "user": {"login": "algorithms-bot[bot]", "type": "Bot"},
-        "state": "open",
-        "body": (
-            "This is the Algorithms bot at your service! "
-            "Thank you for installing me @dhruvmanila"
-        ),
+        f"/repos/{repository}/issues": {
+            "url": issue_url,
+            "number": number,
+            "title": "Installation successful!",
+            "user": {"login": "algorithms-bot[bot]", "type": "Bot"},
+            "state": "open",
+            "body": (
+                "This is the Algorithms bot at your service! "
+                "Thank you for installing me @dhruvmanila"
+            ),
+        }
     }
     patch = {
-        "url": "https://api.github.com/repos/dhruvmanila/testing/issues/8",
-        "number": 8,
-        "title": "Installation successful!",
-        "user": {"login": "algorithms-bot[bot]", "type": "Bot"},
-        "state": "closed",
-        "body": (
-            "This is the Algorithms bot at your service! "
-            "Thank you for installing me @dhruvmanila"
-        ),
+        issue_url: {
+            "url": issue_url,
+            "number": number,
+            "title": "Installation successful!",
+            "user": {"login": "algorithms-bot[bot]", "type": "Bot"},
+            "state": "closed",
+            "body": (
+                "This is the Algorithms bot at your service! "
+                "Thank you for installing me @dhruvmanila"
+            ),
+        }
     }
 
     gh = MockGitHubAPI(post=post, patch=patch)
     await installations.router.dispatch(event, gh)
-    assert gh.post_url == f"/repos/{repository}/issues"
-    assert gh.post_data["title"] == "Installation successful!"
-    assert gh.post_data["body"] == (
+    assert gh.post_url[0] == f"/repos/{repository}/issues"
+    assert gh.post_data[0]["title"] == "Installation successful!"
+    assert gh.post_data[0]["body"] == (
         "This is the Algorithms bot at your service! "
         "Thank you for installing me @dhruvmanila"
     )
-    assert gh.patch_url == "https://api.github.com/repos/dhruvmanila/testing/issues/8"
-    assert gh.patch_data["state"] == "closed"
+    assert gh.patch_url[0] == issue_url
+    assert gh.patch_data[0]["state"] == "closed"
 
 
 @pytest.mark.asyncio
@@ -79,35 +87,39 @@ async def test_installation_repositories_added():
     event = sansio.Event(data, event="installation_repositories", delivery_id="2")
 
     post = {
-        "url": "https://api.github.com/repos/dhruvmanila/testing/issues/8",
-        "number": 8,
-        "title": "Installation successful!",
-        "user": {"login": "algorithms-bot[bot]", "type": "Bot"},
-        "state": "open",
-        "body": (
-            "This is the Algorithms bot at your service! "
-            "Thank you for installing me @dhruvmanila"
-        ),
+        f"/repos/{repository}/issues": {
+            "url": issue_url,
+            "number": number,
+            "title": "Installation successful!",
+            "user": {"login": "algorithms-bot[bot]", "type": "Bot"},
+            "state": "open",
+            "body": (
+                "This is the Algorithms bot at your service! "
+                "Thank you for installing me @dhruvmanila"
+            ),
+        }
     }
     patch = {
-        "url": "https://api.github.com/repos/dhruvmanila/testing/issues/8",
-        "number": 8,
-        "title": "Installation successful!",
-        "user": {"login": "algorithms-bot[bot]", "type": "Bot"},
-        "state": "closed",
-        "body": (
-            "This is the Algorithms bot at your service! "
-            "Thank you for installing me @dhruvmanila"
-        ),
+        issue_url: {
+            "url": issue_url,
+            "number": number,
+            "title": "Installation successful!",
+            "user": {"login": "algorithms-bot[bot]", "type": "Bot"},
+            "state": "closed",
+            "body": (
+                "This is the Algorithms bot at your service! "
+                "Thank you for installing me @dhruvmanila"
+            ),
+        }
     }
 
     gh = MockGitHubAPI(post=post, patch=patch)
     await installations.router.dispatch(event, gh)
-    assert gh.post_url == f"/repos/{repository}/issues"
-    assert gh.post_data["title"] == "Installation successful!"
-    assert gh.post_data["body"] == (
+    assert gh.post_url[0] == f"/repos/{repository}/issues"
+    assert gh.post_data[0]["title"] == "Installation successful!"
+    assert gh.post_data[0]["body"] == (
         "This is the Algorithms bot at your service! "
         "Thank you for installing me @dhruvmanila"
     )
-    assert gh.patch_url == "https://api.github.com/repos/dhruvmanila/testing/issues/8"
-    assert gh.patch_data["state"] == "closed"
+    assert gh.patch_url[0] == issue_url
+    assert gh.patch_data[0]["state"] == "closed"
