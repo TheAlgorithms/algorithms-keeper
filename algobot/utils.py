@@ -156,7 +156,7 @@ async def get_total_open_prs(
     we can make a search API call for open pull requests.
     """
     installation_access_token = await get_access_token(gh, installation_id)
-    search_url = f"/searh/issues?q=type:pr+state:open+repo:{repository}"
+    search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}"
     if user_login:
         search_url += f"+author:{user_login}"
     if not count:
