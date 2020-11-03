@@ -24,6 +24,10 @@ async def main(request: web.Request) -> web.Response:
         event = sansio.Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
             return web.Response(status=200)
+        print(
+            f"Received {event.event + ':' + event.data['action']!r} event "
+            f"with delivery ID: {event.delivery_id}"
+        )
         async with aiohttp.ClientSession() as session:
             gh = gh_aiohttp.GitHubAPI(session, "algorithms-bot", cache=cache)
             # Give GitHub some time to reach internal consistency.
@@ -33,10 +37,7 @@ async def main(request: web.Request) -> web.Response:
             time_remaining = gh.rate_limit.reset_datetime - datetime.datetime.now(
                 datetime.timezone.utc
             )
-            print(
-                f"GH Ratelimit: {gh.rate_limit} (UTC) which is in {time_remaining}\n"
-                f"Received {event.event!r} event with delivery ID: {event.delivery_id}"
-            )
+            print(f"GH Ratelimit: {gh.rate_limit} (UTC) which is in {time_remaining}")
         except AttributeError:
             pass
         return web.Response(status=200)
