@@ -13,11 +13,10 @@ MAX_PR_PER_USER = 1
 MAX_PR_REACHED_COMMENT = """\
 # Multiple Pull Request Opened
 
-### Pull request author: @{user_login}
-
-This pull request is being closed as the user already has an open pull request. \
-A user can only have one pull request remain opened at a time. Please focus on \
-your previous pull request before opening another one. Thank you for your cooperation.
+@{user_login}, this pull request is being closed as the user already has an open \
+pull request. A user can only have one pull request remain opened at a time. \
+Please focus on your previous pull request before opening another one. Thank you \
+for your cooperation.
 
 User opened pull requests (including this one): {pr_number}
 """
@@ -35,13 +34,11 @@ properly filled out. Thanks for your interest in our project.
 """
 
 CHECKBOX_NOT_TICKED_COMMENT = """\
-# Invalid Pull Request
+# Closing this pull request as invalid
 
-### Pull request author: @{user_login}
-
-This pull request is being closed as none of the checkboxes have been marked. It is \
-important that you go through the checklist and mark the ones relevant to this \
-pull request.
+@{user_login}, this pull request is being closed as none of the checkboxes have been \
+marked. It is important that you go through the checklist and mark the ones relevant \
+to this pull request.
 
 If you're facing any problem on how to mark a checkbox, please read the following \
 instruction:
@@ -54,25 +51,21 @@ open a new pull request with the appropriate changes.***
 """
 
 NO_EXTENSION_COMMENT = """\
-# Invalid Pull Request
+# Closing this pull request as invalid
 
-### Pull request author: @{user_login}
-
-This pull request is being closed as the files submitted contains no extension. \
-This repository only accepts Python algorithms. Please read the \
+@{user_login}, this pull request is being closed as the files submitted contains no \
+extension. This repository only accepts Python algorithms. Please read the \
 [Contributing guidelines]\
 (https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md) first.
 """
 
 PR_REPORT_COMMENT = """\
-# Pull Request Report:
+# Pull Request Report
 
-### Pull request author: @{user_login}
-
-Hello! Thank you opening the pull request but there are some errors which I detected \
-in the files submitted in this pull request. Please read through the report \
-and make the necessary changes. You can take a look at the relevant links provided \
-after the report.
+@{user_login} Hello! Thank you opening the pull request but there are some errors \
+which I detected in the files submitted in this pull request. Please read through \
+the report and make the necessary changes. You can take a look at the relevant links \
+provided after the report.
 {content}
 
 ### Relevant links:
@@ -87,19 +80,24 @@ router = routing.Router()
 
 
 @router.register("pull_request", action="opened")
-async def close_invalid_pr(
+async def close_invalid_or_additional_pr(
     event: sansio.Event,
     gh: gh_aiohttp.GitHubAPI,
     *args: Any,
     **kwargs: Any,
 ) -> None:
-    """Close an invalid pull request and dismiss all the review request from it.
+    """Close an invalid pull request or close additional pull requests made by the
+    user and dismiss all the review requests from it.
 
     A pull request is considered invalid if:
     - It doesn't contain any description
     - The user has not ticked any of the checkboxes in the pull request template
     - The file extension is invalid (Extensionless files) [This will be checked in
       `check_pr_files` function]
+
+    A user will be allowed a fix number of pull requests at a time which will be
+    indicated by the `MAX_PR_BY_USER` constant. This is done so as to avoid spam PRs.
+    To disable the limit -> `MAX_PR_BY_USER` = 0
 
     These checks won't be done for the pull request made by a member or owner of the
     organization.
@@ -110,13 +108,7 @@ async def close_invalid_pr(
 
     if author_association in {"owner", "member"}:
         print(
-            f"[SKIPPED] This PR was by a/an {author_association!r}: "
-            f"{pull_request['html_url']}"
-        )
-        return None
-    elif pull_request["state"] == "closed":
-        print(
-            f"[CLOSED] This PR was closed by {event.data['sender']['login']!r}: "
+            f"[SKIPPED] Author association {author_association!r}: "
             f"{pull_request['html_url']}"
         )
         return None
@@ -138,63 +130,25 @@ async def close_invalid_pr(
             pr_or_issue=pull_request,
             label="invalid",
         )
-
-
-@router.register("pull_request", action="opened")
-async def close_additional_prs_by_user(
-    event: sansio.Event,
-    gh: gh_aiohttp.GitHubAPI,
-    *args: Any,
-    **kwargs: Any,
-) -> None:
-    """Close additional pull requests made by the user and dismiss all the review
-    requests from it.
-
-    A user will be allowed a fix number of pull requests at a time which will be
-    indicated by the `MAX_PR_BY_USER` constant. This is done so as to avoid spam PRs.
-    This limit won't be applied to a member or owner of the organization.
-    """
-    # In case we want to stop the checks for all users
-    if MAX_PR_PER_USER < 1:
-        return None
-
-    installation_id = event.data["installation"]["id"]
-    pull_request = event.data["pull_request"]
-    author_association = pull_request["author_association"].lower()
-
-    if author_association in {"owner", "member"}:
-        print(
-            f"[SKIPPED] This PR was by a/an {author_association!r}: "
-            f"{pull_request['html_url']}"
-        )
-        return None
-    elif pull_request["state"] == "closed":
-        print(
-            f"[CLOSED] This PR was closed by {event.data['sender']['login']!r}: "
-            f"{pull_request['html_url']}"
-        )
-        return None
-
-    pr_author = pull_request["user"]["login"]
-
-    user_pr_numbers = await utils.get_total_open_prs(
-        gh,
-        installation_id,
-        repository=event.data["repository"]["full_name"],
-        user_login=pr_author,
-        count=False,
-    )
-
-    if len(user_pr_numbers) > MAX_PR_PER_USER:
-        pr_number = "#{}".format(", #".join(str(num) for num in user_pr_numbers))
-        await utils.close_pr_or_issue(
+    elif MAX_PR_PER_USER > 0:
+        user_pr_numbers = await utils.get_total_open_prs(
             gh,
             installation_id,
-            comment=MAX_PR_REACHED_COMMENT.format(
-                user_login=pr_author, pr_number=pr_number
-            ),
-            pr_or_issue=pull_request,
+            repository=event.data["repository"]["full_name"],
+            user_login=pr_author,
+            count=False,
         )
+
+        if len(user_pr_numbers) > MAX_PR_PER_USER:
+            pr_number = "#{}".format(", #".join(str(num) for num in user_pr_numbers))
+            await utils.close_pr_or_issue(
+                gh,
+                installation_id,
+                comment=MAX_PR_REACHED_COMMENT.format(
+                    user_login=pr_author, pr_number=pr_number
+                ),
+                pr_or_issue=pull_request,
+            )
 
 
 @router.register("pull_request", action="opened")
@@ -218,13 +172,6 @@ async def check_pr_files(
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
-
-    if pull_request["state"] == "closed":
-        print(
-            f"[CLOSED] This PR was closed by {event.data['sender']['login']!r}: "
-            f"{pull_request['html_url']}"
-        )
-        return None
 
     pr_labels = [label["name"] for label in pull_request["labels"]]
     pr_author = pull_request["user"]["login"]
@@ -283,7 +230,7 @@ async def check_pr_files(
                 gh,
                 installation_id,
                 comment=PR_REPORT_COMMENT.format(
-                    content="".join(report_content), user_login=pr_author
+                    content=report_content, user_login=pr_author
                 ),
                 pr_or_issue=pull_request,
             )
