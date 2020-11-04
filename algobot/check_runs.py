@@ -26,11 +26,11 @@ async def check_run_completed(
     installation_id = event.data["installation"]["id"]
     repository = event.data["repository"]["full_name"]
 
-    issue_for_commit = await utils.get_pr_for_commit(
+    pr_for_commit = await utils.get_pr_for_commit(
         gh, installation_id, sha=commit_sha, repository=repository
     )
 
-    if not issue_for_commit:
+    if not pr_for_commit:
         print(
             f"[SKIPPED] Pull request not found for commit: "
             f"https://github.com/{repository}/commit/{commit_sha}"
@@ -52,7 +52,7 @@ async def check_run_completed(
         "in_progress" not in all_check_run_status
         and "queued" not in all_check_run_status
     ):  # wait until all check runs are completed
-        pr_labels = [label["name"] for label in issue_for_commit["labels"]]
+        pr_labels = [label["name"] for label in pr_for_commit["labels"]]
         if any(
             element in [None, "failure", "timed_out"]
             for element in all_check_run_conclusions
@@ -62,7 +62,7 @@ async def check_run_completed(
                     gh,
                     installation_id,
                     label=Label.FAILED_TEST,
-                    pr_or_issue=issue_for_commit,
+                    pr_or_issue=pr_for_commit,
                 )
         # Check run is successful so if the label exist, remove it
         elif Label.FAILED_TEST in pr_labels:
@@ -70,5 +70,5 @@ async def check_run_completed(
                 gh,
                 installation_id,
                 label=Label.FAILED_TEST,
-                pr_or_issue=issue_for_commit,
+                pr_or_issue=pr_for_commit,
             )
