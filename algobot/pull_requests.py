@@ -283,7 +283,7 @@ async def check_pr_files(
                 gh,
                 installation_id,
                 comment=PR_REPORT_COMMENT.format(
-                    content=report_content, user_login=pr_author
+                    content="".join(report_content), user_login=pr_author
                 ),
                 pr_or_issue=pull_request,
             )
