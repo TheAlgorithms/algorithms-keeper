@@ -3,6 +3,8 @@ from typing import List, Optional, Tuple, Union
 
 from .constants import Label
 
+SEP = "::"
+
 
 class PullRequestFilesParser:
     """Parser for all the pull request Python files.
@@ -100,7 +102,7 @@ class PullRequestFilesParser:
 
         return labels_to_add, labels_to_remove
 
-    def create_report_content(self) -> List[str]:
+    def create_report_content(self) -> str:  # pragma: no cover
         """Create the report content for the current pull request as per the
         stored data in the parser.
 
@@ -140,7 +142,7 @@ class PullRequestFilesParser:
                 "\n### Following function parameters require type hints:\n"
                 "- [ ] {}\n".format("\n- [ ] ".join(self._require_annotations))
             )
-        return content
+        return "".join(content)
 
     def _parse_function(
         self,
@@ -166,9 +168,9 @@ class PullRequestFilesParser:
         func_name = function.name
         if len(func_name) == 1:
             self._require_descriptive_names.append(
-                self._node_path(func_name=func_name, cls_name=cls_name)
+                self._node_path(cls_name=cls_name, func_name=func_name)
             )
-        if not self._skip_doctest:
+        if not self._skip_doctest and func_name != "__init__":
             docstring = ast.get_docstring(function)
             if docstring:
                 for line in docstring.split("\n"):
@@ -177,38 +179,41 @@ class PullRequestFilesParser:
                         break
                 else:
                     self._require_doctest.append(
-                        self._node_path(func_name=func_name, cls_name=cls_name)
+                        self._node_path(cls_name=cls_name, func_name=func_name)
                     )
             # If `docstring` is absent from the function, we will count it as
             # `doctest` not present.
             else:
                 self._require_doctest.append(
-                    self._node_path(func_name=func_name, cls_name=cls_name)
+                    self._node_path(cls_name=cls_name, func_name=func_name)
                 )
         if not function.returns:
             self._require_return_annotation.append(
-                self._node_path(func_name=func_name, cls_name=cls_name)
+                self._node_path(cls_name=cls_name, func_name=func_name)
             )
         for arg in function.args.args:
             arg_name = arg.arg
-            if arg_name == "self":
+            # continue only if `self` is from a method
+            if cls_name and arg_name == "self":
                 continue
             if len(arg_name) == 1:
                 self._require_descriptive_names.append(
                     self._node_path(
-                        func_name=func_name, cls_name=cls_name, arg_name=arg_name
+                        cls_name=cls_name, func_name=func_name, arg_name=arg_name
                     )
                 )
             if not arg.annotation:
                 self._require_annotations.append(
                     self._node_path(
-                        func_name=func_name, cls_name=cls_name, arg_name=arg_name
+                        cls_name=cls_name, func_name=func_name, arg_name=arg_name
                     )
                 )
 
     def _parse_class(self, klass: ast.ClassDef) -> None:
         # A method is basically a function inside a class
         cls_name = klass.name
+        if len(cls_name) == 1:
+            self._require_descriptive_names.append(self._node_path(cls_name=cls_name))
         for cls_node in klass.body:
             if isinstance(cls_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 self._parse_function(cls_node, cls_name=cls_name)
@@ -216,13 +221,15 @@ class PullRequestFilesParser:
     def _node_path(
         self,
         *,
-        func_name: str,
         cls_name: Optional[str] = None,
+        func_name: Optional[str] = None,
         arg_name: Optional[str] = None,
     ) -> str:
-        path: List[str] = [self._filename, func_name]
+        path: List[str] = [self._filename]
         if cls_name:
-            path.insert(1, cls_name)
+            path.append(cls_name)
+        if func_name:
+            path.append(func_name)
         if arg_name:
             path.append(arg_name)
-        return "`{}`".format("::".join(path))
+        return "`{}`".format(SEP.join(path))
