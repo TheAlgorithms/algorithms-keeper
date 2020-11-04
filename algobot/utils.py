@@ -40,21 +40,19 @@ async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> st
     return cache["access_token"]
 
 
-async def get_issue_for_commit(
+async def get_pr_for_commit(
     gh: gh_aiohttp.GitHubAPI, installation_id: int, *, sha: str, repository: str
 ) -> Union[None, Dict[str, Any]]:
-    """Return the issue object for the given SHA of a commit.
+    """Return the issue object relative to the pull request, for the given SHA
+    of a commit.
 
     GitHub's REST API v3 considers every pull request an issue, but not every issue
     is a pull request. This means when we search for a pull request, we get the issue
     object with the pull request url information in it as `issue["pull_request"]`.
-
-    If `issue["pull_request"]` is an empty `dict` then the associated object
-    is actually an issue and not a pull request.
     """
     installation_access_token = await get_access_token(gh, installation_id)
     data = await gh.getitem(
-        f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}",
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}",
         oauth_token=installation_access_token,
     )
     if data["total_count"] > 0:

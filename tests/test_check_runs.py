@@ -16,7 +16,7 @@ sha = "a06212064d8e1c349c75c5ea4568ecf155368c21"
 
 # Incomplete urls
 html_pr_url = f"https://github.com/{repository}/pulls/{number}"
-search_url = f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}"
+search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}"
 check_run_url = f"/repos/{repository}/commits/{sha}/check-runs"
 labels_url = f"https://api.github.com/repos/{repository}/issues/{number}/labels"
 
@@ -52,6 +52,9 @@ async def test_check_run_created():
     result = await check_runs.router.dispatch(event, gh)
     assert result is None
     assert gh.getitem_url == []
+    assert gh.post_url == []  # does not add any label
+    assert gh.post_data == []
+    assert gh.delete_url == []  # does not delete any label
 
 
 @pytest.mark.asyncio
@@ -72,40 +75,6 @@ async def test_check_run_not_from_pr_commit():
         search_url: {
             "total_count": 0,
             "items": [],
-        }
-    }
-    gh = MockGitHubAPI(getitem=getitem)
-    result = await check_runs.router.dispatch(event, gh)
-    assert len(gh.getitem_url) == 1
-    assert gh.getitem_url[0] == search_url
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_check_run_pr_closed():
-    data = {
-        "action": "completed",
-        "check_run": {
-            "head_sha": sha,
-            "status": "completed",
-            "conclusion": "success",
-        },
-        "name": "pre-commit",
-        "repository": {"full_name": repository},
-        "sender": {"login": "dhruvmanila"},
-        "installation": {"id": MOCK_INSTALLATION_ID},
-    }
-    event = sansio.Event(data, event="check_run", delivery_id="2")
-    getitem = {
-        search_url: {
-            "total_count": 1,
-            "items": [
-                {
-                    "number": number,
-                    "state": "closed",
-                    "pull_request": {"html_url": html_pr_url},
-                }
-            ],
         }
     }
     gh = MockGitHubAPI(getitem=getitem)

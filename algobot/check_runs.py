@@ -26,20 +26,14 @@ async def check_run_completed(
     installation_id = event.data["installation"]["id"]
     repository = event.data["repository"]["full_name"]
 
-    issue_for_commit = await utils.get_issue_for_commit(
+    issue_for_commit = await utils.get_pr_for_commit(
         gh, installation_id, sha=commit_sha, repository=repository
     )
 
     if not issue_for_commit:
         print(
-            f"[SKIPPED] This commit was not from a PR: "
+            f"[SKIPPED] Pull request not found for commit: "
             f"https://github.com/{repository}/commit/{commit_sha}"
-        )
-        return None
-    elif issue_for_commit["state"] == "closed":
-        print(
-            f"[CLOSED] This PR was closed by {event.data['sender']['login']!r}: "
-            f"{issue_for_commit['pull_request']['html_url']}"
         )
         return None
 

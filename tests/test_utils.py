@@ -16,7 +16,7 @@ repository = "TheAlgorithms/Python"
 comment = "This is a test comment"
 
 # Incomplete urls
-search_url = f"/search/issues?q=type:pr+repo:{repository}+sha:{sha}"
+search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}"
 pr_search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}"
 pr_user_search_url = (
     f"/search/issues?q=type:pr+state:open+repo:{repository}+author:{user}"
@@ -67,7 +67,7 @@ async def test_get_issue_for_commit():
         }
     }
     gh = MockGitHubAPI(getitem=getitem)
-    result = await utils.get_issue_for_commit(
+    result = await utils.get_pr_for_commit(
         gh, MOCK_INSTALLATION_ID, sha=sha, repository=repository
     )
     assert gh.getitem_url[0] == search_url
@@ -85,7 +85,7 @@ async def test_get_issue_for_commit_not_found():
         }
     }
     gh = MockGitHubAPI(getitem=getitem)
-    result = await utils.get_issue_for_commit(
+    result = await utils.get_pr_for_commit(
         gh, MOCK_INSTALLATION_ID, sha=sha, repository=repository
     )
     assert gh.getitem_url[0] == search_url
