@@ -1,4 +1,5 @@
-from typing import Any, List, Optional, Dict
+from typing import Any, Dict, List, Optional
+
 from gidgethub import sansio
 
 MOCK_TOKEN = 19
@@ -33,6 +34,7 @@ class MockGitHubAPI:
         self.patch_url: List[str] = []
         self.patch_data: List[str] = []
         self.delete_url: List[str] = []
+        self.delete_data: List[str] = []
 
     async def getitem(self, url, *, accept=sansio.accept_format(), oauth_token=None):
         self.getitem_url.append(url)
@@ -59,7 +61,8 @@ class MockGitHubAPI:
         return self._patch_return[url]
 
     async def delete(
-        self, url, *, data=b"", accept=sansio.accept_format(), oauth_token=None
+        self, url, *, data={}, accept=sansio.accept_format(), oauth_token=None
     ):
         self.delete_url.append(url)
+        self.delete_data.append(data)
         return self._delete_return[url]
