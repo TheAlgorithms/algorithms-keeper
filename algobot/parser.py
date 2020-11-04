@@ -10,7 +10,7 @@ class CodeParser:
     its public method `parse_code` to parse and store all the necessary node
     paths. Node path will be of the following format:
 
-    `{filepath}:[{class_name}]:{function_name}:{parameter_name}`
+    `{filepath}::{class_name}::{function_name}::{parameter_name}`
 
     Class name will be added to the path only if the function node is a method.
 
@@ -61,9 +61,9 @@ class CodeParser:
         a class, it will include the class name in the path.
 
         Format:
-        `{filepath}:{function_name}`
+        `{filepath}::{function_name}`
         or
-        `{filepath}:{class_name}:{function_name}`
+        `{filepath}::{class_name}::{function_name}`
         """
         return self._require_doctest.copy()
 
@@ -73,9 +73,9 @@ class CodeParser:
         inside a class, it will include the class name in the path.
 
         Format:
-        `{filepath}:{function_name}`
+        `{filepath}::{function_name}`
         or
-        `{filepath}:{class_name}:{function_name}`
+        `{filepath}::{class_name}::{function_name}`
         """
         return self._require_return_annotation.copy()
 
@@ -85,9 +85,9 @@ class CodeParser:
         a class, it will include the class name in the path.
 
         Format:
-        `{filepath}:{function_name}:{param_name}`
+        `{filepath}::{function_name}::{param_name}`
         or
-        `{filepath}:{class_name}:{function_name}:{param_name}`
+        `{filepath}::{class_name}::{function_name}::{param_name}`
         """
         return self._require_annotations.copy()
 
@@ -97,11 +97,11 @@ class CodeParser:
         function is inside a class, it will include the class name in the path.
 
         Format:
-        `{filepath}:{function_name}`
-        `{filepath}:{function_name}:{param_name}`
+        `{filepath}::{function_name}`
+        `{filepath}::{function_name}::{param_name}`
         or
-        `{filepath}:{class_name}:{function_name}`
-        `{filepath}:{class_name}:{function_name}:{param_name}`
+        `{filepath}::{class_name}::{function_name}`
+        `{filepath}::{class_name}::{function_name}::{param_name}`
         """
         return self._require_descriptive_names.copy()
 
@@ -204,4 +204,4 @@ class CodeParser:
             path.insert(1, cls_name)
         if arg_name:
             path.append(arg_name)
-        return "`{}`".format(":".join(path))
+        return "`{}`".format("::".join(path))
