@@ -41,6 +41,7 @@ async def test_get_access_token(monkeypatch):
     monkeypatch.setattr(apps, "get_installation_access_token", mock_return)
     token = await utils.get_access_token(gh, MOCK_INSTALLATION_ID)
     assert token == MOCK_TOKEN
+    monkeypatch.undo()
 
 
 @pytest.mark.asyncio
@@ -50,6 +51,7 @@ async def test_get_cached_access_token(monkeypatch):
     monkeypatch.delattr(apps, "get_installation_access_token")
     token = await utils.get_access_token(gh, MOCK_INSTALLATION_ID)
     assert token == MOCK_TOKEN
+    monkeypatch.undo()
 
 
 @pytest.mark.asyncio
@@ -417,7 +419,9 @@ async def test_get_file_content():
     )
     gh = MockGitHubAPI(getitem=getitem)
     result = await utils.get_file_content(
-        gh, MOCK_INSTALLATION_ID, file={"contents_url": contents_url1}
+        gh,
+        MOCK_INSTALLATION_ID,
+        file={"filename": "test.py", "contents_url": contents_url1},
     )
     assert result == output
     assert gh.getitem_url[0] == contents_url1

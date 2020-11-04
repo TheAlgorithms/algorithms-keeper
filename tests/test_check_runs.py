@@ -21,18 +21,11 @@ check_run_url = f"/repos/{repository}/commits/{sha}/check-runs"
 labels_url = f"https://api.github.com/repos/{repository}/issues/{number}/labels"
 
 
-def setup_module(module, monkeypatch=MonkeyPatch()):
-    """Monkeypatch for this module to store the MOCK_TOKEN in cache.
-
-    We cannot use `pytest.fixture(scope="module")` as `monkeypatch` fixture
-    only works at function level (this is a module level setup function),
-    so we will directly use the MonkeyPatch class where the fixture is
-    generated from and pass it as the default argument to this function.
-
-    This will only be executed once in this module, storing the token in the
-    cache for later use.
-    """
+@pytest.fixture(scope="module", autouse=True)
+def patch_module(monkeypatch=MonkeyPatch()):
     monkeypatch.setattr(apps, "get_installation_access_token", mock_return)
+    yield monkeypatch
+    monkeypatch.undo()
 
 
 @pytest.mark.asyncio
