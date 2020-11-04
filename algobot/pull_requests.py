@@ -1,13 +1,12 @@
 import re
 from pathlib import PurePath
-from typing import Any, List, Tuple
+from typing import Any
 
 from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
 from . import utils
-from .constants import Label
-from .parser import CodeParser
+from .parser import PullRequestFilesParser
 
 MAX_PR_PER_USER = 1
 
@@ -230,7 +229,7 @@ async def check_pr_files(
     pr_labels = [label["name"] for label in pull_request["labels"]]
     pr_author = pull_request["user"]["login"]
     pr_files = await utils.get_pr_files(gh, installation_id, pull_request=pull_request)
-    parser = CodeParser()
+    parser = PullRequestFilesParser()
     files_to_check = []
 
     # We will collect the files first as there is this one problem case:
@@ -263,7 +262,7 @@ async def check_pr_files(
         code = await utils.get_file_content(gh, installation_id, file=file)
         parser.parse_code(file["filename"], code)
 
-    labels_to_add, labels_to_remove = labels_to_add_and_remove(parser, pr_labels)
+    labels_to_add, labels_to_remove = parser.labels_to_add_and_remove(pr_labels)
 
     if labels_to_add:
         await utils.add_label_to_pr_or_issue(
@@ -275,88 +274,16 @@ async def check_pr_files(
             gh, installation_id, label=labels_to_remove, pr_or_issue=pull_request
         )
 
-    # Comment the report data only when the pull request is opened.
+    # Comment the report data only when the pull request is opened and if there are
+    # any errors
     if event.data["action"] == "opened":
-        report = create_pr_report(parser, pr_author)
-        await utils.add_comment_to_pr_or_issue(
-            gh, installation_id, comment=report, pr_or_issue=pull_request
-        )
-
-
-def labels_to_add_and_remove(
-    parser: CodeParser, pr_labels: List[str]
-) -> Tuple[List[str], List[str]]:
-    """Return which labels to add and remove from the given pull request according
-    to the CodeParser object given.
-
-    The attributes of the parser object and the current labels will determine which
-    labels to add or remove.
-    """
-    labels_to_add = []
-    labels_to_remove = []
-
-    # Add or remove REQUIRE_TEST label
-    if parser.require_doctest:
-        if Label.REQUIRE_TEST not in pr_labels:
-            labels_to_add.append(Label.REQUIRE_TEST)
-    elif Label.REQUIRE_TEST in pr_labels:
-        labels_to_remove.append(Label.REQUIRE_TEST)
-
-    # Add or remove DESCRIPTIVE_NAMES label
-    if parser.require_descriptive_names:
-        if Label.DESCRIPTIVE_NAMES not in pr_labels:
-            labels_to_add.append(Label.DESCRIPTIVE_NAMES)
-    elif Label.DESCRIPTIVE_NAMES in pr_labels:
-        labels_to_remove.append(Label.DESCRIPTIVE_NAMES)
-
-    # Add or remove ANNOTATIONS label
-    if parser.require_annotations or parser.require_return_annotation:
-        if Label.ANNOTATIONS not in pr_labels:
-            labels_to_add.append(Label.ANNOTATIONS)
-    elif Label.ANNOTATIONS in pr_labels:
-        labels_to_remove.append(Label.ANNOTATIONS)
-
-    return labels_to_add, labels_to_remove
-
-
-def create_pr_report(parser: CodeParser, user_login: str) -> str:
-    """Create the report for the current pull request as per the stored data
-    in the parser.
-
-    The report comment will be in the following format:
-
-    ---
-    {PR_REPORT_COMMENT}
-
-    ### {Following functions/parameters require ...},
-        where '...' can be tests, type hints, etc
-    - [ ] Function or parameter node path where the requirement is missing
-    ---
-
-    NOTE: The report will only contain missing requirements.
-    """
-    content = []
-
-    if parser.require_doctest:
-        content.append(
-            "\n### Following functions require tests [`doctest`/`unittest`/`pytest`]:\n"
-            "- [ ] {}\n".format("\n- [ ] ".join(parser.require_doctest))
-        )
-    if parser.require_descriptive_names:
-        content.append(
-            "\n### Following functions/parameters require descriptive names:\n"
-            "- [ ] {}\n".format("\n- [ ] ".join(parser.require_descriptive_names))
-        )
-    if parser.require_return_annotation:
-        content.append(
-            "\n### Following functions require return type hints:\n"
-            "***NOTE: If the function returns `None` then provide the type hint as "
-            "`def function() -> None`***\n"
-            "- [ ] {}\n".format("\n- [ ] ".join(parser.require_return_annotation))
-        )
-    if parser.require_annotations:
-        content.append(
-            "\n### Following function parameters require type hints:\n"
-            "- [ ] {}\n".format("\n- [ ] ".join(parser.require_annotations))
-        )
-    return PR_REPORT_COMMENT.format(content="".join(content), user_login=user_login)
+        report_content = parser.create_report_content()
+        if report_content:
+            await utils.add_comment_to_pr_or_issue(
+                gh,
+                installation_id,
+                comment=PR_REPORT_COMMENT.format(
+                    content=report_content, user_login=pr_author
+                ),
+                pr_or_issue=pull_request,
+            )

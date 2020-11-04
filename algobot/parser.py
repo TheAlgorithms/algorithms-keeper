@@ -1,18 +1,14 @@
 import ast
-import functools
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
+
+from .constants import Label
 
 
-class CodeParser:
-    """Python code parser for all the pull request files.
+class PullRequestFilesParser:
+    """Parser for all the pull request Python files.
 
     This class should only be initialized once per pull request and then use
-    its public method `parse_code` to parse and store all the necessary node
-    paths. Node path will be of the following format:
-
-    `{filepath}::{class_name}::{function_name}::{parameter_name}`
-
-    Class name will be added to the path only if the function node is a method.
+    its public method `parse_code` to parse and store all the necessary information.
 
     Methods:
         `parse_code(filename: str, code: bytes)`
@@ -20,13 +16,13 @@ class CodeParser:
             do the necessary checks and store the node paths for which the checks
             failed. All the failed node paths can be accessed using the attributes.
 
-    Attributes (Read only):
-        `require_doctest`: Function node paths which do not contain `doctest`
-        `require_return_annotation`: Function node paths which do not contain return
-                                     annotation
-        `require_annotations`: Parameter node paths which do not contain annotation
-        `require_descriptive_names`: Parameter/Function node paths whose name is
-                                     of length 1
+        `labels_to_add_and_remove(current_labels: List[str])`
+            Returns a tuple of two list: first one will contain the labels to add
+            and the second list will contain the labels to remove. The order do matter.
+
+        `create_report_content()`
+            Create the content of the pull request comment which will contain the
+            information about what is missing to which functions/parameters.
 
     Attributes:
         `skip_doctest`: bool, indicating whether to skip doctest checking. This
@@ -52,59 +48,6 @@ class CodeParser:
         assert isinstance(value, bool), value
         self._skip_doctest = value
 
-    # Caching all the list properties.
-    # NOTE: Do not call the property in any of the methods. Only call it after
-    # all the files are parsed.
-    @functools.cached_property
-    def require_doctest(self) -> List[str]:
-        """Function node path that requires `doctest`. If the function is inside
-        a class, it will include the class name in the path.
-
-        Format:
-        `{filepath}::{function_name}`
-        or
-        `{filepath}::{class_name}::{function_name}`
-        """
-        return self._require_doctest.copy()
-
-    @functools.cached_property
-    def require_return_annotation(self) -> List[str]:
-        """Function node path that requires return annotation. If the function is
-        inside a class, it will include the class name in the path.
-
-        Format:
-        `{filepath}::{function_name}`
-        or
-        `{filepath}::{class_name}::{function_name}`
-        """
-        return self._require_return_annotation.copy()
-
-    @functools.cached_property
-    def require_annotations(self) -> List[str]:
-        """Parameter node path that requires annotation. If the function is inside
-        a class, it will include the class name in the path.
-
-        Format:
-        `{filepath}::{function_name}::{param_name}`
-        or
-        `{filepath}::{class_name}::{function_name}::{param_name}`
-        """
-        return self._require_annotations.copy()
-
-    @functools.cached_property
-    def require_descriptive_names(self) -> List[str]:
-        """Parameter/Function node path that requires descriptive names. If the
-        function is inside a class, it will include the class name in the path.
-
-        Format:
-        `{filepath}::{function_name}`
-        `{filepath}::{function_name}::{param_name}`
-        or
-        `{filepath}::{class_name}::{function_name}`
-        `{filepath}::{class_name}::{function_name}::{param_name}`
-        """
-        return self._require_descriptive_names.copy()
-
     def parse_code(self, filename: str, code: Union[bytes, str]) -> None:
         """Parse the Python code for doctest, type hints and descriptive names.
 
@@ -120,6 +63,84 @@ class CodeParser:
                 self._parse_function(node)
             elif isinstance(node, ast.ClassDef):
                 self._parse_class(node)
+
+    def labels_to_add_and_remove(
+        self,
+        current_labels: List[str],
+    ) -> Tuple[List[str], List[str]]:
+        """Return which labels to add and remove from the given pull request according
+        to the current labels given.
+
+        NOTE: This method should be called only after all the parsing is done otherwise
+        it might return incomplete information.
+        """
+        labels_to_add = []
+        labels_to_remove = []
+
+        # Add or remove REQUIRE_TEST label
+        if self._require_doctest:
+            if Label.REQUIRE_TEST not in current_labels:
+                labels_to_add.append(Label.REQUIRE_TEST)
+        elif Label.REQUIRE_TEST in current_labels:
+            labels_to_remove.append(Label.REQUIRE_TEST)
+
+        # Add or remove DESCRIPTIVE_NAMES label
+        if self._require_descriptive_names:
+            if Label.DESCRIPTIVE_NAMES not in current_labels:
+                labels_to_add.append(Label.DESCRIPTIVE_NAMES)
+        elif Label.DESCRIPTIVE_NAMES in current_labels:
+            labels_to_remove.append(Label.DESCRIPTIVE_NAMES)
+
+        # Add or remove ANNOTATIONS label
+        if self._require_annotations or self._require_return_annotation:
+            if Label.ANNOTATIONS not in current_labels:
+                labels_to_add.append(Label.ANNOTATIONS)
+        elif Label.ANNOTATIONS in current_labels:
+            labels_to_remove.append(Label.ANNOTATIONS)
+
+        return labels_to_add, labels_to_remove
+
+    def create_report_content(self) -> List[str]:
+        """Create the report content for the current pull request as per the
+        stored data in the parser.
+
+        The report content will be in the following format:
+
+        ---
+
+        ### {Following functions/parameters require ...},
+            where '...' can be tests, type hints, etc
+        - [ ] Function or parameter node path where the requirement is missing
+        ---
+
+        NOTE: The report will only contain missing requirements.
+        """
+        content = []
+
+        if self._require_doctest:
+            content.append(
+                "\n### Following functions require tests "
+                "[`doctest`/`unittest`/`pytest`]:\n"
+                "- [ ] {}\n".format("\n- [ ] ".join(self._require_doctest))
+            )
+        if self._require_descriptive_names:
+            content.append(
+                "\n### Following functions/parameters require descriptive names:\n"
+                "- [ ] {}\n".format("\n- [ ] ".join(self._require_descriptive_names))
+            )
+        if self._require_return_annotation:
+            content.append(
+                "\n### Following functions require return type hints:\n"
+                "***NOTE: If the function returns `None` then provide the type hint as "
+                "`def function() -> None`***\n"
+                "- [ ] {}\n".format("\n- [ ] ".join(self._require_return_annotation))
+            )
+        if self._require_annotations:
+            content.append(
+                "\n### Following function parameters require type hints:\n"
+                "- [ ] {}\n".format("\n- [ ] ".join(self._require_annotations))
+            )
+        return content
 
     def _parse_function(
         self,
