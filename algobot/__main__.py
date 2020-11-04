@@ -37,7 +37,9 @@ async def main(request: web.Request) -> web.Response:
             time_remaining = gh.rate_limit.reset_datetime - datetime.datetime.now(
                 datetime.timezone.utc
             )
-            print(f"GH Ratelimit: {gh.rate_limit} (UTC) which is in {time_remaining}")
+            print(
+                f"GH Ratelimit: {gh.rate_limit} (UTC) which is in {time_remaining}"
+            )  # pragma: no cover
         except AttributeError:
             pass
         return web.Response(status=200)
