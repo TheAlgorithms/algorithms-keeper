@@ -11,15 +11,14 @@ jobs:
     name: test (Python ${{ matrix.python-version }})
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pipenv-
+          restore-keys: ${{ runner.os }}-pipenv-
       - uses: actions/setup-python@v2
         with:
           python-version: "${{ matrix.python-version }}"
@@ -38,6 +37,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pre-commit
+            ~/.cache/pip
+          key: ${{ runner.os }}-pip-pre-commit-${{ hashFiles('/.pre-commit-config.yaml') }}
+          restore-keys: ${{ runner.os }}-pip-pre-commit-
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
