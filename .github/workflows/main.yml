@@ -42,7 +42,7 @@ jobs:
           path: |
             ~/.cache/pre-commit
             ~/.cache/pip
-          key: ${{ runner.os }}-pip-pre-commit-${{ hashFiles('/.pre-commit-config.yaml') }}
+          key: ${{ runner.os }}-pip-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: ${{ runner.os }}-pip-pre-commit-
       - uses: actions/setup-python@v2
         with:
