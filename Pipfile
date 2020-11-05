@@ -4,6 +4,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+# pytest dependency for Python version < 3.8
+# https://github.com/pytest-dev/pytest/blob/7d5f5a878598aaa7f3e100ef6a97bcd13c1b408d/setup.py#L14
+importlib-metadata = {version = ">=0.12", markers = "python_version >= '3.0' and python_version < '3.8'"}
 pytest = "6.1.1"
 pytest-aiohttp = "0.3.0"
 pytest-asyncio = "0.14.0"
