@@ -201,7 +201,7 @@ async def check_pr_files(
             continue
         # If there is a test file then we do not want to check for `doctest`.
         # NOTE: This should come after the check for `.py` files.
-        elif filepath.name.startswith("test") or filepath.name.endswith("test.py"):
+        elif filepath.name.startswith("test") or filepath.name.endswith("_test.py"):
             parser.skip_doctest = True
         files_to_check.append(file)
 

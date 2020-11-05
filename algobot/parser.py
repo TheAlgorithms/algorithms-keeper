@@ -102,7 +102,7 @@ class PullRequestFilesParser:
 
         return labels_to_add, labels_to_remove
 
-    def create_report_content(self) -> str:  # pragma: no cover
+    def create_report_content(self) -> str:
         """Create the report content for the current pull request as per the
         stored data in the parser.
 
