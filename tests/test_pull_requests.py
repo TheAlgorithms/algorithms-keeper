@@ -91,14 +91,16 @@ NO_EXTENSION_COMMENT = NO_EXTENSION_COMMENT.format(user_login=user)
 
 @pytest.fixture(scope="module", autouse=True)
 def patch_module(monkeypatch=MonkeyPatch()):
-    async def mock_get_file_content(gh, installation_id, file):
-        if file["filename"] in {
+    async def mock_get_file_content(*args, **kwargs):
+        filename = kwargs["file"]["filename"]
+        if filename in {
             "require_doctest.py",
             "require_annotations.py",
             "require_descriptive_names.py",
             "require_return_annotation.py",
+            "no_errors.py",
         }:
-            return get_file_code(file["filename"])
+            return get_file_code(filename)
         else:
             return ""
 
@@ -353,6 +355,9 @@ async def test_for_extensionless_files_on_opened(action, getiter):
                     {"filename": ".travis.yml", "contents_url": ""},
                     {"filename": "README.md", "contents_url": ""},
                     {"filename": "pytest.ini", "contents_url": ""},
+                    # Add an extensionless file in the `github` directory which
+                    # should be ignored.
+                    {"filename": ".github/CODEOWNERS", "contents_url": ""},
                 ],
             },
         ),
@@ -362,8 +367,10 @@ async def test_for_extensionless_files_on_opened(action, getiter):
                 files_url: [
                     {"filename": ".travis.yml", "contents_url": ""},
                     {"filename": "README.md", "contents_url": ""},
+                    # We will add one `__` Python file in the mix which should be
+                    # ignored.
                     {"filename": "__init__.py", "contents_url": ""},
-                ],  # We will add one `__` Python file in the mix
+                ],
             },
         ),
     ),
@@ -483,3 +490,191 @@ async def test_pr_with_test_file(action, getiter):
     assert gh.post_data[0] == {"labels": [Label.ANNOTATIONS]}
     assert gh.delete_url[0] == labels_url + f"/{remove_label}"
     assert gh.delete_data == [{}]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "action, getiter",
+    (
+        (
+            "opened",
+            {
+                pr_user_search_url: {
+                    "total_count": 1,
+                    "items": [
+                        {"number": 1, "state": "opened"},
+                    ],
+                },
+                files_url: [
+                    {"filename": "no_errors.py", "contents_url": ""},
+                    {"filename": "algorithm.py", "contents_url": ""},
+                ],
+            },
+        ),
+        (
+            "synchronize",
+            {
+                files_url: [
+                    {"filename": "no_errors.py", "contents_url": ""},
+                    {"filename": "algorithm.py", "contents_url": ""},
+                ],
+            },
+        ),
+    ),
+)
+async def test_pr_with_successful_tests(action, getiter):
+    data = {
+        "action": action,
+        "number": number,
+        "pull_request": {
+            "number": number,
+            "url": pr_url,
+            "body": CHECKBOX_TICKED,
+            "labels": [],
+            "user": {"login": user},
+            "author_association": "NONE",
+            "comments_url": comments_url,
+            "issue_url": issue_url,
+            "html_url": html_pr_url,
+            "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
+        },
+        "repository": {"full_name": repository},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    gh = MockGitHubAPI(getiter=getiter)
+    await pull_requests.router.dispatch(event, gh)
+    if data["action"] == "opened":
+        assert len(gh.getiter_url) == 2
+        assert gh.getiter_url == [pr_user_search_url, files_url]
+    elif data["action"] == "synchronize":
+        assert len(gh.getiter_url) == 1
+        assert gh.getiter_url[0] == files_url
+    # Nothing happens when everything is present in the files
+    assert gh.post_url == []
+    assert gh.post_data == []
+    assert gh.delete_url == []
+    assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "action, getiter",
+    (
+        (
+            "opened",
+            {
+                pr_user_search_url: {
+                    "total_count": 1,
+                    "items": [
+                        {"number": 1, "state": "opened"},
+                    ],
+                },
+                files_url: [
+                    {"filename": "require_doctest.py", "contents_url": ""},
+                    {"filename": "require_descriptive_names.py", "contents_url": ""},
+                    {"filename": "require_annotations.py", "contents_url": ""},
+                    {"filename": "require_return_annotation.py", "contents_url": ""},
+                ],
+            },
+        ),
+        (
+            "synchronize",
+            {
+                files_url: [
+                    {"filename": "require_doctest.py", "contents_url": ""},
+                    {"filename": "require_descriptive_names.py", "contents_url": ""},
+                    {"filename": "require_annotations.py", "contents_url": ""},
+                    {"filename": "require_return_annotation.py", "contents_url": ""},
+                ],
+            },
+        ),
+    ),
+)
+async def test_pr_with_add_all_require_labels(action, getiter):
+    data = {
+        "action": action,
+        "number": number,
+        "pull_request": {
+            "number": number,
+            "url": pr_url,
+            "body": CHECKBOX_TICKED,
+            "labels": [],
+            "user": {"login": user},
+            "author_association": "NONE",
+            "comments_url": comments_url,
+            "issue_url": issue_url,
+            "html_url": html_pr_url,
+            "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
+        },
+        "repository": {"full_name": repository},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    post = {labels_url: {}, comments_url: {}}
+    gh = MockGitHubAPI(getiter=getiter, post=post)
+    await pull_requests.router.dispatch(event, gh)
+    if data["action"] == "opened":
+        assert len(gh.getiter_url) == 2
+        assert gh.getiter_url == [pr_user_search_url, files_url]
+        assert len(gh.post_url) == 2
+        assert gh.post_url == [labels_url, comments_url]
+    elif data["action"] == "synchronize":
+        assert len(gh.getiter_url) == 1
+        assert gh.getiter_url[0] == files_url
+        assert len(gh.post_url) == 1
+        # No comment is posted in `synchronize`
+        assert gh.post_url == [labels_url]
+    assert gh.post_data[0] == {
+        "labels": [Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES, Label.ANNOTATIONS]
+    }
+    assert gh.delete_url == []
+    assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+async def test_pr_with_remove_all_require_labels():
+    # This case will only be true when the action is `synchronize`
+    test_label_url = labels_url + f"/{urllib.parse.quote(Label.REQUIRE_TEST)}"
+    names_label_url = labels_url + f"/{urllib.parse.quote(Label.DESCRIPTIVE_NAMES)}"
+    annotation_label_url = labels_url + f"/{urllib.parse.quote(Label.ANNOTATIONS)}"
+    data = {
+        "action": "synchronize",
+        "number": number,
+        "pull_request": {
+            "number": number,
+            "url": pr_url,
+            "body": CHECKBOX_TICKED,
+            "labels": [
+                {"name": Label.REQUIRE_TEST},
+                {"name": Label.DESCRIPTIVE_NAMES},
+                {"name": Label.ANNOTATIONS},
+            ],
+            "user": {"login": user},
+            "author_association": "NONE",
+            "comments_url": comments_url,
+            "issue_url": issue_url,
+            "html_url": html_pr_url,
+            "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
+        },
+        "repository": {"full_name": repository},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    getiter = {
+        files_url: [
+            {"filename": "no_errors.py", "contents_url": ""},
+            {"filename": "algorithm.py", "contents_url": ""},
+        ],
+    }
+    delete = {test_label_url: {}, names_label_url: {}, annotation_label_url: {}}
+    gh = MockGitHubAPI(getiter=getiter, delete=delete)
+    await pull_requests.router.dispatch(event, gh)
+    assert len(gh.getiter_url) == 1
+    assert gh.getiter_url[0] == files_url
+    # No labels are added
+    assert gh.post_url == []
+    assert gh.post_data == []
+    # All labels are deleted
+    assert gh.delete_url == [test_label_url, names_label_url, annotation_label_url]
+    assert gh.delete_data == [{}, {}, {}]
