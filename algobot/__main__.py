@@ -50,7 +50,7 @@ async def main(request: web.Request) -> web.Response:
 
 if __name__ == "__main__":  # pragma: no cover
     app = web.Application()
-    app.router.add_post("/webhook", main)
+    app.router.add_post("/", main)
     port = os.environ.get("PORT")
     if port is not None:
         port = int(port)  # type: ignore

@@ -253,7 +253,8 @@ async def check_pr_files(
         report_content = parser.create_report_content()
         if report_content:
             print(
-                f"[DETECTED] Missing requirements in parsed files ({files_to_check}): "
+                f"[DETECTED] Missing requirements in parsed files "
+                f"{[file['filename'] for file in files_to_check]}: "
                 f"{pull_request['html_url']}"
             )
             await utils.add_comment_to_pr_or_issue(
