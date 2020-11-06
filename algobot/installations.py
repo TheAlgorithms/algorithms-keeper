@@ -31,9 +31,8 @@ async def repo_installation_added(
         repositories = event.data["repositories_added"]
 
     for repository in repositories:
-        url = f"/repos/{repository['full_name']}/issues"
         response = await gh.post(
-            url,
+            f"/repos/{repository['full_name']}/issues",
             data={
                 "title": "Installation successful!",
                 "body": (

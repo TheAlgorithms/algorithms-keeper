@@ -18,9 +18,9 @@ async def check_run_completed(
 ) -> None:
     """Add and remove label when any of the check runs fail.
 
-    We will get the event payload everytime a check run is completed which is
-    a lot of times for a single commit. So, the `if` statement makes sure we
-    execute the block only when the last check run is completed.
+    This event will be triggered on every check run when it is completed but we only
+    want to know the final conclusion. So, the `if` statement makes sure we execute
+    the block only when the last check run is completed.
     """
     commit_sha = event.data["check_run"]["head_sha"]
     installation_id = event.data["installation"]["id"]
@@ -30,7 +30,7 @@ async def check_run_completed(
         gh, installation_id, sha=commit_sha, repository=repository
     )
 
-    if not pr_for_commit:
+    if pr_for_commit is None:
         print(
             f"[SKIPPED] Pull request not found for commit: "
             f"https://github.com/{repository}/commit/{commit_sha}"
@@ -44,7 +44,7 @@ async def check_run_completed(
     all_check_run_status = [
         check_run["status"] for check_run in check_runs["check_runs"]
     ]
-    all_check_run_conclusions = [
+    all_check_run_conclusion = [
         check_run["conclusion"] for check_run in check_runs["check_runs"]
     ]
 
@@ -55,7 +55,7 @@ async def check_run_completed(
         pr_labels = [label["name"] for label in pr_for_commit["labels"]]
         if any(
             element in [None, "failure", "timed_out"]
-            for element in all_check_run_conclusions
+            for element in all_check_run_conclusion
         ):  # Add the failure label only if it doesn't exist
             if Label.FAILED_TEST not in pr_labels:
                 await utils.add_label_to_pr_or_issue(

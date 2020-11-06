@@ -131,6 +131,7 @@ async def test_pr_opened_no_body_and_no_ticked(body, comment):
             "author_association": "NONE",
             "comments_url": comments_url,
             "issue_url": issue_url,
+            "html_url": html_pr_url,
             "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
         },
         "repository": {"full_name": repository},

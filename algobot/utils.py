@@ -1,4 +1,4 @@
-"""Utility module for the algorithms-bot
+"""Utility module for the bot
 
 All functions must have only two positional arguments:
 `gh`: This is the GithubAPI object used to make all the API calls.
@@ -43,7 +43,7 @@ async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> st
 async def get_pr_for_commit(
     gh: gh_aiohttp.GitHubAPI, installation_id: int, *, sha: str, repository: str
 ) -> Union[None, Dict[str, Any]]:
-    """Return the issue object relative to the pull request, for the given SHA
+    """Return the issue object, relative to the pull request, for the given SHA
     of a commit.
 
     GitHub's REST API v3 considers every pull request an issue, but not every issue
@@ -79,13 +79,13 @@ async def add_label_to_pr_or_issue(
     label: Union[str, List[str]],
     pr_or_issue: Dict[str, Any],
 ) -> None:
-    """Add the given label to the pull request or issue provided.
+    """Add the given label(s) to the pull request or issue provided.
 
     `label` can be either one label (string) or a list of labels.
 
-    The issue object contains the labels url in it but for pull request object we need
-    to add the labels part to the issue_url. This is done to make this function
-    versatile so that we can add a label to either the issue or pull request.
+    The issue object contains the labels url in it but for pull request object we will
+    construct it using `issue_url`. This is done to make this function versatile so
+    that we can add a label to either the issue or pull request.
     """
     installation_access_token = await get_access_token(gh, installation_id)
     labels_url = (
@@ -107,13 +107,13 @@ async def remove_label_from_pr_or_issue(
     label: Union[str, List[str]],
     pr_or_issue: Dict[str, Any],
 ) -> None:
-    """Remove the given label from pull request or issue provided.
+    """Remove the given label(s) from pull request or issue provided.
 
     `label` can be either one label (string) or a list of labels.
 
-    The issue object contains the labels url in it but for pull request object we need
-    to add the labels part to the issue_url. This is done to make this function
-    versatile so that we can remove a label from either the issue or pull request.
+    The issue object contains the labels url in it but for pull request object we will
+    construct it using the issue_url. This is done to make this function versatile so
+    that we can remove a label from either the issue or pull request.
     """
     installation_access_token = await get_access_token(gh, installation_id)
     labels_url = (
@@ -122,8 +122,8 @@ async def remove_label_from_pr_or_issue(
         else pr_or_issue["issue_url"] + "/labels"
     )
     label_list = [label] if isinstance(label, str) else label
-    # We can only remove labels one at a time or all (all labels in the PR or issue)
-    # at once.
+    # We can only remove labels one at a time or all (every label in the pull request
+    # or issue) at once.
     for label in label_list:
         parse_label = urllib.parse.quote(label)
         await gh.delete(
@@ -142,7 +142,7 @@ async def get_total_open_prs(
 ) -> Any:
     """Return the total number of open pull requests in the repository.
 
-    If the `user_login` value is given, then return the total number of open
+    If the `user_login` parameter is given, then return the total number of open
     pull request by that user in the repository.
 
     If the `count` parameter is `False`, it returns the list of pull request
@@ -194,7 +194,7 @@ async def close_pr_or_issue(
     If it is a pull request then dismiss all the requested reviews from it as well.
 
     As everything is going to be done by the bot, we will make comments compulsory
-    so as to know why was this pr or issue closed.
+    so as to know why was this pull request or issue closed.
     """
     installation_access_token = await get_access_token(gh, installation_id)
     await add_comment_to_pr_or_issue(
@@ -225,12 +225,15 @@ async def remove_requested_reviewers_from_pr(
     *,
     pull_request: Dict[str, Any],
 ):
-    """Remove all the requested reviewers from a pull request."""
+    """Remove all the requested reviewers from the given pull request."""
     installation_access_token = await get_access_token(gh, installation_id)
-    reviewers = [reviewer["login"] for reviewer in pull_request["requested_reviewers"]]
     await gh.delete(
         pull_request["url"] + "/requested_reviewers",
-        data={"reviewers": reviewers},
+        data={
+            "reviewers": [
+                reviewer["login"] for reviewer in pull_request["requested_reviewers"]
+            ]
+        },
         oauth_token=installation_access_token,
     )
 
