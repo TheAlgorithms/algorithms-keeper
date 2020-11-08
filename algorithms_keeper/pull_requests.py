@@ -22,6 +22,7 @@ router = routing.Router()
 
 
 @router.register("pull_request", action="opened")
+@router.register("pull_request", action="ready_for_review")
 async def close_invalid_or_additional_pr(
     event: sansio.Event,
     gh: gh_aiohttp.GitHubAPI,
@@ -46,8 +47,13 @@ async def close_invalid_or_additional_pr(
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
-    author_association = pull_request["author_association"].lower()
 
+    # Ignore draft pull requests
+    if pull_request["draft"]:
+        print(f"[SKIPPED] Draft pull request: {pull_request['html_url']}")
+        return None
+
+    author_association = pull_request["author_association"].lower()
     if author_association in {"owner", "member"}:
         logger.info(
             "Author association %r: %s", author_association, pull_request["html_url"]
@@ -97,6 +103,7 @@ async def close_invalid_or_additional_pr(
 
 
 @router.register("pull_request", action="opened")
+@router.register("pull_request", action="ready_for_review")
 @router.register("pull_request", action="synchronize")
 async def check_pr_files(
     event: sansio.Event,
@@ -119,6 +126,11 @@ async def check_pr_files(
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
+
+    # Ignore draft pull requests
+    if pull_request["draft"]:
+        print(f"[SKIPPED] Draft pull request: {pull_request['html_url']}")
+        return None
 
     pr_labels = [label["name"] for label in pull_request["labels"]]
     pr_author = pull_request["user"]["login"]
@@ -169,9 +181,9 @@ async def check_pr_files(
             gh, installation_id, label=labels_to_remove, pr_or_issue=pull_request
         )
 
-    # Comment the report data only when the pull request is opened and if there are
-    # any errors
-    if event.data["action"] == "opened":
+    # Comment the report data only when the pull request is opened or made
+    # 'ready_for_review' after being in draft mode and if there are any errors
+    if event.data["action"] in {"opened", "ready_for_review"}:
         report_content = parser.create_report_content()
         if report_content:
             logger.info(
