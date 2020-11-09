@@ -60,7 +60,7 @@ async def close_invalid_or_additional_pr(
 
     if not pr_body:
         comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
-        print(f"{'[DETECTED]':<12} Empty body: {pull_request['html_url']}")
+        print(f"{'[DETECTED]':<12} Empty PR body: {pull_request['html_url']}")
     elif not re.search(r"\[x]", pr_body):
         comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
         print(f"{'[DETECTED]':<12} Empty checklist: {pull_request['html_url']}")

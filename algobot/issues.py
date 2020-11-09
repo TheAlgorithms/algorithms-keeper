@@ -25,6 +25,7 @@ async def close_invalid_issue(
     issue = event.data["issue"]
 
     if not issue["body"]:
+        print(f"{'[DETECTED]':<12} Empty issue body: {issue['html_url']}")
         await utils.close_pr_or_issue(
             gh,
             installation_id,
