@@ -32,7 +32,7 @@ async def check_run_completed(
 
     if pr_for_commit is None:
         print(
-            f"[SKIPPED] Pull request not found for commit: "
+            f"{'[SKIPPED]':<12} Pull request not found for commit: "
             f"https://github.com/{repository}/commit/{commit_sha}"
         )
         return None

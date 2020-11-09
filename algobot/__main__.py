@@ -25,7 +25,7 @@ async def main(request: web.Request) -> web.Response:
         if event.event == "ping":
             return web.Response(status=200)
         print(
-            f"Received {event.event + ':' + event.data['action']!r} event "
+            f"{'[RECEIVED]':<12}{event.event + ':' + event.data['action']!r} "
             f"with delivery ID: {event.delivery_id}"
         )
         async with aiohttp.ClientSession() as session:
@@ -38,7 +38,8 @@ async def main(request: web.Request) -> web.Response:
                 datetime.timezone.utc
             )
             print(
-                f"GH Ratelimit: {gh.rate_limit} (UTC) which is in {time_remaining}"
+                f"{'[RATELIMIT]':<12}: {gh.rate_limit} (UTC) which is in"
+                f" {time_remaining}"
             )  # pragma: no cover
         except AttributeError:
             pass

@@ -49,7 +49,7 @@ async def close_invalid_or_additional_pr(
 
     if author_association in {"owner", "member"}:
         print(
-            f"[SKIPPED] Author association {author_association!r}: "
+            f"{'[SKIPPED]':<12} Author association {author_association!r}: "
             f"{pull_request['html_url']}"
         )
         return None
@@ -60,10 +60,10 @@ async def close_invalid_or_additional_pr(
 
     if not pr_body:
         comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
-        print(f"[DETECTED] Empty body: {pull_request['html_url']}")
+        print(f"{'[DETECTED]':<12} Empty body: {pull_request['html_url']}")
     elif not re.search(r"\[x]", pr_body):
         comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
-        print(f"[DETECTED] Empty checklist: {pull_request['html_url']}")
+        print(f"{'[DETECTED]':<12} Empty checklist: {pull_request['html_url']}")
 
     if comment:
         await utils.close_pr_or_issue(
@@ -83,7 +83,10 @@ async def close_invalid_or_additional_pr(
         )
 
         if len(user_pr_numbers) > MAX_PR_PER_USER:
-            print(f"[DETECTED] Multiple open pull requests: {pull_request['html_url']}")
+            print(
+                f"{'[DETECTED]':<12} Multiple open pull requests: "
+                f"{pull_request['html_url']}"
+            )
             # Convert list of numbers to: "#1, #2, #3"
             pr_number = "#{}".format(", #".join(map(str, user_pr_numbers)))
             await utils.close_pr_or_issue(
@@ -134,6 +137,10 @@ async def check_pr_files(
     for file in pr_files:
         filepath = PurePath(file["filename"])
         if not filepath.suffix and ".github" not in filepath.parts:
+            print(
+                f"{'[DETECTED]':<12} No extension file {file['filename']!r}:"
+                f"{pull_request['html_url']}"
+            )
             await utils.close_pr_or_issue(
                 gh,
                 installation_id,
@@ -172,7 +179,7 @@ async def check_pr_files(
         report_content = parser.create_report_content()
         if report_content:
             print(
-                f"[DETECTED] Missing requirements in parsed files "
+                f"{'[DETECTED]':<12} Missing requirements in parsed files "
                 f"{[file['filename'] for file in files_to_check]}: "
                 f"{pull_request['html_url']}"
             )
