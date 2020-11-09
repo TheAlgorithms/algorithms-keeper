@@ -1,5 +1,10 @@
 """Utility module for the bot
 
+This is the only module which will make all the API calls to GitHub. None of the event
+modules will make any API calls because we want to keep the logic separated. API calls
+logic will be handled in this module and event logic will be handled in their respective
+event modules.
+
 All functions must have only two positional arguments:
 `gh`: This is the GithubAPI object used to make all the API calls.
 `installation_id`: The installation ID for the GitHub app (bot).
@@ -42,7 +47,7 @@ async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> st
 
 async def get_pr_for_commit(
     gh: gh_aiohttp.GitHubAPI, installation_id: int, *, sha: str, repository: str
-) -> Union[None, Dict[str, Any]]:
+) -> Optional[Dict[str, Any]]:
     """Return the issue object, relative to the pull request, for the given SHA
     of a commit.
 
@@ -52,7 +57,7 @@ async def get_pr_for_commit(
     """
     installation_access_token = await get_access_token(gh, installation_id)
     data = await gh.getitem(
-        f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}",
+        f"/search/issues?q=type:pr+state:open+draft:false+repo:{repository}+sha:{sha}",
         oauth_token=installation_access_token,
     )
     if data["total_count"] > 0:
@@ -224,7 +229,7 @@ async def remove_requested_reviewers_from_pr(
     installation_id: int,
     *,
     pull_request: Dict[str, Any],
-):
+) -> None:
     """Remove all the requested reviewers from the given pull request."""
     installation_access_token = await get_access_token(gh, installation_id)
     await gh.delete(

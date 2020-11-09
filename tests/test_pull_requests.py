@@ -24,7 +24,9 @@ sha = "a06212064d8e1c349c75c5ea4568ecf155368c21"
 comment = "This is a comment"
 
 # Incomplete urls
-search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}"
+search_url = (
+    f"/search/issues?q=type:pr+state:open+draft:false+repo:{repository}+sha:{sha}"
+)
 pr_search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}"
 pr_user_search_url = (
     f"/search/issues?q=type:pr+state:open+repo:{repository}+author:{user}"

@@ -16,7 +16,9 @@ sha = "a06212064d8e1c349c75c5ea4568ecf155368c21"
 
 # Incomplete urls
 html_pr_url = f"https://github.com/{repository}/pulls/{number}"
-search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}+sha:{sha}"
+search_url = (
+    f"/search/issues?q=type:pr+state:open+draft:false+repo:{repository}+sha:{sha}"
+)
 check_run_url = f"/repos/{repository}/commits/{sha}/check-runs"
 labels_url = f"https://api.github.com/repos/{repository}/issues/{number}/labels"
 
