@@ -13,6 +13,14 @@ your cooperation.
 User opened pull requests (including this one): {pr_number}
 """
 
+EMPTY_ISSUE_BODY_COMMENT = """\
+# Closing this issue as invalid
+
+@{user_login}, this issue is being closed because the description is empty. \
+If you believe that this is being done by mistake, please open the issue with the \
+necessary details regarding the problem.
+"""
+
 EMPTY_BODY_COMMENT = """\
 # Closing this pull request as invalid
 
