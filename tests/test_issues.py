@@ -14,6 +14,7 @@ repository = "TheAlgorithms/Python"
 
 # Complete urls
 issue_url = f"https://api.github.com/repos/{repository}/issues/{number}"
+html_issue_url = f"https://github.com/{repository}/issues/{number}"
 labels_url = issue_url + "/labels"
 comments_url = issue_url + "/comments"
 
@@ -39,6 +40,7 @@ async def test_empty_issue_body():
             "labels_url": labels_url,
             "user": {"login": user},
             "body": "",
+            "html_url": html_issue_url,
         },
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
@@ -71,6 +73,7 @@ async def test_non_empty_issue_body():
             "labels_url": labels_url,
             "user": {"login": user},
             "body": "There is one typo in test.py",
+            "html_url": html_issue_url,
         },
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
