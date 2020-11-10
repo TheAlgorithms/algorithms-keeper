@@ -11,7 +11,7 @@ router = routing.Router()
 
 
 @router.register("check_run", action="completed")
-async def check_run_completed(
+async def check_ci_status_and_label(
     event: sansio.Event,
     gh: gh_aiohttp.GitHubAPI,
     *args: Any,
@@ -23,9 +23,15 @@ async def check_run_completed(
     want to know the final conclusion. So, the `if` statement makes sure we execute
     the block only when the last check run is completed.
     """
-    commit_sha = event.data["check_run"]["head_sha"]
     installation_id = event.data["installation"]["id"]
     repository = event.data["repository"]["full_name"]
+
+    try:
+        commit_sha = event.data["check_run"]["head_sha"]
+    except KeyError:
+        # This event is routed from the pull_requests module and is triggered when a
+        # PR is made ready for review.
+        commit_sha = event.data["pull_request"]["head"]["sha"]
 
     pr_for_commit = await utils.get_pr_for_commit(
         gh, installation_id, sha=commit_sha, repository=repository

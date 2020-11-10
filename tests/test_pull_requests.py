@@ -24,6 +24,7 @@ sha = "a06212064d8e1c349c75c5ea4568ecf155368c21"
 comment = "This is a comment"
 
 # Incomplete urls
+check_run_url = f"/repos/{repository}/commits/{sha}/check-runs"
 search_url = (
     f"/search/issues?q=type:pr+state:open+draft:false+repo:{repository}+sha:{sha}"
 )
@@ -128,6 +129,7 @@ async def test_pr_opened_no_body_and_no_ticked(body, comment):
             "number": number,
             "url": pr_url,
             "body": body,
+            "head": {"sha": sha},
             "labels": [],
             "user": {"login": user},
             "author_association": "NONE",
@@ -159,14 +161,16 @@ async def test_pr_opened_no_body_and_no_ticked(body, comment):
 
 
 @pytest.mark.asyncio
-async def test_pr_opened_in_draft_mode():
+@pytest.mark.parametrize("action", ("opened", "synchronize"))
+async def test_pr_opened_in_draft_mode(action):
     data = {
-        "action": "opened",
+        "action": action,
         "number": number,
         "pull_request": {
             "number": number,
             "url": pr_url,
             "body": "",  # body can be empty for member
+            "head": {"sha": sha},
             "labels": [],
             "user": {"login": user},
             "author_association": "MEMBER",
@@ -201,6 +205,7 @@ async def test_pr_opened_by_member():
             "number": number,
             "url": pr_url,
             "body": "",  # body can be empty for member
+            "head": {"sha": sha},
             "labels": [],
             "user": {"login": user},
             "author_association": "MEMBER",
@@ -235,6 +240,7 @@ async def test_max_pr_reached():
             "number": number,
             "url": pr_url,
             "body": CHECKBOX_TICKED,
+            "head": {"sha": sha},
             "labels": [],
             "user": {"login": user},
             "author_association": "NONE",
@@ -328,21 +334,6 @@ async def test_max_pr_disabled(monkeypatch):
             },
         ),
         (
-            "ready_for_review",
-            {
-                pr_user_search_url: {
-                    "total_count": 1,
-                    "items": [
-                        {"number": 1, "state": "opened"},
-                    ],
-                },
-                files_url: [
-                    {"filename": "newton.py", "contents_url": ""},
-                    {"filename": "fibonacci", "contents_url": ""},
-                ],
-            },
-        ),
-        (
             "synchronize",
             {
                 files_url: [
@@ -353,7 +344,7 @@ async def test_max_pr_disabled(monkeypatch):
         ),
     ),
 )
-async def test_for_extensionless_files_on_opened(action, getiter):
+async def test_for_extensionless_files(action, getiter):
     data = {
         "action": action,
         "number": number,
@@ -379,7 +370,7 @@ async def test_for_extensionless_files_on_opened(action, getiter):
     delete = {reviewers_url: {}}
     gh = MockGitHubAPI(getiter=getiter, post=post, patch=patch, delete=delete)
     await pull_requests.router.dispatch(event, gh)
-    if event.data["action"] in {"opened", "ready_for_review"}:
+    if event.data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert gh.getiter_url == [pr_user_search_url, files_url]
     elif event.data["action"] == "synchronize":
@@ -401,25 +392,6 @@ async def test_for_extensionless_files_on_opened(action, getiter):
     (
         (
             "opened",
-            {
-                pr_user_search_url: {
-                    "total_count": 1,
-                    "items": [
-                        {"number": 1, "state": "opened"},
-                    ],
-                },
-                files_url: [
-                    {"filename": ".travis.yml", "contents_url": ""},
-                    {"filename": "README.md", "contents_url": ""},
-                    {"filename": "pytest.ini", "contents_url": ""},
-                    # Add an extensionless file in the `github` directory which
-                    # should be ignored.
-                    {"filename": ".github/CODEOWNERS", "contents_url": ""},
-                ],
-            },
-        ),
-        (
-            "ready_for_review",
             {
                 pr_user_search_url: {
                     "total_count": 1,
@@ -474,7 +446,7 @@ async def test_pr_with_no_python_files(action, getiter):
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI(getiter=getiter)
     await pull_requests.router.dispatch(event, gh)
-    if data["action"] in {"opened", "ready_for_review"}:
+    if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert gh.getiter_url == [pr_user_search_url, files_url]
     elif data["action"] == "synchronize":
@@ -501,22 +473,6 @@ async def test_pr_with_no_python_files(action, getiter):
     (
         (
             "opened",
-            {
-                pr_user_search_url: {
-                    "total_count": 1,
-                    "items": [
-                        {"number": 1, "state": "opened"},
-                    ],
-                },
-                files_url: [
-                    {"filename": "require_doctest.py", "contents_url": ""},
-                    {"filename": "test_algo.py", "contents_url": ""},
-                    {"filename": "require_annotations.py", "contents_url": ""},
-                ],
-            },
-        ),
-        (
-            "ready_for_review",
             {
                 pr_user_search_url: {
                     "total_count": 1,
@@ -570,7 +526,7 @@ async def test_pr_with_test_file(action, getiter):
     delete = {labels_url + f"/{remove_label}": {}}
     gh = MockGitHubAPI(getiter=getiter, post=post, delete=delete)
     await pull_requests.router.dispatch(event, gh)
-    if data["action"] in {"opened", "ready_for_review"}:
+    if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert gh.getiter_url == [pr_user_search_url, files_url]
         assert len(gh.post_url) == 2
@@ -592,21 +548,6 @@ async def test_pr_with_test_file(action, getiter):
     (
         (
             "opened",
-            {
-                pr_user_search_url: {
-                    "total_count": 1,
-                    "items": [
-                        {"number": 1, "state": "opened"},
-                    ],
-                },
-                files_url: [
-                    {"filename": "no_errors.py", "contents_url": ""},
-                    {"filename": "algorithm.py", "contents_url": ""},
-                ],
-            },
-        ),
-        (
-            "ready_for_review",
             {
                 pr_user_search_url: {
                     "total_count": 1,
@@ -654,7 +595,7 @@ async def test_pr_with_successful_tests(action, getiter):
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI(getiter=getiter)
     await pull_requests.router.dispatch(event, gh)
-    if data["action"] in {"opened", "ready_for_review"}:
+    if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert gh.getiter_url == [pr_user_search_url, files_url]
     elif data["action"] == "synchronize":
@@ -673,23 +614,6 @@ async def test_pr_with_successful_tests(action, getiter):
     (
         (
             "opened",
-            {
-                pr_user_search_url: {
-                    "total_count": 1,
-                    "items": [
-                        {"number": 1, "state": "opened"},
-                    ],
-                },
-                files_url: [
-                    {"filename": "require_doctest.py", "contents_url": ""},
-                    {"filename": "require_descriptive_names.py", "contents_url": ""},
-                    {"filename": "require_annotations.py", "contents_url": ""},
-                    {"filename": "require_return_annotation.py", "contents_url": ""},
-                ],
-            },
-        ),
-        (
-            "ready_for_review",
             {
                 pr_user_search_url: {
                     "total_count": 1,
@@ -742,7 +666,7 @@ async def test_pr_with_add_all_require_labels(action, getiter):
     post = {labels_url: {}, comments_url: {}}
     gh = MockGitHubAPI(getiter=getiter, post=post)
     await pull_requests.router.dispatch(event, gh)
-    if data["action"] in {"opened", "ready_for_review"}:
+    if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert gh.getiter_url == [pr_user_search_url, files_url]
         assert len(gh.post_url) == 2
@@ -807,3 +731,80 @@ async def test_pr_with_remove_all_require_labels():
     # All labels are deleted
     assert gh.delete_url == [test_label_url, names_label_url, annotation_label_url]
     assert gh.delete_data == [{}, {}, {}]
+
+
+@pytest.mark.asyncio
+async def test_label_on_ready_for_review_pr():
+    # Open a PR in draft
+    # Convert the draft PR to ready for review PR
+    # Tests are failing on the latest commit, so test that it adds the label
+    data = {
+        "action": "ready_for_review",
+        "number": number,
+        "pull_request": {
+            "number": number,
+            "url": pr_url,
+            "body": CHECKBOX_TICKED,
+            "head": {"sha": sha},
+            "labels": [],
+            "user": {"login": user},
+            "author_association": "NONE",
+            "comments_url": comments_url,
+            "issue_url": issue_url,
+            "html_url": html_pr_url,
+            "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
+            "draft": False,
+        },
+        "repository": {"full_name": repository},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    getitem = {
+        search_url: {
+            "total_count": 1,
+            "items": [
+                {
+                    "number": number,
+                    "state": "open",
+                    "labels": [],
+                    "labels_url": labels_url,
+                }
+            ],
+        },
+        check_run_url: {
+            "total_count": 2,
+            "check_runs": [
+                {
+                    "status": "completed",
+                    "conclusion": "success",
+                    "name": "validate-solutions",
+                },
+                {
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "name": "pre-commit",
+                },
+            ],
+        },
+    }
+    getiter = {
+        pr_user_search_url: {
+            "total_count": 1,
+            "items": [
+                {"number": 1, "state": "opened"},
+            ],
+        },
+        files_url: {},
+    }
+    post = {labels_url: {}}
+    gh = MockGitHubAPI(getitem=getitem, getiter=getiter, post=post)
+    await pull_requests.router.dispatch(event, gh)
+    assert len(gh.getitem_url) == 2
+    assert search_url in gh.getitem_url
+    assert check_run_url in gh.getitem_url
+    assert len(gh.getiter_url) == 2
+    assert pr_user_search_url in gh.getiter_url
+    assert files_url in gh.getiter_url
+    assert labels_url in gh.post_url
+    assert {"labels": [Label.FAILED_TEST]} in gh.post_data
+    assert not gh.delete_url

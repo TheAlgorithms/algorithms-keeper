@@ -201,3 +201,23 @@ async def check_pr_files(
                 ),
                 pr_or_issue=pull_request,
             )
+
+
+@router.register("pull_request", action="ready_for_review")
+async def check_ci_ready_for_review_pr(
+    event: sansio.Event,
+    gh: gh_aiohttp.GitHubAPI,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Check test status on the latest commit and add or remove label when a pull
+    request is made ready for review.
+
+    When a PR is made ready for review, the checks do not start automatically,
+    thus the check run completed event is not triggered and no labels are added or
+    removed if the checks are passing or failing. Thus, we need to manually check it
+    with respect to the latest commit on head.
+    """
+    from . import check_runs
+
+    await check_runs.check_ci_status_and_label(event, gh, *args, **kwargs)
