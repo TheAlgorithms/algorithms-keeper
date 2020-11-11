@@ -12,3 +12,4 @@ class Label:
     ANNOTATIONS = "Require: Type hints"
     REQUIRE_TEST = "Require: Tests"
     DESCRIPTIVE_NAMES = "Require: Descriptive names"
+    CHANGES_REQUESTED = "Status: awaiting changes"

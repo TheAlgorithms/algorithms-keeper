@@ -13,6 +13,7 @@ from .comments import (
     NO_EXTENSION_COMMENT,
     PR_REPORT_COMMENT,
 )
+from .constants import Label
 from .logging import logger
 from .parser import PullRequestFilesParser
 
@@ -221,3 +222,48 @@ async def check_ci_ready_for_review_pr(
     from . import check_runs
 
     await check_runs.check_ci_status_and_label(event, gh, *args, **kwargs)
+
+
+@router.register("pull_request_review", action="submitted")
+async def update_pr_label_for_review(
+    event: sansio.Event,
+    gh: gh_aiohttp.GitHubAPI,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Update the label for a pull request according to the review submitted. Only
+    the reviews submitted by either the member or owner will count.
+
+    - Ignore all the comments.
+    - Add label when a maintainer request any changes.
+    - Remove the label, if present, when a maintainer approves.
+
+    Label: `Label.CHANGES_REQUESTED`
+    """
+    installation_id = event.data["installation"]["id"]
+    pull_request = event.data["pull_request"]
+    review = event.data["review"]
+    review_state = review["state"]
+
+    if review_state == "commented":
+        return None
+
+    author_association = review["author_association"].lower()
+    if author_association in {"member", "owner"}:
+        pr_labels = [label["name"] for label in pull_request["labels"]]
+        if review_state == "changes_requested":
+            if Label.CHANGES_REQUESTED not in pr_labels:
+                await utils.add_label_to_pr_or_issue(
+                    gh,
+                    installation_id,
+                    label=Label.CHANGES_REQUESTED,
+                    pr_or_issue=pull_request,
+                )
+        elif review_state == "approved":
+            if Label.CHANGES_REQUESTED in pr_labels:
+                await utils.remove_label_from_pr_or_issue(
+                    gh,
+                    installation_id,
+                    label=Label.CHANGES_REQUESTED,
+                    pr_or_issue=pull_request,
+                )
