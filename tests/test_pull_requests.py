@@ -796,3 +796,82 @@ async def test_label_on_ready_for_review_pr():
     assert labels_url in gh.post_url
     assert {"labels": [Label.FAILED_TEST]} in gh.post_data
     assert gh.delete_url == []
+
+
+@pytest.mark.parametrize("state", ("commented", "changes_requested", "approved"))
+async def test_pr_review_by_non_member(state):
+    data = {
+        "action": "submitted",
+        "review": {
+            "state": state,
+            "author_association": "none",
+        },
+        "pull_request": {},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request_review", delivery_id="1")
+    gh = MockGitHubAPI()
+    await pull_requests.router.dispatch(event, gh)
+    assert gh.post_url == []
+    assert gh.post_data == []
+    assert gh.delete_url == []
+    assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("labels", ([], [{"name": Label.CHANGES_REQUESTED}]))
+async def test_pr_review_changes_requested(labels):
+    data = {
+        "action": "submitted",
+        "review": {
+            "state": "changes_requested",
+            "author_association": "member",
+        },
+        "pull_request": {
+            "labels": labels,
+            "issue_url": issue_url,
+        },
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request_review", delivery_id="1")
+    post = {labels_url: {}}
+    gh = MockGitHubAPI(post=post)
+    await pull_requests.router.dispatch(event, gh)
+    if not labels:
+        assert labels_url in gh.post_url
+        assert {"labels": [Label.CHANGES_REQUESTED]} in gh.post_data
+    else:
+        assert gh.post_url == []
+        assert gh.post_data == []
+    assert gh.delete_url == []
+    assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("labels", ([], [{"name": Label.CHANGES_REQUESTED}]))
+async def test_pr_review_approved(labels):
+    remove_label = urllib.parse.quote(Label.CHANGES_REQUESTED)
+    data = {
+        "action": "submitted",
+        "review": {
+            "state": "approved",
+            "author_association": "member",
+        },
+        "pull_request": {
+            "labels": labels,
+            "issue_url": issue_url,
+        },
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request_review", delivery_id="1")
+    delete = {f"{labels_url}/{remove_label}": {}}
+    gh = MockGitHubAPI(delete=delete)
+    await pull_requests.router.dispatch(event, gh)
+    if labels:
+        assert f"{labels_url}/{remove_label}" in gh.delete_url
+        assert gh.delete_data == [{}]
+    else:
+        assert gh.delete_url == []
+        assert gh.delete_data == []
+    assert gh.post_url == []
+    assert gh.post_data == []
