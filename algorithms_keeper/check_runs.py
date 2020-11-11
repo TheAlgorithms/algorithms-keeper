@@ -28,14 +28,14 @@ async def check_ci_status_and_label(
 
     try:
         commit_sha = event.data["check_run"]["head_sha"]
+        pr_for_commit = await utils.get_pr_for_commit(
+            gh, installation_id, sha=commit_sha, repository=repository
+        )
     except KeyError:
         # This event is routed from the pull_requests module and is triggered when a
         # PR is made ready for review.
         commit_sha = event.data["pull_request"]["head"]["sha"]
-
-    pr_for_commit = await utils.get_pr_for_commit(
-        gh, installation_id, sha=commit_sha, repository=repository
-    )
+        pr_for_commit = event.data["pull_request"]
 
     if pr_for_commit is None:
         logger.info(

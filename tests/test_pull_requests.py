@@ -760,17 +760,6 @@ async def test_label_on_ready_for_review_pr():
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     getitem = {
-        search_url: {
-            "total_count": 1,
-            "items": [
-                {
-                    "number": number,
-                    "state": "open",
-                    "labels": [],
-                    "labels_url": labels_url,
-                }
-            ],
-        },
         check_run_url: {
             "total_count": 2,
             "check_runs": [
@@ -799,12 +788,11 @@ async def test_label_on_ready_for_review_pr():
     post = {labels_url: {}}
     gh = MockGitHubAPI(getitem=getitem, getiter=getiter, post=post)
     await pull_requests.router.dispatch(event, gh)
-    assert len(gh.getitem_url) == 2
-    assert search_url in gh.getitem_url
+    assert len(gh.getitem_url) == 1
     assert check_run_url in gh.getitem_url
     assert len(gh.getiter_url) == 2
     assert pr_user_search_url in gh.getiter_url
     assert files_url in gh.getiter_url
     assert labels_url in gh.post_url
     assert {"labels": [Label.FAILED_TEST]} in gh.post_data
-    assert not gh.delete_url
+    assert gh.delete_url == []
