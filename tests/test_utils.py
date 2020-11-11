@@ -3,8 +3,8 @@ import urllib.parse
 import pytest
 from gidgethub import apps
 
-from algobot import utils
-from algobot.constants import Label
+from algorithms_keeper import utils
+from algorithms_keeper.constants import Label
 
 from .utils import MOCK_INSTALLATION_ID, MOCK_TOKEN, MockGitHubAPI, mock_return
 

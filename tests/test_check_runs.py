@@ -4,8 +4,8 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from gidgethub import apps, sansio
 
-from algobot import check_runs
-from algobot.constants import Label
+from algorithms_keeper import check_runs
+from algorithms_keeper.constants import Label
 
 from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return
 

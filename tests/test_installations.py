@@ -2,7 +2,7 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from gidgethub import apps, sansio
 
-from algobot import installations
+from algorithms_keeper import installations
 
 from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return
 

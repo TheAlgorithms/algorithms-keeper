@@ -2,8 +2,8 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from gidgethub import apps, sansio
 
-from algobot import issues
-from algobot.comments import EMPTY_ISSUE_BODY_COMMENT
+from algorithms_keeper import issues
+from algorithms_keeper.comments import EMPTY_ISSUE_BODY_COMMENT
 
 from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return
 

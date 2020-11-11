@@ -1,6 +1,6 @@
 from aiohttp import web
 
-from algobot import __main__ as main
+from algorithms_keeper import __main__ as main
 
 
 async def test_ping(aiohttp_client):

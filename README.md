@@ -1,9 +1,9 @@
-# algorithms-bot
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dhruvmanila/algobot/CI?label=CI&logo=github&style=flat-square)](https://github.com/dhruvmanila/algobot/actions)
-[![Codecov](https://img.shields.io/codecov/c/gh/dhruvmanila/algobot?logo=codecov&style=flat-square)](https://codecov.io/gh/dhruvmanila/algobot)
+# algorithms-keeper
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dhruvmanila/algorithms-keeper/CI?label=CI&logo=github&style=flat-square)](https://github.com/dhruvmanila/algorithms-keeper/actions)
+[![Codecov](https://img.shields.io/codecov/c/gh/dhruvmanila/algorithms-keeper?logo=codecov&style=flat-square)](https://codecov.io/gh/dhruvmanila/algorithms-keeper)
 [![code style: black](https://img.shields.io/static/v1?label=code%20style&message=black&color=black&style=flat-square)](https://github.com/psf/black)
 
-A bot for [TheAlgorithms/Python](https://www.github.com/TheAlgorithms/Python) repository. This bot is based on [this tutorial](https://github-app-tutorial.readthedocs.io/en/latest/index.html) and also inspired by the ones working for the [CPython](https://github.com/python/cpython) repository which are [miss-islington](https://github.com/python/miss-islington), [bedevere](https://github.com/python/bedevere) and [the-knights-who-say-ni](https://github.com/python/the-knights-who-say-ni). This bot is basically a GitHub app which can be installed in any repository using [this link](https://github.com/apps/algorithms-bot).
+A bot for [TheAlgorithms/Python](https://www.github.com/TheAlgorithms/Python) repository. This bot is based on [this tutorial](https://github-app-tutorial.readthedocs.io/en/latest/index.html) and also inspired by the ones working for the [CPython](https://github.com/python/cpython) repository which are [miss-islington](https://github.com/python/miss-islington), [bedevere](https://github.com/python/bedevere) and [the-knights-who-say-ni](https://github.com/python/the-knights-who-say-ni). This bot is basically a GitHub app which can be installed in any repository using [this link](https://github.com/apps/algorithms-keeper).
 
 ***NOTE: This bot is highly configured for [TheAlgorithms/Python](https://www.github.com/TheAlgorithms/Python) repository. DO NOT INSTALL the bot without reading what it actually does.***
 

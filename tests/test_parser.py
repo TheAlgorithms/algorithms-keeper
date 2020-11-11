@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from algobot.constants import Label
-from algobot.parser import SEP, PullRequestFilesParser
+from algorithms_keeper.constants import Label
+from algorithms_keeper.parser import SEP, PullRequestFilesParser
 
 DATA_DIRPATH = Path.cwd() / "tests" / "data"
 

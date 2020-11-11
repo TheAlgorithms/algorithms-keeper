@@ -1,1 +1,1 @@
-web: python3 -m algobot
+web: python3 -m algorithms_keeper
