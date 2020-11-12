@@ -50,7 +50,7 @@ async def close_invalid_or_additional_pr(
 
     # Ignore draft pull requests
     if pull_request["draft"]:
-        print(f"[SKIPPED] Draft pull request: {pull_request['html_url']}")
+        logger.info("Draft pull request: %s", pull_request["html_url"])
         return None
 
     author_association = pull_request["author_association"].lower()
@@ -131,7 +131,7 @@ async def check_pr_files(
     if pull_request["draft"]:
         # This message is already being logged by the above function
         if event.data["action"] == "synchronize":
-            print(f"[SKIPPED] Draft pull request: {pull_request['html_url']}")
+            logger.info("Draft pull request: %s", pull_request["html_url"])
         return None
 
     pr_labels = [label["name"] for label in pull_request["labels"]]
