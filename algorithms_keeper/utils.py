@@ -160,9 +160,9 @@ async def get_total_open_prs(
     """
     installation_access_token = await get_access_token(gh, installation_id)
     search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}"
-    if user_login:
+    if user_login is not None:
         search_url += f"+author:{user_login}"
-    if not count:
+    if count is False:
         pr_numbers = []
         async for pull in gh.getiter(search_url, oauth_token=installation_access_token):
             pr_numbers.append(pull["number"])
@@ -205,7 +205,7 @@ async def close_pr_or_issue(
     await add_comment_to_pr_or_issue(
         gh, installation_id, comment=comment, pr_or_issue=pr_or_issue
     )
-    if label:
+    if label is not None:
         await add_label_to_pr_or_issue(
             gh, installation_id, label=label, pr_or_issue=pr_or_issue
         )

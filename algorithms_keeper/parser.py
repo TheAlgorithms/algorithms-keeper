@@ -164,9 +164,9 @@ class PullRequestFilesParser:
         func_nodepath = self._node_path(cls_name=cls_name, func_name=func_name)
         if len(func_name) == 1:
             self._require_descriptive_names.append(func_nodepath)
-        if not self._skip_doctest and func_name != "__init__":
+        if self._skip_doctest is False and func_name != "__init__":
             docstring = ast.get_docstring(function)
-            if docstring:
+            if docstring is not None:
                 for line in docstring.split("\n"):
                     line = line.strip()
                     if line.startswith(">>>"):
@@ -177,7 +177,7 @@ class PullRequestFilesParser:
             # `doctest` not present.
             else:
                 self._require_doctest.append(func_nodepath)
-        if not function.returns:
+        if function.returns is None:
             self._require_return_annotation.append(func_nodepath)
         for arg in function.args.args:
             arg_name = arg.arg
@@ -185,11 +185,11 @@ class PullRequestFilesParser:
                 cls_name=cls_name, func_name=func_name, arg_name=arg_name
             )
             # continue only if `self` is from a method
-            if cls_name and arg_name == "self":
+            if cls_name is not None and arg_name == "self":
                 continue
             if len(arg_name) == 1:
                 self._require_descriptive_names.append(arg_nodepath)
-            if not arg.annotation:
+            if arg.annotation is None:
                 self._require_annotations.append(arg_nodepath)
 
     def _parse_class(self, klass: ast.ClassDef) -> None:
@@ -209,10 +209,10 @@ class PullRequestFilesParser:
         arg_name: Optional[str] = None,
     ) -> str:
         path: List[str] = [self._filename]
-        if cls_name:
+        if cls_name is not None:
             path.append(cls_name)
-        if func_name:
+        if func_name is not None:
             path.append(func_name)
-        if arg_name:
+        if arg_name is not None:
             path.append(arg_name)
         return "`{}`".format(SEP.join(path))

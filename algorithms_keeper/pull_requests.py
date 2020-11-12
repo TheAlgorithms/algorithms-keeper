@@ -59,11 +59,11 @@ async def close_invalid_or_additional_pr(
     if not pr_body:
         comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
         logger.info("Empty PR body: %s", pull_request["html_url"])
-    elif not re.search(r"\[x]", pr_body):
+    elif re.search(r"\[x]", pr_body) is None:
         comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
         logger.info("Empty checklist: %s", pull_request["html_url"])
 
-    if comment:
+    if comment is not None:
         await utils.close_pr_or_issue(
             gh,
             installation_id,
@@ -119,8 +119,7 @@ async def check_pr_files(
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
 
-    # Ignore draft pull requests
-    if pull_request["draft"]:
+    if pull_request["draft"] is True:
         return None
 
     pr_labels = [label["name"] for label in pull_request["labels"]]
