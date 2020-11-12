@@ -18,6 +18,7 @@ router = routing.Router(installations.router, check_runs.router, pull_requests.r
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
 
 log = logging.getLogger(__name__)
+log.setLevel("INFO")
 
 
 async def main(request: web.Request) -> web.Response:
