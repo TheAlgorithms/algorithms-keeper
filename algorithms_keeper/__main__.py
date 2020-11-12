@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import os
 import sys
 import traceback
@@ -16,6 +17,8 @@ router = routing.Router(installations.router, check_runs.router, pull_requests.r
 
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
 
+log = logging.getLogger(__name__)
+
 
 async def main(request: web.Request) -> web.Response:
     try:
@@ -24,9 +27,10 @@ async def main(request: web.Request) -> web.Response:
         event = sansio.Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
             return web.Response(status=200)
-        print(
-            f"{'[RECEIVED]':<12}{event.event + ':' + event.data['action']!r} "
-            f"with delivery ID: {event.delivery_id}"
+        log.info(
+            "Received %r with delivery ID: %s",
+            event.event + ":" + event.data["action"],
+            event.delivery_id,
         )
         async with aiohttp.ClientSession() as session:
             gh = gh_aiohttp.GitHubAPI(session, "algorithms-bot", cache=cache)
@@ -34,13 +38,12 @@ async def main(request: web.Request) -> web.Response:
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
         try:
-            time_remaining = gh.rate_limit.reset_datetime - datetime.datetime.now(
-                datetime.timezone.utc
+            log.info(
+                "Ratelimit %s (UTC) which is in %s",
+                gh.rate_limit,
+                gh.rate_limit.reset_datetime
+                - datetime.datetime.now(datetime.timezone.utc),
             )
-            print(
-                f"{'[RATELIMIT]':<12}: {gh.rate_limit} (UTC) which is in"
-                f" {time_remaining}"
-            )  # pragma: no cover
         except AttributeError:
             pass
         return web.Response(status=200)
