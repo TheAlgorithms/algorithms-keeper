@@ -10,24 +10,27 @@ A bot for [TheAlgorithms/Python](https://www.github.com/TheAlgorithms/Python) re
 ## Greet the user for installing the app
 Open an issue with the message greeting the user who either installed the app or added a new repository to the installed app and then close the issue.
 
-## Add and remove label to PRs when any test fails
-Add a label to indicate that the tests are failing for this PR if it is not present and removes it when the tests pass. It does nothing if the tests are already passing.
+## Add or remove label(s) to pull requests
+- Add a label to indicate that some of the tests are failing for this pull request if it is not present and remove it when all the tests are passing. It does nothing if the tests are already passing. ***NOTE: This check will be skipped if the pull request is in draft mode.***
+- Add a label to indicate to the user that a maintainer has requested some changes to their submission. The bot will remove the label once the pull request is approved.
 
-## Close invalid PRs with comment and an optional label
+## Close invalid pull requests
 A pull request is considered invalid if:
 - It doesn't contain any description.
 - The user has not ticked any of the checkboxes in the provided pull request template.
 - The file extension is invalid. For now only PRs with extensionless files are closed.
 
-***NOTE: These checks will be skipped for any member or owner of the organization.***
+***NOTE: These checks will be skipped for any member or owner of the organization and also for the pull request which is in draft mode.***
 
-## Close additional PRs by user with a comment
-A user will be allowed a fix number of pull requests at a time which will be indicated by the `MAX_PR_BY_USER` constant. This is done so as to avoid spam PRs.
+## Close additional pull requests by user
+A user will be allowed a fix number of pull requests at a time which will be indicated by the `MAX_PR_BY_USER` constant. This is done so as to avoid spam pull requests. This can be disabled by updating the constant value to 0: `MAX_PR_BY_USER = 0`.
 
-***NOTE: These checks will be skipped for any member or owner of the organization.***
+***NOTE: These checks will be skipped for any member or owner of the organization and also for the pull request which is in draft mode.***
 
-## Check all Python files in a PR
-All the Python files will be checked for tests [`doctest`/`unittest`/`pytest`], type hints and descriptive class/function/parameter names. Labels will be added and/or removed according to the latest commit in a PR. A report will be created and commented by the bot if there are any errors found, but ***only*** when a PR is ***opened*** and not on the subsequent commits.
+## Check all Python files in a pull request
+All the Python files will be checked for tests [`doctest`/`unittest`/`pytest`], type hints and descriptive class/function/parameter names. Labels will be added and/or removed according to the latest commit in a pull request. A report will be created and commented by the bot if there are any errors found, but ***only*** when a pull request is ***opened*** or is made ***ready for review*** and not on the subsequent commits.
+
+***NOTE: These checks will be skipped if the pull request is in draft mode.***
 
 ---
 ###### TODO: https://github.com/dhruvmanila/algobot/blob/master/.github/TODO.md
