@@ -26,7 +26,7 @@ async def main(request: web.Request) -> web.Response:
         if event.event == "ping":
             return web.Response(status=200)
         logger.info(
-            "Received %r with delivery ID: %s",
+            "Received: %r Delivery ID: %r",
             event.event + ":" + event.data["action"],
             event.delivery_id,
         )
@@ -37,8 +37,9 @@ async def main(request: web.Request) -> web.Response:
             await router.dispatch(event, gh)
         try:
             logger.info(
-                "Ratelimit %s (UTC) which is in %s",
-                gh.rate_limit,
+                "Ratelimit: %s/%s Remaining time: %s",
+                gh.rate_limit.remaining,
+                gh.rate_limit.limit,
                 gh.rate_limit.reset_datetime
                 - datetime.datetime.now(datetime.timezone.utc),
             )

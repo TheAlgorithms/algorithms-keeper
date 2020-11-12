@@ -5,6 +5,7 @@ from gidgethub import routing, sansio
 
 from . import utils
 from .constants import Label
+from .logging import logger
 
 router = routing.Router()
 
@@ -31,9 +32,10 @@ async def check_run_completed(
     )
 
     if pr_for_commit is None:
-        print(
-            f"{'[SKIPPED]':<12} Pull request not found for commit: "
-            f"https://github.com/{repository}/commit/{commit_sha}"
+        logger.info(
+            "Pull request not found for commit: https://github.com/%s/commit/%s",
+            repository,
+            commit_sha,
         )
         return None
 

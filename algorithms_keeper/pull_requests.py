@@ -13,6 +13,7 @@ from .comments import (
     NO_EXTENSION_COMMENT,
     PR_REPORT_COMMENT,
 )
+from .logging import logger
 from .parser import PullRequestFilesParser
 
 MAX_PR_PER_USER = 1
@@ -48,9 +49,8 @@ async def close_invalid_or_additional_pr(
     author_association = pull_request["author_association"].lower()
 
     if author_association in {"owner", "member"}:
-        print(
-            f"{'[SKIPPED]':<12} Author association {author_association!r}: "
-            f"{pull_request['html_url']}"
+        logger.info(
+            "Author association %r: %s", author_association, pull_request["html_url"]
         )
         return None
 
@@ -60,10 +60,10 @@ async def close_invalid_or_additional_pr(
 
     if not pr_body:
         comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
-        print(f"{'[DETECTED]':<12} Empty PR body: {pull_request['html_url']}")
+        logger.info("Empty PR body: %s", pull_request["html_url"])
     elif not re.search(r"\[x]", pr_body):
         comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
-        print(f"{'[DETECTED]':<12} Empty checklist: {pull_request['html_url']}")
+        logger.info("Empty checklist: %s", pull_request["html_url"])
 
     if comment:
         await utils.close_pr_or_issue(
@@ -83,10 +83,7 @@ async def close_invalid_or_additional_pr(
         )
 
         if len(user_pr_numbers) > MAX_PR_PER_USER:
-            print(
-                f"{'[DETECTED]':<12} Multiple open pull requests: "
-                f"{pull_request['html_url']}"
-            )
+            logger.info("Multiple open PRs: %s", pull_request["html_url"])
             # Convert list of numbers to: "#1, #2, #3"
             pr_number = "#{}".format(", #".join(map(str, user_pr_numbers)))
             await utils.close_pr_or_issue(
@@ -137,9 +134,8 @@ async def check_pr_files(
     for file in pr_files:
         filepath = PurePath(file["filename"])
         if not filepath.suffix and ".github" not in filepath.parts:
-            print(
-                f"{'[DETECTED]':<12} No extension file {file['filename']!r}:"
-                f"{pull_request['html_url']}"
+            logger.info(
+                "No extension file %r: %s", file["filename"], pull_request["html_url"]
             )
             await utils.close_pr_or_issue(
                 gh,
@@ -178,10 +174,10 @@ async def check_pr_files(
     if event.data["action"] == "opened":
         report_content = parser.create_report_content()
         if report_content:
-            print(
-                f"{'[DETECTED]':<12} Missing requirements in parsed files "
-                f"{[file['filename'] for file in files_to_check]}: "
-                f"{pull_request['html_url']}"
+            logger.info(
+                "Missing requirements in parsed files %s: %s",
+                [file["filename"] for file in files_to_check],
+                pull_request["html_url"],
             )
             await utils.add_comment_to_pr_or_issue(
                 gh,

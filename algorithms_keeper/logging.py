@@ -1,10 +1,6 @@
 import logging
 
-logger = logging.getLogger("algorithms_keeper")
+logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
-
 handler = logging.StreamHandler()
-formatter = logging.Formatter("%(levelname)s: %(message)s")
-handler.setFormatter(formatter)
-
 logger.addHandler(handler)
