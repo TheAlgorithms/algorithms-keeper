@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import logging
 import os
 import sys
 import traceback
@@ -12,14 +11,11 @@ from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
 from . import check_runs, installations, pull_requests
+from .logging import logger
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
-
-log = logging.getLogger(__name__)
-log.setLevel("INFO")
-log.addHandler(logging.StreamHandler())
 
 
 async def main(request: web.Request) -> web.Response:
@@ -29,7 +25,7 @@ async def main(request: web.Request) -> web.Response:
         event = sansio.Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
             return web.Response(status=200)
-        log.info(
+        logger.info(
             "Received %r with delivery ID: %s",
             event.event + ":" + event.data["action"],
             event.delivery_id,
@@ -40,7 +36,7 @@ async def main(request: web.Request) -> web.Response:
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
         try:
-            log.info(
+            logger.info(
                 "Ratelimit %s (UTC) which is in %s",
                 gh.rate_limit,
                 gh.rate_limit.reset_datetime
