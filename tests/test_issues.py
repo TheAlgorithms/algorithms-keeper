@@ -4,6 +4,7 @@ from gidgethub import apps, sansio
 
 from algorithms_keeper import issues
 from algorithms_keeper.comments import EMPTY_ISSUE_BODY_COMMENT
+from algorithms_keeper.constants import Label
 
 from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return
 
@@ -55,7 +56,7 @@ async def test_empty_issue_body():
     assert comments_url in gh.post_url
     assert labels_url in gh.post_url
     assert {"body": EMPTY_ISSUE_BODY_COMMENT} in gh.post_data
-    assert {"labels": ["invalid"]} in gh.post_data
+    assert {"labels": [Label.INVALID]} in gh.post_data
     assert issue_url in gh.patch_url
     assert {"state": "closed"} in gh.patch_data
     assert gh.delete_url == []

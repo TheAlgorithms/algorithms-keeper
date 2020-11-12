@@ -23,7 +23,6 @@ router = routing.Router()
 
 
 @router.register("pull_request", action="opened")
-@router.register("pull_request", action="ready_for_review")
 async def close_invalid_or_additional_pr(
     event: sansio.Event,
     gh: gh_aiohttp.GitHubAPI,
@@ -48,17 +47,9 @@ async def close_invalid_or_additional_pr(
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
-
-    # Ignore draft pull requests
-    if pull_request["draft"]:
-        logger.info("Draft pull request: %s", pull_request["html_url"])
-        return None
-
     author_association = pull_request["author_association"].lower()
+
     if author_association in {"owner", "member"}:
-        logger.info(
-            "Author association %r: %s", author_association, pull_request["html_url"]
-        )
         return None
 
     pr_body = pull_request["body"]
@@ -78,7 +69,7 @@ async def close_invalid_or_additional_pr(
             installation_id,
             comment=comment,
             pr_or_issue=pull_request,
-            label="invalid",
+            label=Label.INVALID,
         )
     elif MAX_PR_PER_USER > 0:
         user_pr_numbers = await utils.get_total_open_prs(
@@ -130,9 +121,6 @@ async def check_pr_files(
 
     # Ignore draft pull requests
     if pull_request["draft"]:
-        # This message is already being logged by the above function
-        if event.data["action"] == "synchronize":
-            logger.info("Draft pull request: %s", pull_request["html_url"])
         return None
 
     pr_labels = [label["name"] for label in pull_request["labels"]]
@@ -157,7 +145,7 @@ async def check_pr_files(
                 installation_id,
                 comment=NO_EXTENSION_COMMENT.format(user_login=pr_author),
                 pr_or_issue=pull_request,
-                label="invalid",
+                label=Label.INVALID,
             )
             return None
         elif filepath.suffix != ".py" or filepath.name.startswith("__"):

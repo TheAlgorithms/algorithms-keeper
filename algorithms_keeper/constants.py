@@ -13,3 +13,4 @@ class Label:
     REQUIRE_TEST = "Require: Tests"
     DESCRIPTIVE_NAMES = "Require: Descriptive names"
     CHANGES_REQUESTED = "Status: awaiting changes"
+    INVALID = "invalid"

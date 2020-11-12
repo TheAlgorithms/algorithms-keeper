@@ -153,7 +153,7 @@ async def test_pr_opened_no_body_and_no_ticked(body, comment):
     assert len(gh.post_url) == 2
     assert gh.post_url == [comments_url, labels_url]
     assert gh.post_data[0] == {"body": comment}
-    assert gh.post_data[1] == {"labels": ["invalid"]}
+    assert gh.post_data[1] == {"labels": [Label.INVALID]}
     assert gh.patch_url[0] == pr_url
     assert gh.patch_data[0] == {"state": "closed"}
     assert gh.delete_url[0] == reviewers_url
@@ -169,11 +169,11 @@ async def test_pr_opened_in_draft_mode(action):
         "pull_request": {
             "number": number,
             "url": pr_url,
-            "body": "",  # body can be empty for member
+            "body": CHECKBOX_TICKED,
             "head": {"sha": sha},
             "labels": [],
             "user": {"login": user},
-            "author_association": "MEMBER",
+            "author_association": "NONE",
             "comments_url": comments_url,
             "issue_url": issue_url,
             "html_url": html_pr_url,
@@ -184,10 +184,21 @@ async def test_pr_opened_in_draft_mode(action):
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
-    gh = MockGitHubAPI()
+    getiter = {
+        pr_user_search_url: {
+            "total_count": 1,
+            "items": [
+                {"number": 1, "state": "opened"},
+            ],
+        },
+    }
+    gh = MockGitHubAPI(getiter=getiter)
     await pull_requests.router.dispatch(event, gh)
-    # No checks are performed when the PR is in draft mode
-    assert gh.getiter_url == []
+    # PRs should be closed if they are invalid even if it is opened in draft mode
+    if action == "opened":
+        assert pr_user_search_url in gh.getiter_url
+    else:
+        assert gh.getiter_url == []
     assert gh.post_url == []
     assert gh.post_data == []
     assert gh.patch_url == []
@@ -379,7 +390,7 @@ async def test_for_extensionless_files(action, getiter):
     assert len(gh.post_url) == 2
     assert gh.post_url == [comments_url, labels_url]
     assert gh.post_data[0] == {"body": NO_EXTENSION_COMMENT}
-    assert gh.post_data[1] == {"labels": ["invalid"]}
+    assert gh.post_data[1] == {"labels": [Label.INVALID]}
     assert gh.patch_url[0] == pr_url
     assert gh.patch_data[0] == {"state": "closed"}
     assert gh.delete_url[0] == reviewers_url
@@ -777,12 +788,6 @@ async def test_label_on_ready_for_review_pr():
         },
     }
     getiter = {
-        pr_user_search_url: {
-            "total_count": 1,
-            "items": [
-                {"number": 1, "state": "opened"},
-            ],
-        },
         files_url: {},
     }
     post = {labels_url: {}}
@@ -790,8 +795,7 @@ async def test_label_on_ready_for_review_pr():
     await pull_requests.router.dispatch(event, gh)
     assert len(gh.getitem_url) == 1
     assert check_run_url in gh.getitem_url
-    assert len(gh.getiter_url) == 2
-    assert pr_user_search_url in gh.getiter_url
+    assert len(gh.getiter_url) == 1
     assert files_url in gh.getiter_url
     assert labels_url in gh.post_url
     assert {"labels": [Label.FAILED_TEST]} in gh.post_data

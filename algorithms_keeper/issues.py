@@ -5,6 +5,7 @@ from gidgethub import routing, sansio
 
 from . import utils
 from .comments import EMPTY_ISSUE_BODY_COMMENT
+from .constants import Label
 from .logging import logger
 
 router = routing.Router()
@@ -26,11 +27,11 @@ async def close_invalid_issue(
     issue = event.data["issue"]
 
     if not issue["body"]:
-        logger.info("Detected empty issue body: %s", issue["html_url"])
+        logger.info("Empty issue body: %s", issue["html_url"])
         await utils.close_pr_or_issue(
             gh,
             installation_id,
             comment=EMPTY_ISSUE_BODY_COMMENT.format(user_login=issue["user"]["login"]),
             pr_or_issue=issue,
-            label="invalid",
+            label=Label.INVALID,
         )
