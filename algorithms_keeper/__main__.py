@@ -1,8 +1,6 @@
 import asyncio
 import datetime
 import os
-import sys
-import traceback
 
 import aiohttp
 import cachetools
@@ -46,8 +44,8 @@ async def main(request: web.Request) -> web.Response:
         except AttributeError:
             pass
         return web.Response(status=200)
-    except Exception:
-        traceback.print_exc(file=sys.stderr)
+    except Exception as err:
+        logger.exception(err)
         return web.Response(status=500)
 
 
