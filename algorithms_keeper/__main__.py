@@ -19,6 +19,7 @@ cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
 
 log = logging.getLogger(__name__)
 log.setLevel("INFO")
+log.addHandler(logging.StreamHandler())
 
 
 async def main(request: web.Request) -> web.Response:
