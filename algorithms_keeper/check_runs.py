@@ -37,6 +37,12 @@ async def check_ci_status_and_label(
         commit_sha = event.data["pull_request"]["head"]["sha"]
         pr_for_commit = event.data["pull_request"]
 
+    # The log message is a bit ambiguous as there are multiple possibilities for
+    # `pr_for_commit` to be `None`:
+    # - PR could have been closed before all the checks were completed as
+    #   the bot might have found it invalid.
+    # - PR could be in draft mode
+    # - CheckRun event came from a commit made directly on master branch
     if pr_for_commit is None:
         logger.info(
             "Pull request not found for commit: https://github.com/%s/commit/%s",
