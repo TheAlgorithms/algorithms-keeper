@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import os
+from typing import Any
 
 import aiohttp
 import cachetools
@@ -13,7 +14,7 @@ from .logging import logger
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 
-cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache
+cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache[Any, Any]
 
 
 async def main(request: web.Request) -> web.Response:

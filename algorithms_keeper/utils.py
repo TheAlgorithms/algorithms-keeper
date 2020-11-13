@@ -23,7 +23,7 @@ from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import apps
 
 # Timed cache for installation access token (1 hour)
-cache = cachetools.TTLCache(maxsize=1, ttl=3600)  # type: cachetools.TTLCache
+cache = cachetools.TTLCache(maxsize=1, ttl=3600)  # type: cachetools.TTLCache[str, str]
 
 
 async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> str:
@@ -47,7 +47,7 @@ async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> st
 
 async def get_pr_for_commit(
     gh: gh_aiohttp.GitHubAPI, installation_id: int, *, sha: str, repository: str
-) -> Optional[Dict[str, Any]]:
+) -> Optional[Any]:
     """Return the issue object, relative to the pull request, for the given SHA
     of a commit.
 
