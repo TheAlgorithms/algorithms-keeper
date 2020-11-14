@@ -14,7 +14,7 @@ from .comments import (
     PR_REPORT_COMMENT,
 )
 from .constants import Label
-from .logging import logger
+from .log import logger
 from .parser import PullRequestFilesParser
 
 MAX_PR_PER_USER = 1

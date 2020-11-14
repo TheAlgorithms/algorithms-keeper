@@ -10,7 +10,7 @@ from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
 from . import check_runs, installations, pull_requests
-from .logging import logger
+from .log import logger
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 

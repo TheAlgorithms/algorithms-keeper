@@ -5,7 +5,7 @@ from gidgethub import routing, sansio
 
 from . import utils
 from .constants import Label
-from .logging import logger
+from .log import logger
 
 router = routing.Router()
 
