@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import logging
 import os
 from typing import Any
 
@@ -11,8 +10,7 @@ from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
 from . import check_runs, installations, pull_requests
-
-logging.basicConfig(level=logging.DEBUG)
+from .log import color, logger
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 
@@ -26,9 +24,9 @@ async def main(request: web.Request) -> web.Response:
         event = sansio.Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
             return web.Response(status=200)
-        logging.info(
+        logger.info(
             "event=%r delivery_id=%r",
-            event.event + ":" + event.data["action"],
+            color.YELLOW + event.event + ":" + event.data["action"] + color.RESET,
             event.delivery_id,
         )
         async with aiohttp.ClientSession() as session:
@@ -39,19 +37,21 @@ async def main(request: web.Request) -> web.Response:
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
         try:
-            logging.info(
+            logger.info(
                 "ratelimit=%s/%s time_remaining=%s",
-                gh.rate_limit.remaining,
-                gh.rate_limit.limit,
-                gh.rate_limit.reset_datetime
-                - datetime.datetime.now(datetime.timezone.utc),
+                color.YELLOW + gh.rate_limit.remaining,
+                gh.rate_limit.limit + color.RESET,
+                color.YELLOW
+                + gh.rate_limit.reset_datetime
+                - datetime.datetime.now(datetime.timezone.utc)
+                + color.RESET,
             )
         except AttributeError:
             pass
         return web.Response(status=200)
     except Exception as err:
-        logging.exception(err)
-        return web.Response(status=500, text=err)
+        logger.exception(err)
+        return web.Response(status=500, text=str(err))
 
 
 if __name__ == "__main__":  # pragma: no cover
