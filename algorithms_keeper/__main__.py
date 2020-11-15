@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import os
 from typing import Any
 
@@ -10,7 +11,8 @@ from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
 from . import check_runs, installations, pull_requests
-from .log import logger
+
+logging.basicConfig(level=logging.DEBUG)
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 
@@ -24,19 +26,21 @@ async def main(request: web.Request) -> web.Response:
         event = sansio.Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
             return web.Response(status=200)
-        logger.info(
-            "Received: %r Delivery ID: %r",
+        logging.info(
+            "event=%r delivery_id=%r",
             event.event + ":" + event.data["action"],
             event.delivery_id,
         )
         async with aiohttp.ClientSession() as session:
-            gh = gh_aiohttp.GitHubAPI(session, "algorithms-bot", cache=cache)
+            gh = gh_aiohttp.GitHubAPI(
+                session, "dhruvmanila/algorithms-keeper", cache=cache
+            )
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
         try:
-            logger.info(
-                "Ratelimit: %s/%s Remaining time: %s",
+            logging.info(
+                "ratelimit=%s/%s time_remaining=%s",
                 gh.rate_limit.remaining,
                 gh.rate_limit.limit,
                 gh.rate_limit.reset_datetime
@@ -46,8 +50,8 @@ async def main(request: web.Request) -> web.Response:
             pass
         return web.Response(status=200)
     except Exception as err:
-        logger.exception(err)
-        return web.Response(status=500)
+        logging.exception(err)
+        return web.Response(status=500, text=err)
 
 
 if __name__ == "__main__":  # pragma: no cover
