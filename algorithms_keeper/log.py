@@ -56,14 +56,14 @@ Color = AnsiColor()
 
 class CustomFormatter(logging.Formatter):
     # Time is coming directly from Heroku.
-    output = "[%(levelname)s] %(message)s"
+    default_fmt = "[%(levelname)s] %(message)s"
 
     LOGGING_FORMAT = {
-        "DEBUG": Color.DEBUG + output + Color.RESET_ALL,
-        "INFO": Color.INFO + output + Color.RESET_ALL,
-        "WARNING": Color.WARNING + output + Color.RESET_ALL,
-        "ERROR": Color.ERROR + output + Color.RESET_ALL,
-        "CRITICAL": Color.CRITICAL + output + Color.RESET_ALL,
+        "DEBUG": Color.DEBUG + default_fmt + Color.RESET_ALL,
+        "INFO": Color.INFO + default_fmt + Color.RESET_ALL,
+        "WARNING": Color.WARNING + default_fmt + Color.RESET_ALL,
+        "ERROR": Color.ERROR + default_fmt + Color.RESET_ALL,
+        "CRITICAL": Color.CRITICAL + default_fmt + Color.RESET_ALL,
     }
 
     def format(self, record: logging.LogRecord) -> str:
@@ -73,12 +73,13 @@ class CustomFormatter(logging.Formatter):
         splits the message according to newline and thus the color format will
         disappear, so add the color format after every newline as well.
         """
-        log_fmt = self.LOGGING_FORMAT.get(record.levelname)
-        formatter = logging.Formatter(log_fmt)
+        custom_fmt = self.LOGGING_FORMAT.get(record.levelname, self.default_fmt)
+        # Inject custom formating to the base class which `self.formatMessage` calls.
+        self._style._fmt = custom_fmt
         msg = record.getMessage()
         if record.exc_info:
             if not record.exc_text:
-                record.exc_text = formatter.formatException(record.exc_info)
+                record.exc_text = self.formatException(record.exc_info)
         if record.exc_text:
             if msg[-1:] != "\n":
                 msg += "\n"
@@ -86,7 +87,7 @@ class CustomFormatter(logging.Formatter):
             c = getattr(AnsiColor, record.levelname)
             msg = msg.replace("\n", f"\n{c}")
         record.message = msg
-        return formatter.formatMessage(record)
+        return self.formatMessage(record)
 
 
 logger = logging.getLogger(__name__)
