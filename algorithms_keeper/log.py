@@ -42,11 +42,11 @@ class AnsiColor:
         msgparts = [
             self.RESET_ALL,
             # Color and style can be in any order.
-            eval(f"self.{color.upper()}"),
-            eval(f"self.{style.upper()}"),
+            getattr(self, color.upper()),
+            getattr(self, style.upper()),
             msg,
             self.RESET_ALL,
-            eval(f"self.{reset.upper()}"),
+            getattr(self, reset.upper()),
         ]
         return "".join(msgparts)
 
@@ -59,25 +59,35 @@ class CustomFormatter(logging.Formatter):
     output = "[%(levelname)s] %(message)s"
 
     LOGGING_FORMAT = {
-        logging.DEBUG: Color.DEBUG + output + Color.RESET_ALL,
-        logging.INFO: Color.INFO + output + Color.RESET_ALL,
-        logging.WARNING: Color.WARNING + output + Color.RESET_ALL,
-        logging.ERROR: Color.ERROR + output + Color.RESET_ALL,
-        logging.CRITICAL: Color.CRITICAL + output + Color.RESET_ALL,
+        "DEBUG": Color.DEBUG + output + Color.RESET_ALL,
+        "INFO": Color.INFO + output + Color.RESET_ALL,
+        "WARNING": Color.WARNING + output + Color.RESET_ALL,
+        "ERROR": Color.ERROR + output + Color.RESET_ALL,
+        "CRITICAL": Color.CRITICAL + output + Color.RESET_ALL,
     }
 
     def format(self, record):
-        log_fmt = self.LOGGING_FORMAT.get(record.levelno)
+        """Custom formating for the log message.
+
+        If the record contains an exception, then add that to the 'message'. Heroku
+        splits the message according to newline and thus the color format will
+        disappear, so add the color format after every newline as well.
+        """
+        log_fmt = self.LOGGING_FORMAT.get(record.levelname)
         formatter = logging.Formatter(log_fmt)
+        msg = record.getMessage()
         if record.exc_info:
-            msg = str(record.msg)
-            err = formatter.formatException(record.exc_info)
-            if err[-1:] != "\n":
-                err += "\n"
-            record.msg = msg + "\n" + err
-            # Don't print this again.
-            record.exc_info = None
-        return formatter.format(record)
+            if not record.exc_text:
+                record.exc_text = formatter.formatException(record.exc_info)
+        if record.exc_text:
+            if msg[-1:] != "\n":
+                msg += "\n" + record.exc_text
+        msg_parts = msg.split("\n")
+        if len(msg_parts) > 1:
+            c = getattr(AnsiColor, record.levelname)
+            msg = f"\n{c}".join(msg_parts)
+        record.message = msg
+        return formatter.formatMessage(record)
 
 
 logger = logging.getLogger(__name__)
