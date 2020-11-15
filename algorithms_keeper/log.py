@@ -4,7 +4,7 @@ import sys
 CSI = "\033["
 
 
-def colorcode(code):
+def colorcode(code: int) -> str:
     return CSI + str(code) + "m"
 
 
@@ -66,7 +66,7 @@ class CustomFormatter(logging.Formatter):
         "CRITICAL": Color.CRITICAL + output + Color.RESET_ALL,
     }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         """Custom formating for the log message.
 
         If the record contains an exception, then add that to the 'message'. Heroku
