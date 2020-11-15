@@ -24,7 +24,7 @@ class AnsiColor:
     NORMAL = colorcode(22)
     RESET_ALL = colorcode(0)
 
-    # Useful for resetting the color according to the log level
+    # Log level format
     DEBUG = DIM
     INFO = DIM
     WARNING = YELLOW
@@ -81,11 +81,10 @@ class CustomFormatter(logging.Formatter):
                 record.exc_text = formatter.formatException(record.exc_info)
         if record.exc_text:
             if msg[-1:] != "\n":
-                msg += "\n" + record.exc_text
-        msg_parts = msg.split("\n")
-        if len(msg_parts) > 1:
+                msg += "\n"
+            msg += record.exc_text
             c = getattr(AnsiColor, record.levelname)
-            msg = f"\n{c}".join(msg_parts)
+            msg = msg.replace("\n", f"\n{c}")
         record.message = msg
         return formatter.formatMessage(record)
 

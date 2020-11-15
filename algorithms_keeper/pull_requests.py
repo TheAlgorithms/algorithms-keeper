@@ -141,7 +141,7 @@ async def check_pr_files(
         filepath = PurePath(file["filename"])
         if not filepath.suffix and ".github" not in filepath.parts:
             logger.info(
-                "No extension file %s: %s",
+                "No extension file [%s]: %s",
                 Color.inject(file["filename"], "yellow"),
                 Color.inject(pull_request["html_url"], "blue"),
             )
@@ -183,7 +183,7 @@ async def check_pr_files(
         report_content = parser.create_report_content()
         if report_content:
             logger.info(
-                "Missing requirements in parsed files %s: %s",
+                "Missing requirements in parsed files [%s]: %s",
                 Color.inject(
                     ", ".join([file["filename"] for file in files_to_check]), "yellow"
                 ),

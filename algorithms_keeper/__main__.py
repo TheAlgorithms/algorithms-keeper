@@ -45,8 +45,10 @@ async def main(request: web.Request) -> web.Response:
                     "bold",
                 ),
                 Color.inject(
-                    gh.rate_limit.reset_datetime
-                    - datetime.datetime.now(datetime.timezone.utc),
+                    str(
+                        gh.rate_limit.reset_datetime
+                        - datetime.datetime.now(datetime.timezone.utc)
+                    ),
                     "yellow",
                     "bold",
                 ),
