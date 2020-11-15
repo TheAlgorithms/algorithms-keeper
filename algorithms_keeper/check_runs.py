@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 from gidgethub import aiohttp as gh_aiohttp
@@ -6,6 +5,7 @@ from gidgethub import routing, sansio
 
 from . import utils
 from .constants import Label
+from .log import Color, logger
 
 router = routing.Router()
 
@@ -44,10 +44,11 @@ async def check_ci_status_and_label(
     # - PR could be in draft mode
     # - CheckRun event came from a commit made directly on master branch
     if pr_for_commit is None:
-        logging.info(
-            "Pull request not found for commit: https://github.com/%s/commit/%s",
-            repository,
-            commit_sha,
+        logger.info(
+            "Pull request not found for commit: %s",
+            Color.inject(
+                f"https://github.com/{repository}/commit/{commit_sha}", "blue"
+            ),
         )
         return None
 

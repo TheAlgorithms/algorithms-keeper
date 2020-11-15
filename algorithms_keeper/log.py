@@ -24,8 +24,33 @@ class AnsiColor:
     NORMAL = colorcode(22)
     RESET_ALL = colorcode(0)
 
+    # Useful for resetting the color according to the log level
+    DEBUG = DIM
+    INFO = DIM
+    WARNING = YELLOW
+    ERROR = RED
+    CRITICAL = RED + BOLD
 
-color = AnsiColor()
+    def inject(
+        self, msg: str, color: str, *, style: str = "normal", reset: str = "info"
+    ) -> str:
+        """Inject the color and an optional style to the given message and reset it
+        back to being the given log level in 'reset'.
+
+        This method is only to be used when injecting color/style to a submessage.
+        """
+        msgparts = [
+            self.RESET_ALL,
+            eval(f"self.{color.upper()}"),
+            eval(f"self.{style.upper()}"),
+            msg,
+            self.RESET_ALL,
+            eval(f"self.{reset.upper()}"),
+        ]
+        return "".join(msgparts)
+
+
+Color = AnsiColor()
 
 
 class CustomFormatter(logging.Formatter):
@@ -33,11 +58,11 @@ class CustomFormatter(logging.Formatter):
     output = "[%(levelname)s] %(message)s"
 
     LOGGING_FORMAT = {
-        logging.DEBUG: color.DIM + output + color.RESET_ALL,
-        logging.INFO: color.DIM + output + color.RESET_ALL,
-        logging.WARNING: color.YELLOW + output + color.RESET_ALL,
-        logging.ERROR: color.RED + output + color.RESET_ALL,
-        logging.CRITICAL: color.RED + color.BOLD + output + color.RESET_ALL,
+        logging.DEBUG: Color.DEBUG + output + Color.RESET_ALL,
+        logging.INFO: Color.INFO + output + Color.RESET_ALL,
+        logging.WARNING: Color.WARNING + output + Color.RESET_ALL,
+        logging.ERROR: Color.ERROR + output + Color.RESET_ALL,
+        logging.CRITICAL: Color.CRITICAL + output + Color.RESET_ALL,
     }
 
     def format(self, record):

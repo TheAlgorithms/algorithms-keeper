@@ -10,7 +10,7 @@ from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
 from . import check_runs, installations, pull_requests
-from .log import color, logger
+from .log import Color, logger
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 
@@ -26,7 +26,7 @@ async def main(request: web.Request) -> web.Response:
             return web.Response(status=200)
         logger.info(
             "event=%s delivery_id=%s",
-            color.YELLOW + event.event + ":" + event.data["action"] + color.RESET,
+            Color.inject(f"{event.event}:{event.data['action']}", "yellow"),
             event.delivery_id,
         )
         async with aiohttp.ClientSession() as session:
@@ -38,15 +38,17 @@ async def main(request: web.Request) -> web.Response:
             await router.dispatch(event, gh)
         try:
             logger.info(
-                "ratelimit=%s%s/%s%s time_remaining=%s%s%s",
-                color.YELLOW,
-                gh.rate_limit.remaining,
-                gh.rate_limit.limit,
-                color.RESET,
-                color.YELLOW,
-                gh.rate_limit.reset_datetime
-                - datetime.datetime.now(datetime.timezone.utc),
-                color.RESET,
+                "ratelimit=%s time_remaining=%s",
+                Color.inject(
+                    f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}", "yellow"
+                ),
+                Color.inject(
+                    str(
+                        gh.rate_limit.reset_datetime
+                        - datetime.datetime.now(datetime.timezone.utc)
+                    ),
+                    "yellow",
+                ),
             )
         except AttributeError:
             pass
