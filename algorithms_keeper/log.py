@@ -70,10 +70,11 @@ class CustomFormatter(logging.Formatter):
         log_fmt = self.LOGGING_FORMAT.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         if record.exc_info:
+            msg = str(record.msg)
             err = formatter.formatException(record.exc_info)
             if err[-1:] != "\n":
                 err += "\n"
-            record.message = "\n" + err
+            record.msg = msg + "\n" + err
             # Don't print this again.
             record.exc_info = None
         return formatter.format(record)
