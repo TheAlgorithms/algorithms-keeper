@@ -25,7 +25,7 @@ async def main(request: web.Request) -> web.Response:
         if event.event == "ping":
             return web.Response(status=200)
         logger.info(
-            "event=%r delivery_id=%r",
+            "event=%s delivery_id=%s",
             color.YELLOW + event.event + ":" + event.data["action"] + color.RESET,
             event.delivery_id,
         )
@@ -38,13 +38,15 @@ async def main(request: web.Request) -> web.Response:
             await router.dispatch(event, gh)
         try:
             logger.info(
-                "ratelimit=%s/%s time_remaining=%s",
-                color.YELLOW + gh.rate_limit.remaining,
-                gh.rate_limit.limit + color.RESET,
-                color.YELLOW
-                + gh.rate_limit.reset_datetime
-                - datetime.datetime.now(datetime.timezone.utc)
-                + color.RESET,
+                "ratelimit=%s%s/%s%s time_remaining=%s%s%s",
+                color.YELLOW,
+                gh.rate_limit.remaining,
+                gh.rate_limit.limit,
+                color.RESET,
+                color.YELLOW,
+                gh.rate_limit.reset_datetime
+                - datetime.datetime.now(datetime.timezone.utc),
+                color.RESET,
             )
         except AttributeError:
             pass

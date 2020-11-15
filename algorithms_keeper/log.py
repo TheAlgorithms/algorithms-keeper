@@ -33,10 +33,10 @@ class CustomFormatter(logging.Formatter):
     output = "[%(levelname)s] %(message)s"
 
     LOGGING_FORMAT = {
-        logging.DEBUG: color.DIM + output + color.RESET,
-        logging.INFO: color.DIM + output + color.RESET,
-        logging.WARNING: color.YELLOW + output + color.RESET,
-        logging.ERROR: color.RED + output + color.RESET,
+        logging.DEBUG: color.DIM + output + color.RESET_ALL,
+        logging.INFO: color.DIM + output + color.RESET_ALL,
+        logging.WARNING: color.YELLOW + output + color.RESET_ALL,
+        logging.ERROR: color.RED + output + color.RESET_ALL,
         logging.CRITICAL: color.RED + color.BOLD + output + color.RESET_ALL,
     }
 
