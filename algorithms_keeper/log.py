@@ -29,10 +29,10 @@ class AnsiColor:
     INFO = DIM
     WARNING = YELLOW
     ERROR = RED
-    CRITICAL = RED + BOLD
+    CRITICAL = MAGENTA + BOLD
 
     def inject(
-        self, msg: str, color: str, *, style: str = "normal", reset: str = "info"
+        self, msg: str, color: str, style: str = "normal", *, reset: str = "info"
     ) -> str:
         """Inject the color and an optional style to the given message and reset it
         back to being the given log level in 'reset'.
@@ -41,6 +41,7 @@ class AnsiColor:
         """
         msgparts = [
             self.RESET_ALL,
+            # Color and style can be in any order.
             eval(f"self.{color.upper()}"),
             eval(f"self.{style.upper()}"),
             msg,
@@ -68,6 +69,13 @@ class CustomFormatter(logging.Formatter):
     def format(self, record):
         log_fmt = self.LOGGING_FORMAT.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
+        if record.exc_info:
+            err = formatter.formatException(record.exc_info)
+            if err[-1:] != "\n":
+                err += "\n"
+            record.message = "\n" + err
+            # Don't print this again.
+            record.exc_info = None
         return formatter.format(record)
 
 

@@ -26,7 +26,7 @@ async def main(request: web.Request) -> web.Response:
             return web.Response(status=200)
         logger.info(
             "event=%s delivery_id=%s",
-            Color.inject(f"{event.event}:{event.data['action']}", "yellow"),
+            Color.inject(f"{event.event}:{event.data['action']}", "green"),
             event.delivery_id,
         )
         async with aiohttp.ClientSession() as session:
@@ -40,14 +40,15 @@ async def main(request: web.Request) -> web.Response:
             logger.info(
                 "ratelimit=%s time_remaining=%s",
                 Color.inject(
-                    f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}", "yellow"
+                    f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}",
+                    "yellow",
+                    "bold",
                 ),
                 Color.inject(
-                    str(
-                        gh.rate_limit.reset_datetime
-                        - datetime.datetime.now(datetime.timezone.utc)
-                    ),
+                    gh.rate_limit.reset_datetime
+                    - datetime.datetime.now(datetime.timezone.utc),
                     "yellow",
+                    "bold",
                 ),
             )
         except AttributeError:
