@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any, Dict, MutableMapping
 
 CSI = "\033["
@@ -54,7 +55,7 @@ Color = AnsiColor()
 
 class CustomFormatter(logging.Formatter):
     # Time is coming directly from Heroku.
-    default_fmt = "[%(levelname)s]::%(name)s %(message)s"
+    default_fmt = "[%(levelname)s] %(message)s"
 
     LOGGING_FORMAT = {
         "DEBUG": Color.DEBUG + default_fmt + Color.RESET_ALL,
@@ -114,7 +115,8 @@ class CustomFormatter(logging.Formatter):
 
 handler = logging.StreamHandler()
 handler.setFormatter(CustomFormatter())
-
-logging.basicConfig(level=logging.DEBUG, handlers=[handler])
-
+# This is done so that we can change the level directly from Heroku.
+loglevel = os.environ.get("LOG_LEVEL", "INFO")
+logging.basicConfig(level=loglevel, handlers=[handler])
+# Main logger for the bot.
 logger = logging.getLogger(__package__)
