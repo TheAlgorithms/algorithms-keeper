@@ -6,7 +6,7 @@ from gidgethub import routing, sansio
 from . import utils
 from .comments import EMPTY_ISSUE_BODY_COMMENT
 from .constants import Label
-from .log import Color, logger
+from .log import logger
 
 router = routing.Router()
 
@@ -27,7 +27,7 @@ async def close_invalid_issue(
     issue = event.data["issue"]
 
     if not issue["body"]:
-        logger.info("Empty issue body: %s", Color.inject(issue["html_url"], "blue"))
+        logger.info("Empty issue body: %(url)s", {"url": issue["html_url"]})
         await utils.close_pr_or_issue(
             gh,
             installation_id,

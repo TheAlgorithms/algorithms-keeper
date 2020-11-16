@@ -5,7 +5,7 @@ from gidgethub import routing, sansio
 
 from . import utils
 from .constants import Label
-from .log import Color, logger
+from .log import logger
 
 router = routing.Router()
 
@@ -45,10 +45,8 @@ async def check_ci_status_and_label(
     # - CheckRun event came from a commit made directly on master branch
     if pr_for_commit is None:
         logger.info(
-            "Pull request not found for commit: %s",
-            Color.inject(
-                f"https://github.com/{repository}/commit/{commit_sha}", "blue"
-            ),
+            "Pull request not found for commit: %(url)s",
+            {"url": f"https://github.com/{repository}/commit/{commit_sha}"},
         )
         return None
 

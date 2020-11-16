@@ -10,7 +10,7 @@ from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
 from . import check_runs, installations, pull_requests
-from .log import Color, logger
+from .log import logger
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 
@@ -25,9 +25,11 @@ async def main(request: web.Request) -> web.Response:
         if event.event == "ping":
             return web.Response(status=200)
         logger.info(
-            "event=%s delivery_id=%s",
-            Color.inject(f"{event.event}:{event.data['action']}", "green"),
-            event.delivery_id,
+            "event=%(event)s delivery_id=%(delivery_id)s",
+            {
+                "event": event.event + event.data["action"],
+                "delivery_id": event.delivery_id,
+            },
         )
         async with aiohttp.ClientSession() as session:
             gh = gh_aiohttp.GitHubAPI(
@@ -38,20 +40,12 @@ async def main(request: web.Request) -> web.Response:
             await router.dispatch(event, gh)
         try:
             logger.info(
-                "ratelimit=%s time_remaining=%s",
-                Color.inject(
-                    f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}",
-                    "yellow",
-                    "bold",
-                ),
-                Color.inject(
-                    str(
-                        gh.rate_limit.reset_datetime
-                        - datetime.datetime.now(datetime.timezone.utc)
-                    ),
-                    "yellow",
-                    "bold",
-                ),
+                "ratelimit=%(ratelimit)s time_remaining=%(time_remaining)s",
+                {
+                    "ratelimit": f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}",
+                    "time_remaining": gh.rate_limit.reset_datetime
+                    - datetime.datetime.now(datetime.timezone.utc),
+                },
             )
         except AttributeError:
             pass

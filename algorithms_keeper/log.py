@@ -1,5 +1,5 @@
 import logging
-import sys
+from typing import Any, Dict, MutableMapping
 
 CSI = "\033["
 
@@ -31,9 +31,7 @@ class AnsiColor:
     ERROR = RED
     CRITICAL = MAGENTA + BOLD
 
-    def inject(
-        self, msg: str, color: str, style: str = "normal", *, reset: str = "info"
-    ) -> str:
+    def inject(self, msg: str, color: str, style: str, reset: str) -> str:
         """Inject the color and an optional style to the given message and reset it
         back to being the given log level in 'reset'.
 
@@ -56,7 +54,7 @@ Color = AnsiColor()
 
 class CustomFormatter(logging.Formatter):
     # Time is coming directly from Heroku.
-    default_fmt = "[%(levelname)s] %(message)s"
+    default_fmt = "[%(levelname)s]::%(name)s %(message)s"
 
     LOGGING_FORMAT = {
         "DEBUG": Color.DEBUG + default_fmt + Color.RESET_ALL,
@@ -64,6 +62,14 @@ class CustomFormatter(logging.Formatter):
         "WARNING": Color.WARNING + default_fmt + Color.RESET_ALL,
         "ERROR": Color.ERROR + default_fmt + Color.RESET_ALL,
         "CRITICAL": Color.CRITICAL + default_fmt + Color.RESET_ALL,
+    }
+
+    MSG_ARGS_FORMAT = {
+        "event": {"color": "green"},
+        "ratelimit": {"color": "yellow", "style": "bold"},
+        "time_remaining": {"color": "yellow", "style": "bold"},
+        "url": {"color": "blue"},
+        "file": {"color": "yellow"},
     }
 
     def format(self, record: logging.LogRecord) -> str:
@@ -76,6 +82,8 @@ class CustomFormatter(logging.Formatter):
         custom_fmt = self.LOGGING_FORMAT.get(record.levelname, self.default_fmt)
         # Inject custom formating to the base class which `self.formatMessage` calls.
         self._style._fmt = custom_fmt
+        if record.args and isinstance(record.args, MutableMapping):
+            record.args = self.format_args(record.args, record.levelname)
         msg = record.getMessage()
         if record.exc_info:
             if not record.exc_text:
@@ -89,11 +97,24 @@ class CustomFormatter(logging.Formatter):
         record.message = msg
         return self.formatMessage(record)
 
+    def format_args(self, args: MutableMapping[str, Any], level: str) -> Dict[str, str]:
+        """Inject the color and style according to the specification provided in the
+        format dictionary."""
+        # We could directly mutate the `args` dictionary but it is better this way in
+        # the long run.
+        formatted = {}
+        for key, value in args.items():
+            if key in self.MSG_ARGS_FORMAT:
+                c = self.MSG_ARGS_FORMAT[key]
+                style = "normal" if "style" not in c else c["style"]
+                value = Color.inject(str(value), c["color"], style, level)
+            formatted[key] = value
+        return formatted
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
-handler = logging.StreamHandler(stream=sys.stderr)
+handler = logging.StreamHandler()
 handler.setFormatter(CustomFormatter())
 
-logger.addHandler(handler)
+logging.basicConfig(level=logging.DEBUG, handlers=[handler])
+
+logger = logging.getLogger(__package__)

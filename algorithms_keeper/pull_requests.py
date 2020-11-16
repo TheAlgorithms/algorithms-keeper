@@ -14,7 +14,7 @@ from .comments import (
     PR_REPORT_COMMENT,
 )
 from .constants import Label
-from .log import Color, logger
+from .log import logger
 from .parser import PullRequestFilesParser
 
 MAX_PR_PER_USER = 1
@@ -58,12 +58,10 @@ async def close_invalid_or_additional_pr(
 
     if not pr_body:
         comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
-        logger.info("Empty PR body: %s", Color.inject(pull_request["html_url"], "blue"))
+        logger.info("Empty PR body: %(url)s", {"url": pull_request["html_url"]})
     elif re.search(r"\[x]", pr_body) is None:
         comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
-        logger.info(
-            "Empty checklist: %s", Color.inject(pull_request["html_url"], "blue")
-        )
+        logger.info("Empty checklist: %(url)s", {"url": pull_request["html_url"]})
 
     if comment is not None:
         await utils.close_pr_or_issue(
@@ -83,9 +81,7 @@ async def close_invalid_or_additional_pr(
         )
 
         if len(user_pr_numbers) > MAX_PR_PER_USER:
-            logger.info(
-                "Multiple open PRs: %s", Color.inject(pull_request["html_url"], "blue")
-            )
+            logger.info("Multiple open PRs: %(url)s", {"url": pull_request["html_url"]})
             # Convert list of numbers to: "#1, #2, #3"
             pr_number = "#{}".format(", #".join(map(str, user_pr_numbers)))
             await utils.close_pr_or_issue(
@@ -141,9 +137,8 @@ async def check_pr_files(
         filepath = PurePath(file["filename"])
         if not filepath.suffix and ".github" not in filepath.parts:
             logger.info(
-                "No extension file [%s]: %s",
-                Color.inject(file["filename"], "yellow"),
-                Color.inject(pull_request["html_url"], "blue"),
+                "No extension file [%(file)s]: %(url)s",
+                {"file": file["filename"], "url": pull_request["html_url"]},
             )
             await utils.close_pr_or_issue(
                 gh,
@@ -183,11 +178,11 @@ async def check_pr_files(
         report_content = parser.create_report_content()
         if report_content:
             logger.info(
-                "Missing requirements in parsed files [%s]: %s",
-                Color.inject(
-                    ", ".join([file["filename"] for file in files_to_check]), "yellow"
-                ),
-                Color.inject(pull_request["html_url"], "blue"),
+                "Missing requirements in parsed files [%(file)s]: %(url)s",
+                {
+                    "file": ", ".join([file["filename"] for file in files_to_check]),
+                    "url": pull_request["html_url"],
+                },
             )
             await utils.add_comment_to_pr_or_issue(
                 gh,
