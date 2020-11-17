@@ -13,7 +13,7 @@ def colorcode(code: int) -> str:
     return CSI + str(code) + "m"
 
 
-class AnsiColor:
+class AnsiColor:  # pragma: no cover
     BLACK = colorcode(30)
     RED = colorcode(31)
     GREEN = colorcode(32)
@@ -57,7 +57,7 @@ class AnsiColor:
 Color = AnsiColor()
 
 
-class CustomAccessLogger(AbstractAccessLogger):
+class CustomAccessLogger(AbstractAccessLogger):  # pragma: no cover
 
     LOG_FORMAT = (
         "method=%(method)s path=%(path)s time=%(time)s status=%(status)s "
@@ -82,7 +82,7 @@ class CustomAccessLogger(AbstractAccessLogger):
                 {
                     "method": request.method,
                     "path": f'"{request.path_qs}"',
-                    "time": f"{str(round(time * 1000000))}ms",
+                    "time": f"{str(round(time * 1000))}ms",
                     "status": f"{response.status}:{response.reason}",
                     "scheme": request.scheme,
                 },
@@ -91,7 +91,7 @@ class CustomAccessLogger(AbstractAccessLogger):
             self.logger.exception(f"Error in logging for {self.logger.name!r} logger.")
 
 
-class CustomFormatter(logging.Formatter):
+class CustomFormatter(logging.Formatter):  # pragma: no cover
     # Time is coming directly from Heroku.
     default_fmt = "[%(levelname)s] %(message)s"
 
@@ -134,6 +134,10 @@ class CustomFormatter(logging.Formatter):
             msg += record.exc_text
             c = getattr(AnsiColor, record.levelname)
             msg = msg.replace("\n", f"\n{c}")
+        if record.stack_info:
+            if msg[-1:] != "\n":
+                msg += "\n"
+            msg += self.formatStack(record.stack_info)
         record.message = msg
         return self.formatMessage(record)
 
