@@ -10,7 +10,7 @@ from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import routing, sansio
 
 from . import check_runs, installations, pull_requests
-from .log import logger
+from .log import CustomAccessLogger, logger
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
 
@@ -61,4 +61,9 @@ if __name__ == "__main__":  # pragma: no cover
     port = os.environ.get("PORT")
     if port is not None:
         port = int(port)  # type: ignore
-    web.run_app(app, port=port)
+    web.run_app(
+        app,
+        port=port,
+        access_log_class=CustomAccessLogger,
+        access_log_format=CustomAccessLogger.LOG_FORMAT,
+    )

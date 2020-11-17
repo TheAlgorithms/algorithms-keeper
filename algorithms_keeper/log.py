@@ -2,6 +2,10 @@ import logging
 import os
 from typing import Any, Dict, MutableMapping
 
+from aiohttp.abc import AbstractAccessLogger
+from aiohttp.web_request import BaseRequest
+from aiohttp.web_response import StreamResponse
+
 CSI = "\033["
 
 
@@ -53,6 +57,40 @@ class AnsiColor:
 Color = AnsiColor()
 
 
+class CustomAccessLogger(AbstractAccessLogger):
+
+    LOG_FORMAT = (
+        "method=%(method)s path=%(path)s time=%(time)s status=%(status)s "
+        "scheme=%(scheme)s"
+    )
+    COLOR_FORMAT = {
+        "method": {"color": "yellow"},
+        "path": {"color": "yellow"},
+        "time": {"color": "yellow"},
+        "status": {"color": "", "style": "bold"},  # Determined during runtime.
+        "scheme": {"color": "cyan"},
+    }
+    STATUS_COLOR = {200: "green", 500: "magenta"}
+
+    def log(self, request: BaseRequest, response: StreamResponse, time: float) -> None:
+        self.COLOR_FORMAT["status"]["color"] = self.STATUS_COLOR.get(
+            response.status, "white"
+        )
+        try:
+            self.logger.info(
+                self.log_format,
+                {
+                    "method": request.method,
+                    "path": f'"{request.path_qs}"',
+                    "time": f"{str(round(time * 1000000))}ms",
+                    "status": f"{response.status}:{response.reason}",
+                    "scheme": request.scheme,
+                },
+            )
+        except Exception:
+            self.logger.exception(f"Error in logging for {self.logger.name!r} logger.")
+
+
 class CustomFormatter(logging.Formatter):
     # Time is coming directly from Heroku.
     default_fmt = "[%(levelname)s] %(message)s"
@@ -72,6 +110,7 @@ class CustomFormatter(logging.Formatter):
         "url": {"color": "blue"},
         "file": {"color": "yellow"},
     }
+    MSG_ARGS_FORMAT.update(CustomAccessLogger.COLOR_FORMAT)
 
     def format(self, record: logging.LogRecord) -> str:
         """Custom formating for the log message.
