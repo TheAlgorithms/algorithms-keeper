@@ -21,7 +21,10 @@ router = routing.Router(
 
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache[Any, Any]
 
-sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN"), integrations=[AioHttpIntegration()])
+sentry_sdk.init(
+    dsn=os.environ.get("SENTRY_DSN"),
+    integrations=[AioHttpIntegration(transaction_style="method_and_path_pattern")],
+)
 
 
 async def main(request: web.Request) -> web.Response:
