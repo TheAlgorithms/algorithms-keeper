@@ -5,6 +5,7 @@ from typing import Any
 
 import aiohttp
 import cachetools
+import sentry_sdk
 from aiohttp import web
 from gidgethub import routing
 from gidgethub.sansio import Event
@@ -18,6 +19,8 @@ router = routing.Router(
 )
 
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache[Any, Any]
+
+sentry_sdk.init(os.environ.get("SENTRY_DSN"))
 
 
 async def main(request: web.Request) -> web.Response:
