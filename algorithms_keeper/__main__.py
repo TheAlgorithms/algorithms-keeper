@@ -27,7 +27,7 @@ async def main(request: web.Request) -> web.Response:
         logger.info(
             "event=%(event)s delivery_id=%(delivery_id)s",
             {
-                "event": event.event + event.data["action"],
+                "event": f"{event.event}:{event.data['action']}",
                 "delivery_id": event.delivery_id,
             },
         )
