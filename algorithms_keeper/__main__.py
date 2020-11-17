@@ -9,6 +9,7 @@ import sentry_sdk
 from aiohttp import web
 from gidgethub import routing
 from gidgethub.sansio import Event
+from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from . import check_runs, installations, issues, pull_requests
 from .api import GitHubAPI
@@ -20,7 +21,7 @@ router = routing.Router(
 
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache[Any, Any]
 
-sentry_sdk.init(os.environ.get("SENTRY_DSN"))
+sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN"), integrations=[AioHttpIntegration()])
 
 
 async def main(request: web.Request) -> web.Response:
