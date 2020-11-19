@@ -1,7 +1,8 @@
 from typing import Any
 
-from gidgethub import aiohttp as gh_aiohttp
-from gidgethub import routing, sansio
+from gidgethub import routing
+from gidgethub.aiohttp import GitHubAPI
+from gidgethub.sansio import Event
 
 from . import utils
 
@@ -11,10 +12,7 @@ router = routing.Router()
 @router.register("installation", action="created")
 @router.register("installation_repositories", action="added")
 async def repo_installation_added(
-    event: sansio.Event,
-    gh: gh_aiohttp.GitHubAPI,
-    *args: Any,
-    **kwargs: Any,
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
     """Give the repository a heads up that the app has been installed.
 

@@ -19,14 +19,14 @@ import urllib.parse
 from typing import Any, Dict, List, Optional, Union
 
 import cachetools
-from gidgethub import aiohttp as gh_aiohttp
 from gidgethub import apps
+from gidgethub.aiohttp import GitHubAPI
 
 # Timed cache for installation access token (1 hour)
 cache = cachetools.TTLCache(maxsize=1, ttl=3600)  # type: cachetools.TTLCache[str, str]
 
 
-async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> str:
+async def get_access_token(gh: GitHubAPI, installation_id: int) -> str:
     """Return the installation access token if it is present in the cache else
     create a new token and store it for later use.
 
@@ -46,7 +46,7 @@ async def get_access_token(gh: gh_aiohttp.GitHubAPI, installation_id: int) -> st
 
 
 async def get_pr_for_commit(
-    gh: gh_aiohttp.GitHubAPI, installation_id: int, *, sha: str, repository: str
+    gh: GitHubAPI, installation_id: int, *, sha: str, repository: str
 ) -> Optional[Any]:
     """Return the issue object, relative to the pull request, for the given SHA
     of a commit.
@@ -67,7 +67,7 @@ async def get_pr_for_commit(
 
 
 async def get_check_runs_for_commit(
-    gh: gh_aiohttp.GitHubAPI, installation_id: int, *, sha: str, repository: str
+    gh: GitHubAPI, installation_id: int, *, sha: str, repository: str
 ) -> Any:
     """Return the check runs object for the given SHA of a commit."""
     installation_access_token = await get_access_token(gh, installation_id)
@@ -78,7 +78,7 @@ async def get_check_runs_for_commit(
 
 
 async def add_label_to_pr_or_issue(
-    gh: gh_aiohttp.GitHubAPI,
+    gh: GitHubAPI,
     installation_id: int,
     *,
     label: Union[str, List[str]],
@@ -106,7 +106,7 @@ async def add_label_to_pr_or_issue(
 
 
 async def remove_label_from_pr_or_issue(
-    gh: gh_aiohttp.GitHubAPI,
+    gh: GitHubAPI,
     installation_id: int,
     *,
     label: Union[str, List[str]],
@@ -138,7 +138,7 @@ async def remove_label_from_pr_or_issue(
 
 
 async def get_total_open_prs(
-    gh: gh_aiohttp.GitHubAPI,
+    gh: GitHubAPI,
     installation_id: int,
     *,
     repository: str,
@@ -172,11 +172,7 @@ async def get_total_open_prs(
 
 
 async def add_comment_to_pr_or_issue(
-    gh: gh_aiohttp.GitHubAPI,
-    installation_id: int,
-    *,
-    comment: str,
-    pr_or_issue: Dict[str, Any],
+    gh: GitHubAPI, installation_id: int, *, comment: str, pr_or_issue: Dict[str, Any]
 ) -> None:
     """Add a comment to the given pull request or issue object."""
     installation_access_token = await get_access_token(gh, installation_id)
@@ -188,7 +184,7 @@ async def add_comment_to_pr_or_issue(
 
 
 async def close_pr_or_issue(
-    gh: gh_aiohttp.GitHubAPI,
+    gh: GitHubAPI,
     installation_id: int,
     *,
     comment: str,
@@ -225,10 +221,7 @@ async def close_pr_or_issue(
 
 
 async def remove_requested_reviewers_from_pr(
-    gh: gh_aiohttp.GitHubAPI,
-    installation_id: int,
-    *,
-    pull_request: Dict[str, Any],
+    gh: GitHubAPI, installation_id: int, *, pull_request: Dict[str, Any]
 ) -> None:
     """Remove all the requested reviewers from the given pull request."""
     installation_access_token = await get_access_token(gh, installation_id)
@@ -244,7 +237,7 @@ async def remove_requested_reviewers_from_pr(
 
 
 async def get_pr_files(
-    gh: gh_aiohttp.GitHubAPI, installation_id: int, *, pull_request: Dict[str, Any]
+    gh: GitHubAPI, installation_id: int, *, pull_request: Dict[str, Any]
 ) -> List[Dict[str, str]]:
     """Return the list of files data from a given pull request.
 
@@ -263,7 +256,7 @@ async def get_pr_files(
 
 
 async def get_file_content(
-    gh: gh_aiohttp.GitHubAPI, installation_id: int, *, file: Dict[str, str]
+    gh: GitHubAPI, installation_id: int, *, file: Dict[str, str]
 ) -> bytes:
     """Return the file content decoded into Python bytes object."""
     installation_access_token = await get_access_token(gh, installation_id)

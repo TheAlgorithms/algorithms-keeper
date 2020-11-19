@@ -2,8 +2,9 @@ import re
 from pathlib import PurePath
 from typing import Any
 
-from gidgethub import aiohttp as gh_aiohttp
-from gidgethub import routing, sansio
+from gidgethub import routing
+from gidgethub.aiohttp import GitHubAPI
+from gidgethub.sansio import Event
 
 from . import utils
 from .comments import (
@@ -24,10 +25,7 @@ router = routing.Router()
 
 @router.register("pull_request", action="opened")
 async def close_invalid_or_additional_pr(
-    event: sansio.Event,
-    gh: gh_aiohttp.GitHubAPI,
-    *args: Any,
-    **kwargs: Any,
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
     """Close an invalid pull request or close additional pull requests made by the
     user and dismiss all the review requests from it.
@@ -98,10 +96,7 @@ async def close_invalid_or_additional_pr(
 @router.register("pull_request", action="ready_for_review")
 @router.register("pull_request", action="synchronize")
 async def check_pr_files(
-    event: sansio.Event,
-    gh: gh_aiohttp.GitHubAPI,
-    *args: Any,
-    **kwargs: Any,
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
     """Check all the pull request files for extension, type hints, tests and
     class, function and parameter names.
@@ -196,10 +191,7 @@ async def check_pr_files(
 
 @router.register("pull_request", action="ready_for_review")
 async def check_ci_ready_for_review_pr(
-    event: sansio.Event,
-    gh: gh_aiohttp.GitHubAPI,
-    *args: Any,
-    **kwargs: Any,
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
     """Check test status on the latest commit and add or remove label when a pull
     request is made ready for review.
@@ -216,10 +208,7 @@ async def check_ci_ready_for_review_pr(
 
 @router.register("pull_request_review", action="submitted")
 async def update_pr_label_for_review(
-    event: sansio.Event,
-    gh: gh_aiohttp.GitHubAPI,
-    *args: Any,
-    **kwargs: Any,
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
     """Update the label for a pull request according to the review submitted. Only
     the reviews submitted by either the member or owner will count.

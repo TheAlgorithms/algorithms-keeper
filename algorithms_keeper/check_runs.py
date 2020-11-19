@@ -1,7 +1,8 @@
 from typing import Any
 
-from gidgethub import aiohttp as gh_aiohttp
-from gidgethub import routing, sansio
+from gidgethub import routing
+from gidgethub.aiohttp import GitHubAPI
+from gidgethub.sansio import Event
 
 from . import utils
 from .constants import Label
@@ -12,10 +13,7 @@ router = routing.Router()
 
 @router.register("check_run", action="completed")
 async def check_ci_status_and_label(
-    event: sansio.Event,
-    gh: gh_aiohttp.GitHubAPI,
-    *args: Any,
-    **kwargs: Any,
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
     """Add and remove label when any of the check runs fail.
 

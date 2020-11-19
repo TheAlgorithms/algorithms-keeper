@@ -1,7 +1,8 @@
 from typing import Any
 
-from gidgethub import aiohttp as gh_aiohttp
-from gidgethub import routing, sansio
+from gidgethub import routing
+from gidgethub.aiohttp import GitHubAPI
+from gidgethub.sansio import Event
 
 from . import utils
 from .comments import EMPTY_ISSUE_BODY_COMMENT
@@ -13,10 +14,7 @@ router = routing.Router()
 
 @router.register("issues", action="opened")
 async def close_invalid_issue(
-    event: sansio.Event,
-    gh: gh_aiohttp.GitHubAPI,
-    *args: Any,
-    **kwargs: Any,
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
     """Close an invalid issue.
 

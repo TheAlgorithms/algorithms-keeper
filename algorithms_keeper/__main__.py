@@ -6,8 +6,9 @@ from typing import Any
 import aiohttp
 import cachetools
 from aiohttp import web
-from gidgethub import aiohttp as gh_aiohttp
-from gidgethub import routing, sansio
+from gidgethub import routing
+from gidgethub.aiohttp import GitHubAPI
+from gidgethub.sansio import Event
 
 from . import check_runs, installations, pull_requests
 from .log import CustomAccessLogger, logger
@@ -21,7 +22,7 @@ async def main(request: web.Request) -> web.Response:
     try:
         body = await request.read()
         secret = os.environ.get("GITHUB_SECRET")
-        event = sansio.Event.from_http(request.headers, body, secret=secret)
+        event = Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
             return web.Response(status=200)
         logger.info(
@@ -32,9 +33,7 @@ async def main(request: web.Request) -> web.Response:
             },
         )
         async with aiohttp.ClientSession() as session:
-            gh = gh_aiohttp.GitHubAPI(
-                session, "dhruvmanila/algorithms-keeper", cache=cache
-            )
+            gh = GitHubAPI(session, "dhruvmanila/algorithms-keeper", cache=cache)
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
