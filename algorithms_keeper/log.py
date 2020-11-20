@@ -17,7 +17,7 @@ MSG_ARGS_FORMAT = {
     "request": {"color": "yellow"},
     "time": {"color": "yellow"},
     "status": {"color": "", "style": "bold"},  # Determined during runtime.
-    "method": {"color": "red"},
+    "method": {"color": "red", "style": "bold"},
     "path": {"color": "blue"},
     "data": {"color": "yellow"},
     "version": {"color": "yellow"},
