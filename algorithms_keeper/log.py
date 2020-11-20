@@ -17,6 +17,10 @@ MSG_ARGS_FORMAT = {
     "request": {"color": "yellow"},
     "time": {"color": "yellow"},
     "status": {"color": "", "style": "bold"},  # Determined during runtime.
+    "method": {"color": "red"},
+    "path": {"color": "blue"},
+    "data": {"color": "yellow"},
+    "version": {"color": "yellow"},
 }
 
 STATUS_COLOR = {200: "green", 500: "red"}
@@ -96,7 +100,7 @@ Color = AnsiColor()
 
 class CustomAccessLogger(AbstractAccessLogger):  # pragma: no cover
 
-    LOG_FORMAT = '%(logger)s "%(request)s" %(status)s %(time)s'
+    LOG_FORMAT = '%(logger)s "%(method)s %(path)s %(version)s" %(status)s %(time)s'
 
     def log(self, request: BaseRequest, response: StreamResponse, time: float) -> None:
         """Log the incoming POST request from GitHub."""
@@ -106,8 +110,9 @@ class CustomAccessLogger(AbstractAccessLogger):  # pragma: no cover
                 self.log_format,
                 {
                     "logger": self.logger.name,
-                    "request": f"{request.method} {request.path_qs} "
-                    f"{request.scheme.upper()}/{request.version.major}."
+                    "method": request.method,
+                    "path": request.path_qs,
+                    "version": f"{request.scheme.upper()}/{request.version.major}."
                     f"{request.version.minor}",
                     "status": f"{response.status}:{response.reason}",
                     "time": f"{str(round(time * 1000))}ms",
