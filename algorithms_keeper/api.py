@@ -9,7 +9,7 @@ from .log import inject_status_color, logger
 
 class GitHubAPI(BaseGitHubAPI):
 
-    LOG_FORMAT = 'API: "%(request)" %(status)s'
+    LOG_FORMAT = 'API: "%(request)s" %(status)s'
 
     async def _request(
         self, method: str, url: str, headers: Mapping[str, str], body: bytes = b""
@@ -29,7 +29,8 @@ class GitHubAPI(BaseGitHubAPI):
                     # host is always going to be 'api.github.com'.
                     "request": f"{method} {response.url.raw_path_qs} "
                     f'{None if body == b"" else body!r}'
-                    f"{response.url.scheme}/{response.version}",
+                    f"{response.url.scheme}/{response.version.major}."
+                    f"{response.version.minor}",
                     "status": f"{response.status}:{response.reason}",
                 },
             )
