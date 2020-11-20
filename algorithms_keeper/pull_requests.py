@@ -47,52 +47,56 @@ async def close_invalid_or_additional_pr(
     pull_request = event.data["pull_request"]
     author_association = pull_request["author_association"].lower()
 
-    if author_association in {"owner", "member"}:
-        return None
+    if author_association not in {"owner", "member"}:
+        pr_body = pull_request["body"]
+        pr_author = pull_request["user"]["login"]
+        comment = None
 
-    pr_body = pull_request["body"]
-    pr_author = pull_request["user"]["login"]
-    comment = None
+        if not pr_body:
+            comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
+            logger.info("Empty PR body: %(url)s", {"url": pull_request["html_url"]})
+        elif re.search(r"\[x]", pr_body) is None:
+            comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
+            logger.info("Empty checklist: %(url)s", {"url": pull_request["html_url"]})
 
-    if not pr_body:
-        comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
-        logger.info("Empty PR body: %(url)s", {"url": pull_request["html_url"]})
-    elif re.search(r"\[x]", pr_body) is None:
-        comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
-        logger.info("Empty checklist: %(url)s", {"url": pull_request["html_url"]})
-
-    if comment is not None:
-        await utils.close_pr_or_issue(
-            gh,
-            installation_id,
-            comment=comment,
-            pr_or_issue=pull_request,
-            label=Label.INVALID,
-        )
-    elif MAX_PR_PER_USER > 0:
-        user_pr_numbers = await utils.get_total_open_prs(
-            gh,
-            installation_id,
-            repository=event.data["repository"]["full_name"],
-            user_login=pr_author,
-            count=False,
-        )
-
-        if len(user_pr_numbers) > MAX_PR_PER_USER:
-            logger.info("Multiple open PRs: %(url)s", {"url": pull_request["html_url"]})
-            # Convert list of numbers to: "#1, #2, #3"
-            pr_number = "#{}".format(", #".join(map(str, user_pr_numbers)))
+        if comment is not None:
             await utils.close_pr_or_issue(
                 gh,
                 installation_id,
-                comment=MAX_PR_REACHED_COMMENT.format(
-                    user_login=pr_author, pr_number=pr_number
-                ),
+                comment=comment,
                 pr_or_issue=pull_request,
+                label=Label.INVALID,
+            )
+            return None
+        elif MAX_PR_PER_USER > 0:
+            user_pr_numbers = await utils.get_total_open_prs(
+                gh,
+                installation_id,
+                repository=event.data["repository"]["full_name"],
+                user_login=pr_author,
+                count=False,
             )
 
+            if len(user_pr_numbers) > MAX_PR_PER_USER:
+                logger.info(
+                    "Multiple open PRs: %(url)s", {"url": pull_request["html_url"]}
+                )
+                # Convert list of numbers to: "#1, #2, #3"
+                pr_number = "#{}".format(", #".join(map(str, user_pr_numbers)))
+                await utils.close_pr_or_issue(
+                    gh,
+                    installation_id,
+                    comment=MAX_PR_REACHED_COMMENT.format(
+                        user_login=pr_author, pr_number=pr_number
+                    ),
+                    pr_or_issue=pull_request,
+                )
+                return None
 
-@router.register("pull_request", action="opened")
+    # We will check files only if the pull request is not invalid and thus, not closed.
+    await check_pr_files(event, gh, *args, **kwargs)
+
+
 @router.register("pull_request", action="ready_for_review")
 @router.register("pull_request", action="synchronize")
 async def check_pr_files(
@@ -108,8 +112,10 @@ async def check_pr_files(
       label it appropriately. Sends the report if there are any errors only when the
       pull request is opened.
 
-    This function will also be triggered when new commits are pushed to the opened pull
-    request.
+    When a pull request is opened, this function will be triggered only if there the
+    pull request is considered valid. This function will also be triggered when a
+    pull request is made ready for review or a new commit has been pushed to the
+    pull request.
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]

@@ -143,13 +143,11 @@ async def test_pr_opened_no_body_and_no_ticked(body, comment):
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
-    getiter = {files_url: []}
     post = {labels_url: {}, comments_url: {}}
     patch = {pr_url: {}}
     delete = {reviewers_url: {}}
-    gh = MockGitHubAPI(getiter=getiter, post=post, patch=patch, delete=delete)
+    gh = MockGitHubAPI(post=post, patch=patch, delete=delete)
     await pull_requests.router.dispatch(event, gh)
-    assert gh.getiter_url[0] == files_url
     assert len(gh.post_url) == 2
     assert gh.post_url == [comments_url, labels_url]
     assert gh.post_data[0] == {"body": comment}
