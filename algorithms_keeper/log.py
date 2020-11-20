@@ -59,32 +59,29 @@ Color = AnsiColor()
 
 class CustomAccessLogger(AbstractAccessLogger):  # pragma: no cover
 
-    LOG_FORMAT = (
-        "method=%(method)s path=%(path)s time=%(time)s status=%(status)s "
-        "scheme=%(scheme)s"
-    )
+    LOG_FORMAT = '%(logger)s "%(request)s" %(status)s %(time)s'
     COLOR_FORMAT = {
-        "method": {"color": "yellow"},
-        "path": {"color": "yellow"},
+        "request": {"color": "yellow"},
         "time": {"color": "yellow"},
         "status": {"color": "", "style": "bold"},  # Determined during runtime.
-        "scheme": {"color": "cyan"},
     }
-    STATUS_COLOR = {200: "green", 500: "magenta"}
+    STATUS_COLOR = {200: "green", 500: "red"}
 
     def log(self, request: BaseRequest, response: StreamResponse, time: float) -> None:
-        self.COLOR_FORMAT["status"]["color"] = self.STATUS_COLOR.get(
-            response.status, "white"
-        )
+        """Log the incoming POST request from GitHub."""
         try:
+            self.COLOR_FORMAT["status"]["color"] = self.STATUS_COLOR.get(
+                response.status, "white"
+            )
             self.logger.info(
                 self.log_format,
                 {
-                    "method": request.method,
-                    "path": f'"{request.path_qs}"',
-                    "time": f"{str(round(time * 1000))}ms",
+                    "logger": self.logger.name,
+                    "request": f"{request.method} {request.path_qs} "
+                    f"{request.scheme.upper()}/{request.version.major}."
+                    f"{request.version.minor}",
                     "status": f"{response.status}:{response.reason}",
-                    "scheme": request.scheme,
+                    "time": f"{str(round(time * 1000))}ms",
                 },
             )
         except Exception:
