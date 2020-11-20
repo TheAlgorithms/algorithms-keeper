@@ -10,14 +10,14 @@ CSI = "\033["
 
 MSG_ARGS_FORMAT = {
     "event": {"color": "green"},
-    "ratelimit": {"color": "yellow", "style": "bold"},
-    "time_remaining": {"color": "yellow", "style": "bold"},
+    "ratelimit": {"color": "white", "style": "bold"},
+    "time_remaining": {"color": "white", "style": "bold"},
     "url": {"color": "blue", "style": "underline"},
     "file": {"color": "yellow"},
     "request": {"color": "yellow"},
     "time": {"color": "yellow"},
     "status": {"color": "", "style": "bold"},  # Determined during runtime.
-    "method": {"color": "red", "style": "bold"},
+    "method": {"color": "magenta", "style": "bold"},
     "path": {"color": "blue"},
     "data": {"color": "yellow"},
     "version": {"color": "yellow"},

@@ -12,7 +12,7 @@ TOKEN_ENDPOINT = "access_tokens"
 
 class GitHubAPI(BaseGitHubAPI):
 
-    LOG_FORMAT = 'api: "%(method)s %(path)s %(data)s %(version)s" %(status)s'
+    LOG_FORMAT = 'api "%(method)s %(path)s %(data)s %(version)s" %(status)s'
 
     async def _request(
         self, method: str, url: str, headers: Mapping[str, str], body: bytes = b""
