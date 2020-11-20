@@ -7,10 +7,10 @@ import aiohttp
 import cachetools
 from aiohttp import web
 from gidgethub import routing
-from gidgethub.aiohttp import GitHubAPI
 from gidgethub.sansio import Event
 
 from . import check_runs, installations, pull_requests
+from .api import GitHubAPI
 from .log import CustomAccessLogger, logger
 
 router = routing.Router(installations.router, check_runs.router, pull_requests.router)
