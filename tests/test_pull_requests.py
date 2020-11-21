@@ -228,12 +228,13 @@ async def test_pr_opened_by_member():
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
+    post = {labels_url: {}}
     getiter = {files_url: []}  # for check_pr_files function
-    gh = MockGitHubAPI(getiter=getiter)
+    gh = MockGitHubAPI(getiter=getiter, post=post)
     await pull_requests.router.dispatch(event, gh)
-    assert gh.getiter_url[0] == files_url
-    assert gh.post_url == []
-    assert gh.post_data == []
+    assert files_url in gh.getiter_url
+    assert labels_url in gh.post_url
+    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     assert gh.patch_url == []
     assert gh.patch_data == []
     assert gh.delete_url == []
@@ -311,13 +312,14 @@ async def test_max_pr_disabled(monkeypatch):
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
+    post = {labels_url: {}}
     getiter = {files_url: []}
-    gh = MockGitHubAPI(getiter=getiter)
+    gh = MockGitHubAPI(getiter=getiter, post=post)
     await pull_requests.router.dispatch(event, gh)
-    assert gh.getiter_url[0] == files_url
+    assert files_url in gh.getiter_url
     # No changes as max pr checks are disabled
-    assert gh.post_url == []
-    assert gh.post_data == []
+    assert labels_url in gh.post_url
+    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     assert gh.patch_url == []
     assert gh.delete_url == []
     assert gh.delete_data == []
@@ -381,18 +383,22 @@ async def test_for_extensionless_files(action, getiter):
     await pull_requests.router.dispatch(event, gh)
     if event.data["action"] == "opened":
         assert len(gh.getiter_url) == 2
-        assert gh.getiter_url == [pr_user_search_url, files_url]
+        assert pr_user_search_url in gh.getiter_url
+        assert files_url in gh.getiter_url
+        assert len(gh.post_url) == 3  # Two labels and one comment.
+        assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     elif event.data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
-        assert gh.getiter_url[0] == files_url
-    assert len(gh.post_url) == 2
-    assert gh.post_url == [comments_url, labels_url]
-    assert gh.post_data[0] == {"body": NO_EXTENSION_COMMENT}
-    assert gh.post_data[1] == {"labels": [Label.INVALID]}
-    assert gh.patch_url[0] == pr_url
-    assert gh.patch_data[0] == {"state": "closed"}
-    assert gh.delete_url[0] == reviewers_url
-    assert gh.delete_data[0] == {"reviewers": ["test1", "test2"]}
+        assert files_url in gh.getiter_url
+        assert len(gh.post_url) == 2  # AWAITING_REVIEW label is not added.
+    assert comments_url in gh.post_url
+    assert labels_url in gh.post_url
+    assert {"body": NO_EXTENSION_COMMENT} in gh.post_data
+    assert {"labels": [Label.INVALID]} in gh.post_data
+    assert pr_url in gh.patch_url
+    assert {"state": "closed"} in gh.patch_data
+    assert reviewers_url in gh.delete_url
+    assert {"reviewers": ["test1", "test2"]} in gh.delete_data
 
 
 @pytest.mark.asyncio
@@ -453,17 +459,21 @@ async def test_pr_with_no_python_files(action, getiter):
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
-    gh = MockGitHubAPI(getiter=getiter)
+    post = {labels_url: {}}
+    gh = MockGitHubAPI(getiter=getiter, post=post)
     await pull_requests.router.dispatch(event, gh)
     if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
-        assert gh.getiter_url == [pr_user_search_url, files_url]
+        assert pr_user_search_url in gh.getiter_url
+        assert files_url in gh.getiter_url
+        assert labels_url in gh.post_url
+        assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
-        assert gh.getiter_url == [files_url]
+        assert files_url in gh.getiter_url
+        assert gh.post_url == []
+        assert gh.post_data == []
     # Nothing happens as there are no Python files
-    assert gh.post_url == []
-    assert gh.post_data == []
     assert gh.patch_url == []
     assert gh.patch_data == []
     assert gh.delete_url == []
@@ -537,16 +547,19 @@ async def test_pr_with_test_file(action, getiter):
     await pull_requests.router.dispatch(event, gh)
     if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
-        assert gh.getiter_url == [pr_user_search_url, files_url]
-        assert len(gh.post_url) == 2
-        assert gh.post_url == [labels_url, comments_url]
+        assert pr_user_search_url in gh.getiter_url
+        assert files_url in gh.getiter_url
+        assert len(gh.post_url) == 3  # Two labels and one comment.
+        assert comments_url in gh.post_url
+        assert labels_url in gh.post_url
+        assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
         assert gh.getiter_url[0] == files_url
         assert len(gh.post_url) == 1
         # No comment is posted in `synchronize`
         assert gh.post_url == [labels_url]
-    assert gh.post_data[0] == {"labels": [Label.ANNOTATIONS]}
+    assert {"labels": [Label.ANNOTATIONS]} in gh.post_data
     assert gh.delete_url[0] == labels_url + f"/{remove_label}"
     assert gh.delete_data == [{}]
 
@@ -602,17 +615,19 @@ async def test_pr_with_successful_tests(action, getiter):
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
-    gh = MockGitHubAPI(getiter=getiter)
+    post = {labels_url: {}}
+    gh = MockGitHubAPI(getiter=getiter, post=post)
     await pull_requests.router.dispatch(event, gh)
     if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert gh.getiter_url == [pr_user_search_url, files_url]
+        assert labels_url in gh.post_url
+        assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
         assert gh.getiter_url[0] == files_url
-    # Nothing happens when everything is present in the files
-    assert gh.post_url == []
-    assert gh.post_data == []
+        assert gh.post_url == []
+        assert gh.post_data == []
     assert gh.delete_url == []
     assert gh.delete_data == []
 
@@ -677,18 +692,21 @@ async def test_pr_with_add_all_require_labels(action, getiter):
     await pull_requests.router.dispatch(event, gh)
     if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
-        assert gh.getiter_url == [pr_user_search_url, files_url]
-        assert len(gh.post_url) == 2
-        assert gh.post_url == [labels_url, comments_url]
+        assert pr_user_search_url in gh.getiter_url
+        assert files_url in gh.getiter_url
+        assert len(gh.post_url) == 3
+        assert labels_url in gh.post_url
+        assert comments_url in gh.post_url
+        assert {"labels": [Label.AWAITING_REVIEW]}
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
-        assert gh.getiter_url[0] == files_url
+        assert files_url in gh.getiter_url
         assert len(gh.post_url) == 1
         # No comment is posted in `synchronize`
-        assert gh.post_url == [labels_url]
-    assert gh.post_data[0] == {
+        assert labels_url in gh.post_url
+    assert {
         "labels": [Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES, Label.ANNOTATIONS]
-    }
+    } in gh.post_data
     assert gh.delete_url == []
     assert gh.delete_data == []
 
@@ -877,3 +895,148 @@ async def test_pr_review_approved(labels):
         assert gh.delete_data == []
     assert gh.post_url == []
     assert gh.post_data == []
+
+
+# Test conditions for when to add and remove `Label.AWAITING_REVIEW` label:
+# NOTE: All conditions assumes the PR has been already been labeled AWAITING_REVIEW when
+#       it was opened.
+# 1. PR opened with no errors (No error labels were added)
+# 2. PR opened with errors (Error labels were added)
+# 3. One or more label from PR_NOT_READY_LABELS were removed but not all
+# 4. All labels from PR present in PR_NOT_READY_LABELS were removed
+# 5. CHANGES_REQUESTED label was added (PR was reviewed)
+# 6. CHANGES_REQUESTED label was removed (PR was approved)
+
+
+@pytest.mark.asyncio
+async def test_pr_opened_with_no_errors_and_labeled():
+    data = {
+        "action": "labeled",
+        "pull_request": {
+            "labels": [{"name": Label.AWAITING_REVIEW}],
+            "issue_url": issue_url,
+        },
+        "label": {"name": Label.AWAITING_REVIEW},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    gh = MockGitHubAPI()
+    await pull_requests.router.dispatch(event, gh)
+    # No label is added or removed.
+    assert gh.post_url == []
+    assert gh.post_data == []
+    assert gh.delete_url == []
+    assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+async def test_pr_opened_with_errors_and_labeled():
+    remove_label = urllib.parse.quote(Label.AWAITING_REVIEW)
+    data = {
+        "action": "labeled",
+        "pull_request": {
+            "labels": [{"name": Label.AWAITING_REVIEW}, {"name": Label.REQUIRE_TEST}],
+            "issue_url": issue_url,
+        },
+        "label": {"name": Label.REQUIRE_TEST},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    delete = {f"{labels_url}/{remove_label}": {}}
+    gh = MockGitHubAPI(delete=delete)
+    await pull_requests.router.dispatch(event, gh)
+    # No labels were added.
+    assert gh.post_url == []
+    assert gh.post_data == []
+    # AWAITING_REVIEW label was removed.
+    assert f"{labels_url}/{remove_label}" in gh.delete_url
+    assert gh.delete_data == [{}]
+
+
+@pytest.mark.asyncio
+async def test_pr_not_all_labels_removed():
+    data = {
+        "action": "unlabeled",
+        "pull_request": {
+            "labels": [{"name": Label.REQUIRE_TEST}],
+            "issue_url": issue_url,
+        },
+        "label": {"name": Label.ANNOTATIONS},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    gh = MockGitHubAPI()
+    await pull_requests.router.dispatch(event, gh)
+    # No label is added or removed.
+    assert gh.post_url == []
+    assert gh.post_data == []
+    assert gh.delete_url == []
+    assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+async def test_pr_all_labels_removed():
+    data = {
+        "action": "unlabeled",
+        "pull_request": {
+            "labels": [{"name": "good first issue"}],  # Random label.
+            "issue_url": issue_url,
+        },
+        "label": {"name": Label.ANNOTATIONS},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    post = {labels_url: {}}
+    gh = MockGitHubAPI(post=post)
+    await pull_requests.router.dispatch(event, gh)
+    # No error labels so the AWAITING_REVIEW label should be added.
+    assert labels_url in gh.post_url
+    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+    assert gh.delete_url == []
+    assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+async def test_changes_requested_label_added():
+    remove_label = urllib.parse.quote(Label.AWAITING_REVIEW)
+    data = {
+        "action": "labeled",
+        "pull_request": {
+            "labels": [
+                {"name": Label.CHANGES_REQUESTED},
+                {"name": Label.AWAITING_REVIEW},
+            ],
+            "issue_url": issue_url,
+        },
+        "label": {"name": Label.CHANGES_REQUESTED},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    delete = {f"{labels_url}/{remove_label}": {}}
+    gh = MockGitHubAPI(delete=delete)
+    await pull_requests.router.dispatch(event, gh)
+    assert f"{labels_url}/{remove_label}" in gh.delete_url
+    assert gh.delete_data == [{}]
+    assert gh.post_url == []
+    assert gh.post_data == []
+
+
+@pytest.mark.asyncio
+async def test_changes_requested_label_removed():
+    data = {
+        "action": "unlabeled",
+        "pull_request": {
+            "labels": [],
+            "issue_url": issue_url,
+        },
+        "label": {"name": Label.CHANGES_REQUESTED},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    gh = MockGitHubAPI()
+    await pull_requests.router.dispatch(event, gh)
+    # No label is added or removed.
+    assert gh.post_url == []
+    assert gh.post_data == []
+    assert gh.delete_url == []
+    assert gh.delete_data == []
