@@ -9,11 +9,13 @@ from aiohttp import web
 from gidgethub import routing
 from gidgethub.sansio import Event
 
-from . import check_runs, installations, pull_requests
+from . import check_runs, installations, issues, pull_requests
 from .api import GitHubAPI
 from .log import CustomAccessLogger, logger
 
-router = routing.Router(installations.router, check_runs.router, pull_requests.router)
+router = routing.Router(
+    check_runs.router, installations.router, issues.router, pull_requests.router
+)
 
 cache = cachetools.LRUCache(maxsize=500)  # type: cachetools.LRUCache[Any, Any]
 
