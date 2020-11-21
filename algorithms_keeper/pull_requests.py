@@ -14,7 +14,7 @@ from .comments import (
     NO_EXTENSION_COMMENT,
     PR_REPORT_COMMENT,
 )
-from .constants import Label
+from .constants import PR_NOT_READY_LABELS, Label
 from .log import logger
 from .parser import PullRequestFilesParser
 
@@ -93,8 +93,16 @@ async def close_invalid_or_additional_pr(
                 )
                 return None
 
-    # We will check files only if the pull request is not invalid and thus, not closed.
-    await check_pr_files(event, gh, *args, **kwargs)
+    if not pull_request["draft"]:
+        # Assume that the pull request is perfect and ready for review, then when any
+        # `require_` labels or `failed_test` label is added, we will remove this label.
+        # This label will be added back when all those labels are removed.
+        await utils.add_label_to_pr_or_issue(
+            gh, installation_id, pr_or_issue=pull_request, label=Label.AWAITING_REVIEW
+        )
+
+        # We will check files only if the pull request is valid and thus, not closed.
+        await check_pr_files(event, gh, *args, **kwargs)
 
 
 @router.register("pull_request", action="ready_for_review")
@@ -120,7 +128,7 @@ async def check_pr_files(
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
 
-    if pull_request["draft"] is True:
+    if pull_request["draft"]:
         return None
 
     pr_labels = [label["name"] for label in pull_request["labels"]]
@@ -251,4 +259,57 @@ async def update_pr_label_for_review(
                     installation_id,
                     label=Label.CHANGES_REQUESTED,
                     pr_or_issue=pull_request,
+                )
+
+
+@router.register("pull_request", action="labeled")
+@router.register("pull_request", action="unlabeled")
+async def pr_awaiting_review_label(
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
+) -> None:
+    """Add/remove the label which indicates that the pull request is ready to be
+    reviewed according to the label and unlabel events if the pull request has not
+    already been reviewed.
+
+    This assumes that the label was added when the pull request was opened to cover
+    the case where the bot detected no errors in the pull request, thus no `require_`
+    or `failed_test` labels were added.
+
+    To know whether the pull request has already been reviewed, we will check whether
+    `Label.CHANGES_REQUESTED` exist or not.
+
+    Label: `Label.AWAITING_REVIEW`
+    """
+    installation_id = event.data["installation"]["id"]
+    pull_request = event.data["pull_request"]
+    # The label which was added or removed.
+    label = event.data["label"]["name"]
+    pr_labels = [label["name"] for label in pull_request["labels"]]
+
+    if event.data["action"] == "labeled":
+        if label in PR_NOT_READY_LABELS or label == Label.CHANGES_REQUESTED:
+            if Label.AWAITING_REVIEW in pr_labels:
+                await utils.remove_label_from_pr_or_issue(
+                    gh,
+                    installation_id,
+                    pr_or_issue=pull_request,
+                    label=Label.AWAITING_REVIEW,
+                )
+    else:
+        # This label is removed only when a PR is approved, so we don't want to add the
+        # `awaiting_review` label.
+        if label == Label.CHANGES_REQUESTED:
+            return None
+        # Add label only if none of the PR_NOT_READY_LABELS are present in `pr_labels`.
+        if all(label not in pr_labels for label in PR_NOT_READY_LABELS):
+            # Don't add the label if the pr is already reviewed.
+            if (
+                Label.AWAITING_REVIEW not in pr_labels
+                and Label.CHANGES_REQUESTED not in pr_labels
+            ):
+                await utils.add_label_to_pr_or_issue(
+                    gh,
+                    installation_id,
+                    pr_or_issue=pull_request,
+                    label=Label.AWAITING_REVIEW,
                 )

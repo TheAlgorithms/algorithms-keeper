@@ -14,3 +14,14 @@ class Label:
     DESCRIPTIVE_NAMES = "Require: Descriptive names"
     CHANGES_REQUESTED = "Status: awaiting changes"
     INVALID = "invalid"
+
+
+# If these labels are on a pull request, then the pull request is not ready to be
+# reviewed by a maintainer and thus, remove Label.AWAITING_REVIEW if present.
+PR_NOT_READY_LABELS = (
+    Label.FAILED_TEST,
+    Label.REQUIRE_TEST,
+    Label.DESCRIPTIVE_NAMES,
+    Label.ANNOTATIONS,
+    Label.INVALID,
+)
