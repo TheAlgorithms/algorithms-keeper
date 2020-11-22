@@ -1,5 +1,3 @@
-"""GitHubAPI class for making request and logging the request-response cycle."""
-
 from typing import Mapping, Tuple
 
 from gidgethub.abc import UTF_8_CHARSET
@@ -10,17 +8,19 @@ from .log import STATUS_OK, inject_status_color, logger
 TOKEN_ENDPOINT = "access_tokens"
 
 
-class GitHubAPI(BaseGitHubAPI):
+class GitHubAPI(BaseGitHubAPI):  # pragma: no cover
 
     LOG_FORMAT = 'api "%(method)s %(path)s %(data)s %(version)s" => %(status)s'
 
     async def _request(
         self, method: str, url: str, headers: Mapping[str, str], body: bytes = b""
-    ) -> Tuple[int, Mapping[str, str], bytes]:  # pragma: no cover
-        """This is the same method as in the base class with the addition of logging.
+    ) -> Tuple[int, Mapping[str, str], bytes]:
+        """This is the same method as `gidgethub.aiohttp.GitHubAPI._request` with the
+        addition of logging the request-response cycle. No need to cover this function.
 
-        No need to test/cover this method as functionally it is the same with the
-        addition of logging the request-response cycle.
+        The logger information will be useful to know what actions the bot made.
+        INFO: All actions taken by the bot.
+        ERROR: Unknown error in the API call.
         """
         async with self._session.request(
             method, url, headers=headers, data=body
@@ -30,13 +30,13 @@ class GitHubAPI(BaseGitHubAPI):
                 inject_status_color(response.status)
                 data = "NONE" if body == b"" else body.decode(UTF_8_CHARSET)
                 loggerlevel = (
-                    logger.debug if response.status in STATUS_OK else logger.error
+                    logger.info if response.status in STATUS_OK else logger.error
                 )
                 loggerlevel(
                     self.LOG_FORMAT,
                     {
-                        # host is always going to be 'api.github.com'.
                         "method": method,
+                        # host is always going to be 'api.github.com'.
                         "path": response.url.raw_path_qs,
                         "version": f"{response.url.scheme.upper()}/"
                         f"{response.version.major}.{response.version.minor}",

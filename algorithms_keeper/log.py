@@ -107,8 +107,9 @@ class CustomAccessLogger(AbstractAccessLogger):  # pragma: no cover
         server as per the response status.
 
         Server is programmed to only return either 200 or 500.
-        DEBUG: If the response status is 200
-        ERROR: If the response status is 500 (Internal Server Error)
+        DEBUG: POST request from GitHub was received and responded with status 200. This
+               is in DEBUG level as the message is the same.
+        ERROR: Unknown error in the server code.
         """
         loggerlevel = (
             self.logger.debug if response.status in STATUS_OK else self.logger.error
