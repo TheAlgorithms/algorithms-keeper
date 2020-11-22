@@ -3,8 +3,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from gidgethub import apps, sansio
 
 from algorithms_keeper import issues
-from algorithms_keeper.comments import EMPTY_ISSUE_BODY_COMMENT
-from algorithms_keeper.constants import Label
+from algorithms_keeper.constants import EMPTY_ISSUE_BODY_COMMENT, Label
 
 from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return
 

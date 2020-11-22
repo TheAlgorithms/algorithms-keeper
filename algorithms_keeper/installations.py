@@ -5,6 +5,7 @@ from gidgethub.aiohttp import GitHubAPI
 from gidgethub.sansio import Event
 
 from . import utils
+from .constants import GREETING_COMMENT
 
 router = routing.Router()
 
@@ -33,10 +34,7 @@ async def repo_installation_added(
             f"/repos/{repository['full_name']}/issues",
             data={
                 "title": "Installation successful!",
-                "body": (
-                    f"This is the Algorithms bot at your service! "
-                    f"Thank you for installing me @{sender_name}"
-                ),
+                "body": GREETING_COMMENT.format(login=sender_name),
             },
             oauth_token=installation_access_token,
         )

@@ -5,13 +5,13 @@ from _pytest.monkeypatch import MonkeyPatch
 from gidgethub import apps, sansio
 
 from algorithms_keeper import pull_requests, utils
-from algorithms_keeper.comments import (
+from algorithms_keeper.constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
     EMPTY_BODY_COMMENT,
     MAX_PR_REACHED_COMMENT,
     NO_EXTENSION_COMMENT,
+    Label,
 )
-from algorithms_keeper.constants import Label
 
 from .test_parser import get_file_code
 from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return

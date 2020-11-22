@@ -7,14 +7,15 @@ from gidgethub.aiohttp import GitHubAPI
 from gidgethub.sansio import Event
 
 from . import utils
-from .comments import (
+from .constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
     EMPTY_BODY_COMMENT,
     MAX_PR_REACHED_COMMENT,
     NO_EXTENSION_COMMENT,
+    PR_NOT_READY_LABELS,
     PR_REPORT_COMMENT,
+    Label,
 )
-from .constants import PR_NOT_READY_LABELS, Label
 from .log import logger
 from .parser import PullRequestFilesParser
 
