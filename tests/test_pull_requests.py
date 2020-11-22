@@ -64,6 +64,28 @@ CHECKBOX_TICKED = (
     "`Fixes: #{$ISSUE_NO}`.\r\n"
 )
 
+# PR template ticked with uppercase 'X'
+CHECKBOX_TICKED_UPPER = (
+    "### **Describe your change:**\r\n\r\n\r\n\r\n* [ ] Add an algorithm?\r\n* [X]"
+    " Fix a bug or typo in an existing algorithm?\r\n* [X] Documentation change?"
+    "\r\n\r\n### **Checklist:**\r\n* [X] I have read [CONTRIBUTING.md]"
+    "(https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md).\r\n* "
+    "[X] This pull request is all my own work -- I have not plagiarized.\r\n* [X] "
+    "I know that pull requests will not be merged if they fail the automated tests."
+    "\r\n* [X] This PR only changes one algorithm file.  To ease review, please open "
+    "separate PRs for separate algorithms.\r\n* [X] All new Python files are placed "
+    "inside an existing directory.\r\n* [X] All filenames are in all lowercase "
+    "characters with no spaces or dashes.\r\n* [X] All functions and variable names "
+    "follow Python naming conventions.\r\n* [X] All function parameters and return "
+    "values are annotated with Python [type hints]"
+    "(https://docs.python.org/3/library/typing.html).\r\n* [X] All functions have "
+    "[doctests](https://docs.python.org/3/library/doctest.html) that pass the "
+    "automated testing.\r\n* [X] All new algorithms have a URL in its comments that "
+    "points to Wikipedia or other similar explanation.\r\n* [ ] If this pull request "
+    "resolves one or more open issues then the commit message contains "
+    "`Fixes: #{$ISSUE_NO}`.\r\n"
+)
+
 # PR template not ticked
 CHECKBOX_NOT_TICKED = (
     "### **Describe your change:**\r\n\r\n\r\n\r\n* [ ] Add an algorithm?\r\n* [ ]"
@@ -249,7 +271,7 @@ async def test_max_pr_reached():
         "pull_request": {
             "number": number,
             "url": pr_url,
-            "body": CHECKBOX_TICKED,
+            "body": CHECKBOX_TICKED_UPPER,  # Case doesn't matter
             "head": {"sha": sha},
             "labels": [],
             "user": {"login": user},
@@ -298,7 +320,7 @@ async def test_max_pr_disabled(monkeypatch):
         "pull_request": {
             "number": number,
             "url": pr_url,
-            "body": CHECKBOX_TICKED,
+            "body": CHECKBOX_TICKED_UPPER,  # Case doesn't matter
             "labels": [],
             "user": {"login": user},
             "author_association": "NONE",
