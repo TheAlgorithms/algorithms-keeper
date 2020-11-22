@@ -339,8 +339,8 @@ async def test_max_pr_disabled(monkeypatch):
                     ],
                 },
                 files_url: [
-                    {"filename": "newton.py", "contents_url": ""},
-                    {"filename": "fibonacci", "contents_url": ""},
+                    {"filename": "newton.py", "contents_url": "", "status": "added"},
+                    {"filename": "fibonacci", "contents_url": "", "status": "added"},
                 ],
             },
         ),
@@ -348,8 +348,8 @@ async def test_max_pr_disabled(monkeypatch):
             "synchronize",
             {
                 files_url: [
-                    {"filename": "newton.py", "contents_url": ""},
-                    {"filename": "fibonacci", "contents_url": ""},
+                    {"filename": "newton.py", "contents_url": "", "status": "added"},
+                    {"filename": "fibonacci", "contents_url": "", "status": "added"},
                 ],
             },
         ),
@@ -415,12 +415,24 @@ async def test_for_extensionless_files(action, getiter):
                     ],
                 },
                 files_url: [
-                    {"filename": ".travis.yml", "contents_url": ""},
-                    {"filename": "README.md", "contents_url": ""},
-                    {"filename": "pytest.ini", "contents_url": ""},
+                    {
+                        "filename": ".travis.yml",
+                        "contents_url": "",
+                        "status": "modified",
+                    },
+                    {"filename": "README.md", "contents_url": "", "status": "modified"},
+                    {
+                        "filename": "pytest.ini",
+                        "contents_url": "",
+                        "status": "modified",
+                    },
                     # Add an extensionless file in the `github` directory which
                     # should be ignored.
-                    {"filename": ".github/CODEOWNERS", "contents_url": ""},
+                    {
+                        "filename": ".github/CODEOWNERS",
+                        "contents_url": "",
+                        "status": "modified",
+                    },
                 ],
             },
         ),
@@ -428,11 +440,15 @@ async def test_for_extensionless_files(action, getiter):
             "synchronize",
             {
                 files_url: [
-                    {"filename": ".travis.yml", "contents_url": ""},
-                    {"filename": "README.md", "contents_url": ""},
+                    {
+                        "filename": ".travis.yml",
+                        "contents_url": "",
+                        "status": "modified",
+                    },
+                    {"filename": "README.md", "contents_url": "", "status": "modified"},
                     # We will add one `__` Python file in the mix which should be
                     # ignored.
-                    {"filename": "__init__.py", "contents_url": ""},
+                    {"filename": "__init__.py", "contents_url": "", "status": "added"},
                 ],
             },
         ),
@@ -500,9 +516,17 @@ async def test_pr_with_no_python_files(action, getiter):
                     ],
                 },
                 files_url: [
-                    {"filename": "require_doctest.py", "contents_url": ""},
-                    {"filename": "test_algo.py", "contents_url": ""},
-                    {"filename": "require_annotations.py", "contents_url": ""},
+                    {
+                        "filename": "require_doctest.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
+                    {"filename": "test_algo.py", "contents_url": "", "status": "added"},
+                    {
+                        "filename": "require_annotations.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
                 ],
             },
         ),
@@ -510,9 +534,17 @@ async def test_pr_with_no_python_files(action, getiter):
             "synchronize",
             {
                 files_url: [
-                    {"filename": "require_doctest.py", "contents_url": ""},
-                    {"filename": "test_algo.py", "contents_url": ""},
-                    {"filename": "require_annotations.py", "contents_url": ""},
+                    {
+                        "filename": "require_doctest.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
+                    {"filename": "test_algo.py", "contents_url": "", "status": "added"},
+                    {
+                        "filename": "require_annotations.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
                 ],
             },
         ),
@@ -578,8 +610,8 @@ async def test_pr_with_test_file(action, getiter):
                     ],
                 },
                 files_url: [
-                    {"filename": "no_errors.py", "contents_url": ""},
-                    {"filename": "algorithm.py", "contents_url": ""},
+                    {"filename": "no_errors.py", "contents_url": "", "status": "added"},
+                    {"filename": "algorithm.py", "contents_url": "", "status": "added"},
                 ],
             },
         ),
@@ -587,8 +619,8 @@ async def test_pr_with_test_file(action, getiter):
             "synchronize",
             {
                 files_url: [
-                    {"filename": "no_errors.py", "contents_url": ""},
-                    {"filename": "algorithm.py", "contents_url": ""},
+                    {"filename": "no_errors.py", "contents_url": "", "status": "added"},
+                    {"filename": "algorithm.py", "contents_url": "", "status": "added"},
                 ],
             },
         ),
@@ -646,10 +678,26 @@ async def test_pr_with_successful_tests(action, getiter):
                     ],
                 },
                 files_url: [
-                    {"filename": "require_doctest.py", "contents_url": ""},
-                    {"filename": "require_descriptive_names.py", "contents_url": ""},
-                    {"filename": "require_annotations.py", "contents_url": ""},
-                    {"filename": "require_return_annotation.py", "contents_url": ""},
+                    {
+                        "filename": "require_doctest.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
+                    {
+                        "filename": "require_descriptive_names.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
+                    {
+                        "filename": "require_annotations.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
+                    {
+                        "filename": "require_return_annotation.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
                 ],
             },
         ),
@@ -657,10 +705,26 @@ async def test_pr_with_successful_tests(action, getiter):
             "synchronize",
             {
                 files_url: [
-                    {"filename": "require_doctest.py", "contents_url": ""},
-                    {"filename": "require_descriptive_names.py", "contents_url": ""},
-                    {"filename": "require_annotations.py", "contents_url": ""},
-                    {"filename": "require_return_annotation.py", "contents_url": ""},
+                    {
+                        "filename": "require_doctest.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
+                    {
+                        "filename": "require_descriptive_names.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
+                    {
+                        "filename": "require_annotations.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
+                    {
+                        "filename": "require_return_annotation.py",
+                        "contents_url": "",
+                        "status": "added",
+                    },
                 ],
             },
         ),
@@ -743,8 +807,8 @@ async def test_pr_with_remove_all_require_labels():
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     getiter = {
         files_url: [
-            {"filename": "no_errors.py", "contents_url": ""},
-            {"filename": "algorithm.py", "contents_url": ""},
+            {"filename": "no_errors.py", "contents_url": "", "status": "added"},
+            {"filename": "algorithm.py", "contents_url": "", "status": "added"},
         ],
     }
     delete = {test_label_url: {}, names_label_url: {}, annotation_label_url: {}}
