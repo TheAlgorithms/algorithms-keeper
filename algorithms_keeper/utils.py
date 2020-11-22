@@ -249,9 +249,11 @@ async def get_pr_files(
     async for data in gh.getiter(
         pull_request["url"] + "/files", oauth_token=installation_access_token
     ):
-        files.append(
-            {"filename": data["filename"], "contents_url": data["contents_url"]}
-        )
+        # No need to do any checks for files which are removed.
+        if data["status"] != "removed":
+            files.append(
+                {"filename": data["filename"], "contents_url": data["contents_url"]}
+            )
     return files
 
 
