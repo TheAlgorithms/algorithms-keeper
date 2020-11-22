@@ -5,14 +5,14 @@ from typing import Mapping, Tuple
 from gidgethub.abc import UTF_8_CHARSET
 from gidgethub.aiohttp import GitHubAPI as BaseGitHubAPI
 
-from .log import inject_status_color, logger
+from .log import STATUS_OK, inject_status_color, logger
 
 TOKEN_ENDPOINT = "access_tokens"
 
 
 class GitHubAPI(BaseGitHubAPI):
 
-    LOG_FORMAT = 'api "%(method)s %(path)s %(data)s %(version)s" %(status)s'
+    LOG_FORMAT = 'api "%(method)s %(path)s %(data)s %(version)s" => %(status)s'
 
     async def _request(
         self, method: str, url: str, headers: Mapping[str, str], body: bytes = b""
@@ -29,7 +29,10 @@ class GitHubAPI(BaseGitHubAPI):
             if response.url.name != TOKEN_ENDPOINT:
                 inject_status_color(response.status)
                 data = "NONE" if body == b"" else body.decode(UTF_8_CHARSET)
-                logger.info(
+                loggerlevel = (
+                    logger.debug if response.status in STATUS_OK else logger.error
+                )
+                loggerlevel(
                     self.LOG_FORMAT,
                     {
                         # host is always going to be 'api.github.com'.

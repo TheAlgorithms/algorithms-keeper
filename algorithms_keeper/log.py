@@ -23,7 +23,7 @@ MSG_ARGS_FORMAT = {
     "version": {"color": "yellow"},
 }
 
-STATUS_COLOR = {200: "green", 500: "red"}
+STATUS_OK = (200, 201, 204)  # From `gidgethub.sansio.decipher_response()`
 
 
 def colorcode(code: int) -> str:
@@ -33,7 +33,7 @@ def colorcode(code: int) -> str:
 def inject_status_color(status: int) -> None:  # pragma: no cover
     """Inject the color of response status in the color format dictionary."""
     assert isinstance(status, int), status
-    MSG_ARGS_FORMAT["status"]["color"] = STATUS_COLOR.get(status, "white")
+    MSG_ARGS_FORMAT["status"]["color"] = "green" if status in STATUS_OK else "red"
 
 
 def format_args(
@@ -100,26 +100,32 @@ Color = AnsiColor()
 
 class CustomAccessLogger(AbstractAccessLogger):  # pragma: no cover
 
-    LOG_FORMAT = '%(logger)s "%(method)s %(path)s %(version)s" %(status)s %(time)s'
+    LOG_FORMAT = '%(logger)s "%(method)s %(path)s %(version)s" => %(status)s %(time)s'
 
     def log(self, request: BaseRequest, response: StreamResponse, time: float) -> None:
-        """Log the incoming POST request from GitHub."""
-        try:
-            inject_status_color(response.status)
-            self.logger.info(
-                self.log_format,
-                {
-                    "logger": self.logger.name,
-                    "method": request.method,
-                    "path": request.path_qs,
-                    "version": f"{request.scheme.upper()}/{request.version.major}."
-                    f"{request.version.minor}",
-                    "status": f"{response.status}:{response.reason}",
-                    "time": f"{str(round(time * 1000))}ms",
-                },
-            )
-        except Exception:
-            self.logger.exception(f"Error in logging for {self.logger.name!r} logger.")
+        """Log the incoming POST request from GitHub and the response given by the
+        server as per the response status.
+
+        Server is programmed to only return either 200 or 500.
+        DEBUG: If the response status is 200
+        ERROR: If the response status is 500 (Internal Server Error)
+        """
+        loggerlevel = (
+            self.logger.debug if response.status in STATUS_OK else self.logger.error
+        )
+        inject_status_color(response.status)
+        loggerlevel(
+            self.log_format,
+            {
+                "logger": self.logger.name,
+                "method": request.method,
+                "path": request.path_qs,
+                "version": f"{request.scheme.upper()}/{request.version.major}."
+                f"{request.version.minor}",
+                "status": f"{response.status}:{response.reason}",
+                "time": f"{str(round(time * 1000))}ms",
+            },
+        )
 
 
 class CustomFormatter(logging.Formatter):  # pragma: no cover
