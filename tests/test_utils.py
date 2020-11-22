@@ -386,8 +386,8 @@ async def test_close_pr_or_issue_with_label():
 @pytest.mark.asyncio
 async def test_get_pr_files():
     files = [
-        {"filename": "test1.py", "contents_url": contents_url1},
-        {"filename": "test2.py", "contents_url": contents_url2},
+        {"filename": "test1.py", "contents_url": contents_url1, "status": "added"},
+        {"filename": "test2.py", "contents_url": contents_url2, "status": "added"},
     ]
     getiter = {files_url: files}
     pull_request = {"url": pr_url}
@@ -395,7 +395,10 @@ async def test_get_pr_files():
     result = await utils.get_pr_files(
         gh, MOCK_INSTALLATION_ID, pull_request=pull_request
     )
-    assert result == files
+    assert result == [
+        {"filename": "test1.py", "contents_url": contents_url1},
+        {"filename": "test2.py", "contents_url": contents_url2},
+    ]
     assert gh.getiter_url[0] == files_url
 
 
