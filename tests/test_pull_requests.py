@@ -983,6 +983,37 @@ async def test_pr_review_approved(labels):
     assert gh.post_data == []
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("labels", ([], [{"name": Label.AWAITING_REVIEW}]))
+async def test_pr_review_approved_without_any_changes(labels):
+    # Issue #10
+    remove_label = urllib.parse.quote(Label.AWAITING_REVIEW)
+    data = {
+        "action": "submitted",
+        "review": {
+            "state": "approved",
+            "author_association": "member",
+        },
+        "pull_request": {
+            "labels": labels,
+            "issue_url": issue_url,
+        },
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request_review", delivery_id="1")
+    delete = {f"{labels_url}/{remove_label}": {}}
+    gh = MockGitHubAPI(delete=delete)
+    await pull_requests.router.dispatch(event, gh)
+    if labels:
+        assert f"{labels_url}/{remove_label}" in gh.delete_url
+        assert gh.delete_data == [{}]
+    else:
+        assert gh.delete_url == []
+        assert gh.delete_data == []
+    assert gh.post_url == []
+    assert gh.post_data == []
+
+
 # Test conditions for when to add and remove `Label.AWAITING_REVIEW` label:
 # NOTE: All conditions assumes the PR has been already been labeled AWAITING_REVIEW when
 #       it was opened.
@@ -1116,6 +1147,28 @@ async def test_changes_requested_label_removed():
             "issue_url": issue_url,
         },
         "label": {"name": Label.CHANGES_REQUESTED},
+        "installation": {"id": MOCK_INSTALLATION_ID},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    gh = MockGitHubAPI()
+    await pull_requests.router.dispatch(event, gh)
+    # No label is added or removed.
+    assert gh.post_url == []
+    assert gh.post_data == []
+    assert gh.delete_url == []
+    assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+async def test_awaiting_review_label_removed():
+    # Issue #10
+    data = {
+        "action": "unlabeled",
+        "pull_request": {
+            "labels": [],
+            "issue_url": issue_url,
+        },
+        "label": {"name": Label.AWAITING_REVIEW},
         "installation": {"id": MOCK_INSTALLATION_ID},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")

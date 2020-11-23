@@ -261,6 +261,15 @@ async def update_pr_label_for_review(
                     label=Label.CHANGES_REQUESTED,
                     pr_or_issue=pull_request,
                 )
+            # If a pull request is directly approved without asking for any changes,
+            # remove the `awaiting reviews` label as well if present. (Issue #10)
+            elif Label.AWAITING_REVIEW in pr_labels:
+                await utils.remove_label_from_pr_or_issue(
+                    gh,
+                    installation_id,
+                    label=Label.AWAITING_REVIEW,
+                    pr_or_issue=pull_request,
+                )
 
 
 @router.register("pull_request", action="labeled")
@@ -297,9 +306,9 @@ async def pr_awaiting_review_label(
                     label=Label.AWAITING_REVIEW,
                 )
     else:
-        # This label is removed only when a PR is approved, so we don't want to add the
-        # `awaiting_review` label.
-        if label == Label.CHANGES_REQUESTED:
+        # These labels are removed only when a PR is approved, so we don't want to add
+        # the `awaiting_review` label back again. (Issue #10)
+        if label == Label.CHANGES_REQUESTED or label == Label.AWAITING_REVIEW:
             return None
         # Add label only if none of the PR_NOT_READY_LABELS are present in `pr_labels`.
         if all(label not in pr_labels for label in PR_NOT_READY_LABELS):
