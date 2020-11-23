@@ -19,8 +19,10 @@ import urllib.parse
 from typing import Any, Dict, List, Optional, Union
 
 import cachetools
-from gidgethub import apps
+from gidgethub import BadRequest, apps
 from gidgethub.aiohttp import GitHubAPI
+
+from .log import logger
 
 # Timed cache for installation access token (1 hour)
 cache = cachetools.TTLCache(maxsize=1, ttl=3600)  # type: cachetools.TTLCache[str, str]
@@ -131,10 +133,17 @@ async def remove_label_from_pr_or_issue(
     # or issue) at once.
     for label in label_list:
         parse_label = urllib.parse.quote(label)
-        await gh.delete(
-            f"{labels_url}/{parse_label}",
-            oauth_token=installation_access_token,
-        )
+        try:
+            await gh.delete(
+                f"{labels_url}/{parse_label}",
+                oauth_token=installation_access_token,
+            )
+        # Case: More than one `require_` label removed triggers multiple webhook
+        # events, making the bot delete the `awaiting reviews` label miltiple times.
+        # The exception is raised only on rare occasions, other times who knows what
+        # happens!
+        except BadRequest as exc:  # pragma: no cover
+            logger.warning(f"{label}:{exc} %(url)s", {"url": pr_or_issue["url"]})
 
 
 async def get_total_open_prs(
