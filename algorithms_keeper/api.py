@@ -29,6 +29,9 @@ class GitHubAPI(BaseGitHubAPI):  # pragma: no cover
             if response.url.name != TOKEN_ENDPOINT:
                 inject_status_color(response.status)
                 data = "NONE" if body == b"" else body.decode(UTF_8_CHARSET)
+                # Comments are too long to be logged.
+                if response.url.name == "comments":
+                    data = "COMMENT"
                 loggerlevel = (
                     logger.info if response.status in STATUS_OK else logger.error
                 )
