@@ -70,12 +70,11 @@ async def close_invalid_or_additional_pr(
             )
             return None
         elif MAX_PR_PER_USER > 0:
-            user_pr_numbers = await utils.get_total_open_prs(
+            user_pr_numbers = await utils.get_user_open_pr_numbers(
                 gh,
                 installation_id,
                 repository=event.data["repository"]["full_name"],
                 user_login=pr_author,
-                count=False,
             )
 
             if len(user_pr_numbers) > MAX_PR_PER_USER:

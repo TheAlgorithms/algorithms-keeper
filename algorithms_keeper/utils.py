@@ -143,24 +143,13 @@ async def remove_label_from_pr_or_issue(
         # The exception is raised only on rare occasions, other times who knows what
         # happens!
         except BadRequest as exc:  # pragma: no cover
-            logger.warning(f"{label}:{exc} %(url)s", {"url": pr_or_issue["url"]})
+            logger.warning(f'"{label}": {exc} %(url)s', {"url": pr_or_issue["url"]})
 
 
-async def get_total_open_prs(
-    gh: GitHubAPI,
-    installation_id: int,
-    *,
-    repository: str,
-    user_login: Optional[str] = None,
-    count: Optional[bool] = True,
-) -> Any:
-    """Return the total number of open pull requests in the repository.
-
-    If the `user_login` parameter is given, then return the total number of open
-    pull request by that user in the repository.
-
-    If the `count` parameter is `False`, it returns the list of pull request
-    numbers instead.
+async def get_user_open_pr_numbers(
+    gh: GitHubAPI, installation_id: int, *, repository: str, user_login: str
+) -> List[int]:
+    """Return the user's open pull request numbers in the given repository.
 
     For GitHub's REST API v3, issues and pull requests are the same so
     `repository["open_issues_count"]` returns the total number of open
@@ -168,16 +157,13 @@ async def get_total_open_prs(
     we can make a search API call for open pull requests.
     """
     installation_access_token = await get_access_token(gh, installation_id)
-    search_url = f"/search/issues?q=type:pr+state:open+repo:{repository}"
-    if user_login is not None:
-        search_url += f"+author:{user_login}"
-    if count is False:
-        pr_numbers = []
-        async for pull in gh.getiter(search_url, oauth_token=installation_access_token):
-            pr_numbers.append(pull["number"])
-        return pr_numbers
-    data = await gh.getitem(search_url, oauth_token=installation_access_token)
-    return data["total_count"]
+    search_url = (
+        f"/search/issues?q=type:pr+state:open+repo:{repository}+author:{user_login}"
+    )
+    pr_numbers = []
+    async for pull in gh.getiter(search_url, oauth_token=installation_access_token):
+        pr_numbers.append(pull["number"])
+    return pr_numbers
 
 
 async def add_comment_to_pr_or_issue(
