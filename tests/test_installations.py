@@ -5,14 +5,15 @@ from gidgethub import apps, sansio
 from algorithms_keeper import installations
 from algorithms_keeper.constants import GREETING_COMMENT
 
-from .utils import MOCK_INSTALLATION_ID, MockGitHubAPI, mock_return
-
-user = "test"
-repository = "TheAlgorithms/Python"
-number = 1
-
-issue_url = f"/repos/{repository}/issues"
-full_issue_url = f"https://api.github.com/repos/{repository}/issues/{number}"
+from .utils import (
+    MockGitHubAPI,
+    issue_path,
+    issue_url,
+    mock_return,
+    number,
+    repository,
+    user,
+)
 
 GREETING_COMMENT = GREETING_COMMENT.format(login=user)
 
@@ -28,21 +29,21 @@ def patch_module(monkeypatch=MonkeyPatch()):
 async def test_installation_created():
     data = {
         "action": "created",
-        "installation": {"id": MOCK_INSTALLATION_ID},
+        "installation": {"id": number},
         "repositories": [{"full_name": repository}],
         "sender": {"login": user},
     }
     event = sansio.Event(data, event="installation", delivery_id="1")
-    post = {issue_url: {"url": full_issue_url}}
-    patch = {full_issue_url: {"state": "closed"}}
+    post = {issue_path: {"url": issue_url}}
+    patch = {issue_url: None}
     gh = MockGitHubAPI(post=post, patch=patch)
     await installations.router.dispatch(event, gh)
-    assert issue_url in gh.post_url
+    assert issue_path in gh.post_url
     assert {
         "title": "Installation successful!",
         "body": GREETING_COMMENT,
     } in gh.post_data
-    assert full_issue_url in gh.patch_url
+    assert issue_url in gh.patch_url
     assert {"state": "closed"} in gh.patch_data
 
 
@@ -50,19 +51,19 @@ async def test_installation_created():
 async def test_installation_repositories_added():
     data = {
         "action": "added",
-        "installation": {"id": MOCK_INSTALLATION_ID},
+        "installation": {"id": number},
         "repositories_added": [{"full_name": repository}],
         "sender": {"login": user},
     }
     event = sansio.Event(data, event="installation_repositories", delivery_id="1")
-    post = {issue_url: {"url": full_issue_url}}
-    patch = {full_issue_url: {"state": "closed"}}
+    post = {issue_path: {"url": issue_url}}
+    patch = {issue_url: None}
     gh = MockGitHubAPI(post=post, patch=patch)
     await installations.router.dispatch(event, gh)
-    assert issue_url in gh.post_url
+    assert issue_path in gh.post_url
     assert {
         "title": "Installation successful!",
         "body": GREETING_COMMENT,
     } in gh.post_data
-    assert full_issue_url in gh.patch_url
+    assert issue_url in gh.patch_url
     assert {"state": "closed"} in gh.patch_data
