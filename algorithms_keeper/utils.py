@@ -24,8 +24,10 @@ from gidgethub.aiohttp import GitHubAPI
 
 from .log import logger
 
-# Timed cache for installation access token (1 hour)
-cache = cachetools.TTLCache(maxsize=1, ttl=3600)  # type: cachetools.TTLCache[str, str]
+# Timed cache for installation access token (1 minute less than an hour)
+cache = cachetools.TTLCache(
+    maxsize=10, ttl=1 * 59 * 60
+)  # type: cachetools.TTLCache[int, str]
 
 
 async def get_access_token(gh: GitHubAPI, installation_id: int) -> str:
@@ -35,16 +37,18 @@ async def get_access_token(gh: GitHubAPI, installation_id: int) -> str:
     Currently, the token lasts for 1 hour.
     https://docs.github.com/en/developers/apps/differences-between-github-apps-and-oauth-apps#token-based-identification
     """
-    if "access_token" in cache:
-        return cache["access_token"]
+    # We will store the token with key as installation ID so that the app can be
+    # installed in multiple repositories.
+    if installation_id in cache:
+        return cache[installation_id]
     data = await apps.get_installation_access_token(
         gh,
         installation_id=str(installation_id),
         app_id=os.environ.get("GITHUB_APP_ID"),
         private_key=os.environ.get("GITHUB_PRIVATE_KEY"),
     )
-    cache["access_token"] = data["token"]
-    return cache["access_token"]
+    cache[installation_id] = data["token"]
+    return cache[installation_id]
 
 
 async def get_pr_for_commit(
