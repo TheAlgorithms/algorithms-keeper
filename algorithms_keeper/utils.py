@@ -139,7 +139,7 @@ async def remove_label_from_pr_or_issue(
                 oauth_token=installation_access_token,
             )
         # Case: More than one `require_` label removed triggers multiple webhook
-        # events, making the bot delete the `awaiting reviews` label miltiple times.
+        # events, making the bot delete the `awaiting reviews` label multiple times.
         # The exception is raised only on rare occasions, other times who knows what
         # happens!
         except BadRequest as exc:  # pragma: no cover
