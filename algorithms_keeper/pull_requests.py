@@ -163,6 +163,7 @@ async def check_pr_files(
         # NOTE: This should come after the check for `.py` files.
         elif filepath.name.startswith("test_") or filepath.name.endswith("_test.py"):
             parser.skip_doctest = True
+            continue
         files_to_check.append(file)
 
     for file in files_to_check:
