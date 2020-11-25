@@ -112,6 +112,7 @@ async def test_pr_opened_in_draft_mode(action):
             "url": pr_url,
             "body": CHECKBOX_TICKED,
             "user": {"login": user},
+            "labels": [],
             "author_association": "NONE",
             "comments_url": comments_url,
             "issue_url": issue_url,
@@ -1030,3 +1031,27 @@ async def test_awaiting_review_label_removed():
     assert gh.post_data == []
     assert gh.delete_url == []
     assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+async def test_label_after_changes_made():
+    remove_label = urllib.parse.quote(Label.CHANGES_REQUESTED)
+    data = {
+        "action": "synchronize",
+        "pull_request": {
+            "issue_url": issue_url,
+            "labels": [{"name": Label.CHANGES_REQUESTED}],
+            # This is done only to avoid the other function to trigger [check_pr_files]
+            "draft": True,
+        },
+        "installation": {"id": number},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    delete = {f"{labels_url}/{remove_label}": None}
+    post = {labels_url: None}
+    gh = MockGitHubAPI(post=post, delete=delete)
+    await pull_requests.router.dispatch(event, gh)
+    assert f"{labels_url}/{remove_label}" in gh.delete_url
+    assert gh.delete_data == []
+    assert labels_url in gh.post_url
+    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data

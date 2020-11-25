@@ -1,3 +1,36 @@
+"""Pull request module.
+
+Copy and paste to http://www.webgraphviz.com/ to look at the stages of a pull request.
+
+digraph "PR stages" {
+  /*
+  Box represents labels
+  Require labels include
+  - `require tests`
+  - `require type hints`
+  - `require descriptive names`
+  */
+  "New PR" [color=yellow]
+  "Awaiting review" [shape=box, color=green]
+  "Awaiting changes" [shape=box, color=blue]
+  "Require labels" [shape=box, color=orange]
+  "Tests are failing" [shape=box, color=red]
+  "Approved" [color=yellow]
+
+  "New PR" -> "Awaiting review" [label="PR opened\nAssume PR is perfect", color=green]
+  "Awaiting review" -> "Awaiting changes" [label="Review requests changes", color=red]
+  "Awaiting changes" -> "Awaiting review" [label="Author made changes", color=orange]
+
+  "Awaiting review" -> "Approved" [label="Review approves", color=green]
+  "Awaiting changes" -> "Approved" [label="Review approves", color=green]
+
+  "Awaiting review" -> "Tests are failing" [label="Tests failed", color=red]
+  "Tests are failing" -> "Awaiting review" [label="Tests passed", color=green]
+
+  "Awaiting review" -> "Require labels" [label="Requirements not satisfied", color=red]
+  "Require labels" -> "Awaiting review" [label="Requirements satisfied", color=green]
+}
+"""
 import re
 from pathlib import PurePath
 from typing import Any
@@ -323,3 +356,31 @@ async def pr_awaiting_review_label(
                     pr_or_issue=pull_request,
                     label=Label.AWAITING_REVIEW,
                 )
+
+
+@router.register("pull_request", action="synchronize")
+async def add_review_label_on_changes(
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
+) -> None:
+    """Add the `awaiting review` label once the author made the requested changes.
+
+    NOTE: This will change the label on the first commit after a change has been
+    requested, the author might not be ready by then.
+    """
+    installation_id = event.data["installation"]["id"]
+    pull_request = event.data["pull_request"]
+    pr_labels = [label["name"] for label in pull_request["labels"]]
+
+    if Label.CHANGES_REQUESTED in pr_labels:
+        await utils.remove_label_from_pr_or_issue(
+            gh,
+            installation_id,
+            label=Label.CHANGES_REQUESTED,
+            pr_or_issue=pull_request,
+        )
+        await utils.add_label_to_pr_or_issue(
+            gh,
+            installation_id,
+            label=Label.AWAITING_REVIEW,
+            pr_or_issue=pull_request,
+        )
