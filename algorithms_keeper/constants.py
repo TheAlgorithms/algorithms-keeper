@@ -99,31 +99,36 @@ PR_REPORT_COMMENT = """\
 
 @{user_login} Hello! I'm a bot made to check all the pull request Python files. \
 First of all, I want to say thank you for your time and interest in this project and \
-for opening a pull request.
+for opening a pull request. There seems to be missing requirements in some of the \
+Python files submitted in this pull request. Please read through the report and make \
+the necessary changes. You can take a look at the relevant links provided after the \
+report.
 
-I have detected errors in some of the Python files submitted in this pull request. \
-Please read through the report and make the necessary changes. You can take a look at \
-the relevant links provided after the report.
+<details><summary><b>What are node paths? 🔽</b></summary>
 
-### What are node paths?
-The report contain headings and a checklist where the items are paths to the \
-class/function/parameter where the error is present. Node paths are double colon `::` \
-separated names and can be any of the following format:
-- Class path: `[file_name]::[class_name]`
-- Function path: `[file_name]::[function_name]`
-- Function parameter path: `[file_name]::[function_name]::[parameter_name]`
-- Method path: `[file_name]::[class_name]::[function_name]`
-- Method parameter path: `[file_name]::[class_name]::[function_name]::[parameter_name]`
+> The report contains headings and a checklist where the items are paths to the \
+class/function/parameter where the requirement is missing. Node paths are double \
+colon `::` separated names and can be in any of the following format:
+> - Class path: `[file_name]::[class_name]`
+> - Function path: `[file_name]::[function_name]`
+> - Function parameter path: `[file_name]::[function_name]::[parameter_name]`
+> - Method path: `[file_name]::[class_name]::[function_name]`
+> - Method parameter path: \
+`[file_name]::[class_name]::[function_name]::[parameter_name]`
+
+</details>
 {content}
 
-### Relevant links:
+<details><summary><b>Relevant links 🔽</b></summary>
 
-- Contributing guidelines: \
-https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md
-- Project Euler solution guidelines: \
-https://github.com/TheAlgorithms/Python/blob/master/project_euler/README.md
-- Type hints: https://docs.python.org/3/library/typing.html
-- `doctest`: https://docs.python.org/3/library/doctest.html
-- `unittest`: https://docs.python.org/3/library/unittest.html
-- `pytest`: https://docs.pytest.org/en/stable/
+> - [Contributing guidelines]\
+(https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md)
+> - [Project Euler solution guidelines]\
+(https://github.com/TheAlgorithms/Python/blob/master/project_euler/README.md)
+> - [Type hints](https://docs.python.org/3/library/typing.html)
+> - [`doctest`](https://docs.python.org/3/library/doctest.html)
+> - [`unittest`](https://docs.python.org/3/library/unittest.html)
+> - [`pytest`](https://docs.pytest.org/en/stable/)
+
+</details>
 """
