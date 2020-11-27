@@ -1,4 +1,5 @@
 import urllib.parse
+from pathlib import PurePath
 
 import pytest
 from gidgethub import apps
@@ -289,10 +290,9 @@ async def test_get_pr_files():
     pull_request = {"url": pr_url}
     gh = MockGitHubAPI(getiter=getiter)
     result = await utils.get_pr_files(gh, number, pull_request=pull_request)
-    assert result == [
-        {"filename": "test1.py", "contents_url": contents_url1},
-        {"filename": "test2.py", "contents_url": contents_url2},
-    ]
+    assert len(result) == 2
+    assert result[0].name == "test1.py"
+    assert result[1].name == "test2.py"
     assert files_url in gh.getiter_url
 
 
@@ -311,7 +311,8 @@ async def test_get_added_pr_files():
     pull_request = {"url": pr_url}
     gh = MockGitHubAPI(getiter=getiter)
     result = await utils.get_pr_files(gh, number, pull_request=pull_request)
-    assert result == [{"filename": "test1.py", "contents_url": contents_url1}]
+    assert len(result) == 1
+    assert result[0].name == "test1.py"
     assert files_url in gh.getiter_url
 
 
@@ -333,7 +334,7 @@ async def test_get_file_content():
     result = await utils.get_file_content(
         gh,
         number,
-        file={"filename": "test.py", "contents_url": contents_url1},
+        file=utils.File("test.py", PurePath("test.py"), contents_url1),
     )
     assert result == (
         b'def test1(a, b, c):\n\t"""\n\tA test function\n\t"""\n\treturn False'
@@ -341,4 +342,4 @@ async def test_get_file_content():
         b'\n\ndef test3(a: int) -> None:\n\t"""\n\t>>> findIslands(1, 1, 1)\n\t"""'
         b"\n\treturn None\n\nif __name__ == '__main__':\n\tpass\n"
     )
-    assert gh.getitem_url[0] == contents_url1
+    assert contents_url1 in gh.getitem_url

@@ -44,7 +44,7 @@ NO_EXTENSION_COMMENT = NO_EXTENSION_COMMENT.format(user_login=user)
 @pytest.fixture(scope="module", autouse=True)
 def patch_module(monkeypatch=MonkeyPatch()):
     async def mock_get_file_content(*args, **kwargs):
-        filename = kwargs["file"]["filename"]
+        filename = kwargs["file"].name
         if filename in {
             "require_doctest.py",
             "require_annotations.py",

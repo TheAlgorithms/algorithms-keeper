@@ -16,7 +16,8 @@ that uses all the given functions.
 import base64
 import os
 import urllib.parse
-from typing import Any, Dict, List, Optional, Union
+from pathlib import PurePath
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 import cachetools
 from gidgethub import BadRequest, apps
@@ -28,6 +29,21 @@ from .log import logger
 cache = cachetools.TTLCache(
     maxsize=10, ttl=1 * 59 * 60
 )  # type: cachetools.TTLCache[int, str]
+
+
+class File(NamedTuple):
+    # `name` is the entire path in :class:`str`. This is different from
+    # :attr:`pathlib.PurePath.name` where the latter gives the `basename` of the path.
+    name: str
+
+    # A `pathlib.PurePath` object which represents the `name` in PathLike format which
+    # can be used to check extension and filename.
+    path: PurePath
+
+    # The `contents_url` value of the file object we get for all the pull request files.
+    # This can be used to get the file content directly from GitHub instead of cloning
+    # the repository on the server.
+    contents_url: str
 
 
 async def get_access_token(gh: GitHubAPI, installation_id: int) -> str:
@@ -237,7 +253,7 @@ async def remove_requested_reviewers_from_pr(
 
 async def get_pr_files(
     gh: GitHubAPI, installation_id: int, *, pull_request: Dict[str, Any]
-) -> List[Dict[str, str]]:
+) -> List[File]:
     """Return the list of files data from a given pull request.
 
     The data will include `filename` and `contents_url`. The `contents_url` will be
@@ -251,15 +267,13 @@ async def get_pr_files(
         # No need to do any checks for files which are removed.
         if data["status"] != "removed":
             files.append(
-                {"filename": data["filename"], "contents_url": data["contents_url"]}
+                File(data["filename"], PurePath(data["filename"]), data["contents_url"])
             )
     return files
 
 
-async def get_file_content(
-    gh: GitHubAPI, installation_id: int, *, file: Dict[str, str]
-) -> bytes:
+async def get_file_content(gh: GitHubAPI, installation_id: int, *, file: File) -> bytes:
     """Return the file content decoded into Python bytes object."""
     installation_access_token = await get_access_token(gh, installation_id)
-    data = await gh.getitem(file["contents_url"], oauth_token=installation_access_token)
+    data = await gh.getitem(file.contents_url, oauth_token=installation_access_token)
     return base64.decodebytes(data["content"].encode())

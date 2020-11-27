@@ -32,7 +32,6 @@ digraph "PR stages" {
 }
 """
 import re
-from pathlib import PurePath
 from typing import Any
 
 from gidgethub import routing
@@ -176,11 +175,11 @@ async def check_pr_files(
     # there is a separate test file. We cannot hope that the test file comes first in
     # the loop.
     for file in pr_files:
-        filepath = PurePath(file["filename"])
+        filepath = file.path
         if not filepath.suffix and ".github" not in filepath.parts:
             logger.info(
                 "No extension file [%(file)s]: %(url)s",
-                {"file": file["filename"], "url": pull_request["html_url"]},
+                {"file": file.name, "url": pull_request["html_url"]},
             )
             await utils.close_pr_or_issue(
                 gh,
@@ -201,7 +200,7 @@ async def check_pr_files(
 
     for file in files_to_check:
         code = await utils.get_file_content(gh, installation_id, file=file)
-        parser.parse_code(file["filename"], code)
+        parser.parse_code(file.name, code)
 
     labels_to_add, labels_to_remove = parser.labels_to_add_and_remove(pr_labels)
 
@@ -223,7 +222,7 @@ async def check_pr_files(
             logger.info(
                 "Missing requirements in parsed files [%(file)s]: %(url)s",
                 {
-                    "file": ", ".join([file["filename"] for file in files_to_check]),
+                    "file": ", ".join([file.name for file in files_to_check]),
                     "url": pull_request["html_url"],
                 },
             )
