@@ -21,8 +21,8 @@ from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 import cachetools
 from gidgethub import BadRequest, apps
-from gidgethub.aiohttp import GitHubAPI
 
+from .api import GitHubAPI
 from .log import logger
 
 # Timed cache for installation access token (1 minute less than an hour)
@@ -55,16 +55,17 @@ async def get_access_token(gh: GitHubAPI, installation_id: int) -> str:
     """
     # We will store the token with key as installation ID so that the app can be
     # installed in multiple repositories.
-    if installation_id in cache:
-        return cache[installation_id]
+    _id = gh.installation_id
+    if _id in cache:
+        return cache[_id]
     data = await apps.get_installation_access_token(
         gh,
-        installation_id=str(installation_id),
-        app_id=os.environ.get("GITHUB_APP_ID"),
-        private_key=os.environ.get("GITHUB_PRIVATE_KEY"),
+        installation_id=str(_id),
+        app_id=os.environ["GITHUB_APP_ID"],
+        private_key=os.environ["GITHUB_PRIVATE_KEY"],
     )
-    cache[installation_id] = data["token"]
-    return cache[installation_id]
+    cache[_id] = data["token"]
+    return cache[_id]
 
 
 async def get_pr_for_commit(

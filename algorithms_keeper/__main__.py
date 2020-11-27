@@ -35,7 +35,13 @@ async def main(request: web.Request) -> web.Response:
             },
         )
         async with aiohttp.ClientSession() as session:
-            gh = GitHubAPI(session, "dhruvmanila/algorithms-keeper", cache=cache)
+            gh = GitHubAPI(
+                session,
+                "dhruvmanila/algorithms-keeper",
+                cache=cache,
+                installation_id=event.data["installation"]["id"],
+                logger=logger,
+            )
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
