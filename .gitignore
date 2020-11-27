@@ -17,3 +17,6 @@ local/
 .coverage
 coverage.xml
 htmlcov/
+
+# pyenv
+.python-version

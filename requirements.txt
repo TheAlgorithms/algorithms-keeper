@@ -1,0 +1,16 @@
+aiohttp==3.7.3
+async-timeout==3.0.1
+attrs==20.3.0
+cachetools==4.1.1
+cffi==1.14.4
+chardet==3.0.4
+cryptography==3.2.1
+gidgethub==4.2.0
+idna==2.10
+multidict==5.0.2
+pycparser==2.20
+PyJWT==1.7.1
+six==1.15.0
+typing-extensions==3.7.4.3
+uritemplate==3.0.1
+yarl==1.6.3
