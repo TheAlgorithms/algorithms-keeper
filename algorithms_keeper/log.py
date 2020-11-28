@@ -25,6 +25,12 @@ MSG_ARGS_FORMAT = {
 
 STATUS_OK = (200, 201, 204)  # From `gidgethub.sansio.decipher_response()`
 
+# 200:OK
+# 201:Created
+# 204:Not Found
+# 304:Not Modified
+STATUS_COLOR = {200: "green", 201: "green", 204: "green", 304: "white"}
+
 
 def colorcode(code: int) -> str:
     return CSI + str(code) + "m"
@@ -33,7 +39,7 @@ def colorcode(code: int) -> str:
 def inject_status_color(status: int) -> None:  # pragma: no cover
     """Inject the color of response status in the color format dictionary."""
     assert isinstance(status, int), status
-    MSG_ARGS_FORMAT["status"]["color"] = "green" if status in STATUS_OK else "red"
+    MSG_ARGS_FORMAT["status"]["color"] = STATUS_COLOR.get(status, "red")
 
 
 def format_args(
