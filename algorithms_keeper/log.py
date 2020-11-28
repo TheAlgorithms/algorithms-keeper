@@ -23,7 +23,9 @@ MSG_ARGS_FORMAT = {
     "version": {"color": "yellow"},
 }
 
-STATUS_OK = (200, 201, 204)  # From `gidgethub.sansio.decipher_response()`
+# From `gidgethub.sansio.decipher_response()`
+# From `gidgethub.abc._request()#113`
+STATUS_OK = (200, 201, 204, 304)
 
 # 200:OK
 # 201:Created
