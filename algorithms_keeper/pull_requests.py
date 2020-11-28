@@ -35,10 +35,10 @@ import re
 from typing import Any
 
 from gidgethub import routing
-from gidgethub.aiohttp import GitHubAPI
 from gidgethub.sansio import Event
 
 from . import utils
+from .api import GitHubAPI
 from .constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
     EMPTY_BODY_COMMENT,
@@ -76,11 +76,9 @@ async def close_invalid_or_additional_pr(
     These checks won't be done for the pull request made by a member or owner of the
     organization.
     """
-    installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
-    author_association = pull_request["author_association"].lower()
 
-    if author_association not in {"owner", "member"}:
+    if pull_request["author_association"].lower() not in {"owner", "member"}:
         pr_body = pull_request["body"]
         pr_author = pull_request["user"]["login"]
         comment = None
@@ -94,17 +92,12 @@ async def close_invalid_or_additional_pr(
 
         if comment is not None:
             await utils.close_pr_or_issue(
-                gh,
-                installation_id,
-                comment=comment,
-                pr_or_issue=pull_request,
-                label=Label.INVALID,
+                gh, comment=comment, pr_or_issue=pull_request, label=Label.INVALID
             )
             return None
         elif MAX_PR_PER_USER > 0:
             user_pr_numbers = await utils.get_user_open_pr_numbers(
                 gh,
-                installation_id,
                 repository=event.data["repository"]["full_name"],
                 user_login=pr_author,
             )
@@ -117,7 +110,6 @@ async def close_invalid_or_additional_pr(
                 pr_number = "#{}".format(", #".join(map(str, user_pr_numbers)))
                 await utils.close_pr_or_issue(
                     gh,
-                    installation_id,
                     comment=MAX_PR_REACHED_COMMENT.format(
                         user_login=pr_author, pr_number=pr_number
                     ),
@@ -130,7 +122,7 @@ async def close_invalid_or_additional_pr(
         # `require_` labels or `failed_test` label is added, we will remove this label.
         # This label will be added back when all those labels are removed.
         await utils.add_label_to_pr_or_issue(
-            gh, installation_id, pr_or_issue=pull_request, label=Label.AWAITING_REVIEW
+            gh, pr_or_issue=pull_request, label=Label.AWAITING_REVIEW
         )
 
         # We will check files only if the pull request is valid and thus, not closed.
@@ -158,7 +150,6 @@ async def check_pr_files(
     pull request is made ready for review, a new commit has been pushed to the
     pull request and when the pull request is reopened.
     """
-    installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
 
     if pull_request["draft"]:
@@ -166,7 +157,7 @@ async def check_pr_files(
 
     pr_labels = [label["name"] for label in pull_request["labels"]]
     pr_author = pull_request["user"]["login"]
-    pr_files = await utils.get_pr_files(gh, installation_id, pull_request=pull_request)
+    pr_files = await utils.get_pr_files(gh, pull_request=pull_request)
     parser = PullRequestFilesParser()
     files_to_check = []
 
@@ -184,7 +175,6 @@ async def check_pr_files(
             )
             await utils.close_pr_or_issue(
                 gh,
-                installation_id,
                 comment=NO_EXTENSION_COMMENT.format(user_login=pr_author),
                 pr_or_issue=pull_request,
                 label=Label.INVALID,
@@ -200,19 +190,19 @@ async def check_pr_files(
         files_to_check.append(file)
 
     for file in files_to_check:
-        code = await utils.get_file_content(gh, installation_id, file=file)
+        code = await utils.get_file_content(gh, file=file)
         parser.parse_code(file.name, code)
 
     labels_to_add, labels_to_remove = parser.labels_to_add_and_remove(pr_labels)
 
     if labels_to_add:
         await utils.add_label_to_pr_or_issue(
-            gh, installation_id, label=labels_to_add, pr_or_issue=pull_request
+            gh, label=labels_to_add, pr_or_issue=pull_request
         )
 
     if labels_to_remove:
         await utils.remove_label_from_pr_or_issue(
-            gh, installation_id, label=labels_to_remove, pr_or_issue=pull_request
+            gh, label=labels_to_remove, pr_or_issue=pull_request
         )
 
     # No need to comment on every commit pushed to the pull request.
@@ -230,7 +220,6 @@ async def check_pr_files(
         )
         await utils.add_comment_to_pr_or_issue(
             gh,
-            installation_id,
             comment=PR_REPORT_COMMENT.format(
                 content=report_content, user_login=pr_author
             ),
@@ -268,7 +257,6 @@ async def update_pr_label_for_review(
 
     Label: `Label.CHANGES_REQUESTED`
     """
-    installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
     review = event.data["review"]
     review_state = review["state"]
@@ -282,27 +270,18 @@ async def update_pr_label_for_review(
         if review_state == "changes_requested":
             if Label.CHANGES_REQUESTED not in pr_labels:
                 await utils.add_label_to_pr_or_issue(
-                    gh,
-                    installation_id,
-                    label=Label.CHANGES_REQUESTED,
-                    pr_or_issue=pull_request,
+                    gh, label=Label.CHANGES_REQUESTED, pr_or_issue=pull_request
                 )
         elif review_state == "approved":
             if Label.CHANGES_REQUESTED in pr_labels:
                 await utils.remove_label_from_pr_or_issue(
-                    gh,
-                    installation_id,
-                    label=Label.CHANGES_REQUESTED,
-                    pr_or_issue=pull_request,
+                    gh, label=Label.CHANGES_REQUESTED, pr_or_issue=pull_request
                 )
             # If a pull request is directly approved without asking for any changes,
             # remove the `awaiting reviews` label as well if present. (Issue #10)
             elif Label.AWAITING_REVIEW in pr_labels:
                 await utils.remove_label_from_pr_or_issue(
-                    gh,
-                    installation_id,
-                    label=Label.AWAITING_REVIEW,
-                    pr_or_issue=pull_request,
+                    gh, label=Label.AWAITING_REVIEW, pr_or_issue=pull_request
                 )
 
 
@@ -324,7 +303,6 @@ async def pr_awaiting_review_label(
 
     Label: `Label.AWAITING_REVIEW`
     """
-    installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
     # The label which was added or removed.
     label = event.data["label"]["name"]
@@ -334,10 +312,7 @@ async def pr_awaiting_review_label(
         if label in PR_NOT_READY_LABELS or label == Label.CHANGES_REQUESTED:
             if Label.AWAITING_REVIEW in pr_labels:
                 await utils.remove_label_from_pr_or_issue(
-                    gh,
-                    installation_id,
-                    pr_or_issue=pull_request,
-                    label=Label.AWAITING_REVIEW,
+                    gh, pr_or_issue=pull_request, label=Label.AWAITING_REVIEW
                 )
     else:
         # These labels are removed only when a PR is approved, so we don't want to add
@@ -352,10 +327,7 @@ async def pr_awaiting_review_label(
                 and Label.CHANGES_REQUESTED not in pr_labels
             ):
                 await utils.add_label_to_pr_or_issue(
-                    gh,
-                    installation_id,
-                    pr_or_issue=pull_request,
-                    label=Label.AWAITING_REVIEW,
+                    gh, pr_or_issue=pull_request, label=Label.AWAITING_REVIEW
                 )
 
 
@@ -368,20 +340,13 @@ async def add_review_label_on_changes(
     NOTE: This will change the label on the first commit after a change has been
     requested, the author might not be ready by then.
     """
-    installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
     pr_labels = [label["name"] for label in pull_request["labels"]]
 
     if Label.CHANGES_REQUESTED in pr_labels:
         await utils.remove_label_from_pr_or_issue(
-            gh,
-            installation_id,
-            label=Label.CHANGES_REQUESTED,
-            pr_or_issue=pull_request,
+            gh, label=Label.CHANGES_REQUESTED, pr_or_issue=pull_request
         )
         await utils.add_label_to_pr_or_issue(
-            gh,
-            installation_id,
-            label=Label.AWAITING_REVIEW,
-            pr_or_issue=pull_request,
+            gh, label=Label.AWAITING_REVIEW, pr_or_issue=pull_request
         )

@@ -1,26 +1,73 @@
 import logging
+import os
 from typing import Mapping, Tuple
 
+import cachetools
 from aiohttp import ClientResponse
+from gidgethub import apps
 from gidgethub.abc import UTF_8_CHARSET
 from gidgethub.aiohttp import GitHubAPI as BaseGitHubAPI
 
 from .log import STATUS_OK, inject_status_color
+from .log import logger as main_logger
 
 TOKEN_ENDPOINT = "access_tokens"
 
+# Timed cache for installation access token (1 minute less than an hour)
+cache = cachetools.TTLCache(
+    maxsize=10, ttl=1 * 59 * 60
+)  # type: cachetools.TTLCache[int, str]
 
-class GitHubAPI(BaseGitHubAPI):  # pragma: no cover
 
-    installation_id: int
+class GitHubAPI(BaseGitHubAPI):
+
+    _installation_id: int
     logger: logging.Logger
 
     LOG_FORMAT = 'api "%(method)s %(path)s %(data)s %(version)s" => %(status)s'
 
-    def __init__(self, *args, **kwargs) -> None:
-        self.installation_id = kwargs.pop("installation_id")
-        self.logger = kwargs.pop("logger")
+    def __init__(self, installation_id, *args, **kwargs) -> None:
+        self._installation_id = installation_id
+        self.logger = kwargs.pop("logger", main_logger)
         super().__init__(*args, **kwargs)
+
+    @property
+    def headers(self):
+        """Return the response headers after it is stored."""
+        if hasattr(self, "_headers"):
+            return self._headers
+        return None
+
+    @headers.setter
+    def headers(self, *args, **kwargs):
+        raise AttributeError("'headers' property is read-only")
+
+    @property
+    async def access_token(self) -> str:
+        """Return the installation access token if it is present in the cache else
+        create a new token and store it for later use.
+
+        This is a read-only property.
+        """
+        # Currently, the token lasts for 1 hour.
+        # https://docs.github.com/en/developers/apps/differences-between-github-apps-and-oauth-apps#token-based-identification
+        # We will store the token with key as installation ID so that the app can be
+        # installed in multiple repositories.
+        installation_id = self._installation_id
+        if installation_id in cache:
+            return cache[installation_id]
+        data = await apps.get_installation_access_token(
+            self,
+            installation_id=str(installation_id),
+            app_id=os.environ["GITHUB_APP_ID"],
+            private_key=os.environ["GITHUB_PRIVATE_KEY"],
+        )
+        cache[installation_id] = data["token"]
+        return cache[installation_id]
+
+    @access_token.setter
+    def access_token(self, *args, **kwargs) -> None:
+        raise AttributeError("'access_token' property is read-only")
 
     async def _request(
         self, method: str, url: str, headers: Mapping[str, str], body: bytes = b""
@@ -33,7 +80,7 @@ class GitHubAPI(BaseGitHubAPI):  # pragma: no cover
         ) as response:
             self.log(response, body)
             # Let's store the headers for later use.
-            self.headers = response.headers
+            self._headers = response.headers
             return response.status, response.headers, await response.read()
 
     def log(self, response: ClientResponse, body: bytes) -> None:

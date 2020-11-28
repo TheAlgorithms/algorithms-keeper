@@ -1,6 +1,5 @@
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
-from gidgethub import apps, sansio
+from gidgethub import sansio
 
 from algorithms_keeper import issues
 from algorithms_keeper.constants import EMPTY_ISSUE_BODY_COMMENT, Label
@@ -11,19 +10,11 @@ from .utils import (
     html_issue_url,
     issue_url,
     labels_url,
-    mock_return,
     number,
     user,
 )
 
 EMPTY_ISSUE_BODY_COMMENT = EMPTY_ISSUE_BODY_COMMENT.format(user_login=user)
-
-
-@pytest.fixture(scope="module", autouse=True)
-def patch_module(monkeypatch=MonkeyPatch()):
-    monkeypatch.setattr(apps, "get_installation_access_token", mock_return)
-    yield monkeypatch
-    monkeypatch.undo()
 
 
 @pytest.mark.asyncio

@@ -1,10 +1,10 @@
 from typing import Any
 
 from gidgethub import routing
-from gidgethub.aiohttp import GitHubAPI
 from gidgethub.sansio import Event
 
 from . import utils
+from .api import GitHubAPI
 from .constants import Label
 from .log import logger
 
@@ -21,13 +21,12 @@ async def check_ci_status_and_label(
     want to know the final conclusion. So, the `if` statement makes sure we execute
     the block only when the last check run is completed.
     """
-    installation_id = event.data["installation"]["id"]
     repository = event.data["repository"]["full_name"]
 
     try:
         commit_sha = event.data["check_run"]["head_sha"]
         pr_for_commit = await utils.get_pr_for_commit(
-            gh, installation_id, sha=commit_sha, repository=repository
+            gh, sha=commit_sha, repository=repository
         )
     except KeyError:
         # This event is routed from the pull_requests module and is triggered when a
@@ -49,7 +48,7 @@ async def check_ci_status_and_label(
         return None
 
     check_runs = await utils.get_check_runs_for_commit(
-        gh, installation_id, sha=commit_sha, repository=repository
+        gh, sha=commit_sha, repository=repository
     )
 
     all_check_run_status = [
@@ -70,16 +69,10 @@ async def check_ci_status_and_label(
         ):  # Add the failure label only if it doesn't exist
             if Label.FAILED_TEST not in pr_labels:
                 await utils.add_label_to_pr_or_issue(
-                    gh,
-                    installation_id,
-                    label=Label.FAILED_TEST,
-                    pr_or_issue=pr_for_commit,
+                    gh, label=Label.FAILED_TEST, pr_or_issue=pr_for_commit
                 )
         # Check run is successful so if the label exist, remove it
         elif Label.FAILED_TEST in pr_labels:
             await utils.remove_label_from_pr_or_issue(
-                gh,
-                installation_id,
-                label=Label.FAILED_TEST,
-                pr_or_issue=pr_for_commit,
+                gh, label=Label.FAILED_TEST, pr_or_issue=pr_for_commit
             )

@@ -2,6 +2,8 @@ from aiohttp import web
 
 from algorithms_keeper import __main__ as main
 
+from .utils import number
+
 
 async def test_ping(aiohttp_client):
     app = web.Application()
@@ -30,6 +32,6 @@ async def test_success(aiohttp_client):
     headers = {"X-GitHub-Event": "project", "X-GitHub-Delivery": "1234"}
     # Sending a payload that shouldn't trigger any networking, but no errors
     # either.
-    data = {"action": "created"}
+    data = {"action": "created", "installation": {"id": number}}
     response = await client.post("/", headers=headers, json=data)
     assert response.status == 200

@@ -1,10 +1,10 @@
 from typing import Any
 
 from gidgethub import routing
-from gidgethub.aiohttp import GitHubAPI
 from gidgethub.sansio import Event
 
 from . import utils
+from .api import GitHubAPI
 from .constants import EMPTY_ISSUE_BODY_COMMENT, Label
 from .log import logger
 
@@ -20,14 +20,12 @@ async def close_invalid_issue(
     An issue is considered invalid if:
     - It doesn't contain any description.
     """
-    installation_id = event.data["installation"]["id"]
     issue = event.data["issue"]
 
     if not issue["body"]:
         logger.info("Empty issue body: %(url)s", {"url": issue["html_url"]})
         await utils.close_pr_or_issue(
             gh,
-            installation_id,
             comment=EMPTY_ISSUE_BODY_COMMENT.format(user_login=issue["user"]["login"]),
             pr_or_issue=issue,
             label=Label.INVALID,

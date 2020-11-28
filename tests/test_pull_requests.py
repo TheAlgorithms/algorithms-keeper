@@ -2,7 +2,7 @@ import urllib.parse
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from gidgethub import apps, sansio
+from gidgethub import sansio
 
 from algorithms_keeper import pull_requests, utils
 from algorithms_keeper.constants import (
@@ -25,7 +25,6 @@ from .utils import (
     html_pr_url,
     issue_url,
     labels_url,
-    mock_return,
     number,
     pr_url,
     pr_user_search_url,
@@ -56,7 +55,6 @@ def patch_module(monkeypatch=MonkeyPatch()):
         else:
             return ""
 
-    monkeypatch.setattr(apps, "get_installation_access_token", mock_return)
     monkeypatch.setattr(utils, "get_file_content", mock_get_file_content)
     yield monkeypatch
     monkeypatch.undo()

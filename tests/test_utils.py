@@ -2,7 +2,6 @@ import urllib.parse
 from pathlib import PurePath
 
 import pytest
-from gidgethub import apps
 
 from algorithms_keeper import utils
 from algorithms_keeper.constants import Label
@@ -16,7 +15,6 @@ from .utils import (
     files_url,
     issue_url,
     labels_url,
-    mock_return,
     number,
     pr_url,
     pr_user_search_url,
@@ -31,26 +29,6 @@ comment = "This is a comment"
 
 
 @pytest.mark.asyncio
-async def test_get_access_token(monkeypatch):
-    gh = MockGitHubAPI()
-    utils.cache.clear()  # Make sure the cache is cleared
-    monkeypatch.setattr(apps, "get_installation_access_token", mock_return)
-    token = await utils.get_access_token(gh, number)
-    assert token == number
-    monkeypatch.undo()
-
-
-@pytest.mark.asyncio
-async def test_get_cached_access_token(monkeypatch):
-    gh = MockGitHubAPI()
-    # This is to make sure it actually returns the cached token
-    monkeypatch.delattr(apps, "get_installation_access_token")
-    token = await utils.get_access_token(gh, number)
-    assert token == number
-    monkeypatch.undo()
-
-
-@pytest.mark.asyncio
 async def test_get_issue_for_commit():
     getitem = {
         search_url: {
@@ -59,7 +37,7 @@ async def test_get_issue_for_commit():
         }
     }
     gh = MockGitHubAPI(getitem=getitem)
-    result = await utils.get_pr_for_commit(gh, number, sha=sha, repository=repository)
+    result = await utils.get_pr_for_commit(gh, sha=sha, repository=repository)
     assert search_url in gh.getitem_url
     assert result["number"] == number
     assert result["state"] == "open"
@@ -74,7 +52,7 @@ async def test_get_issue_for_commit_not_found():
         }
     }
     gh = MockGitHubAPI(getitem=getitem)
-    result = await utils.get_pr_for_commit(gh, number, sha=sha, repository=repository)
+    result = await utils.get_pr_for_commit(gh, sha=sha, repository=repository)
     assert search_url in gh.getitem_url
     assert result is None
 
@@ -91,9 +69,7 @@ async def test_get_check_runs_for_commit():
         }
     }
     gh = MockGitHubAPI(getitem=getitem)
-    result = await utils.get_check_runs_for_commit(
-        gh, number, sha=sha, repository=repository
-    )
+    result = await utils.get_check_runs_for_commit(gh, sha=sha, repository=repository)
     assert check_run_url in gh.getitem_url
     assert result["total_count"] == 2
     assert [check_run["conclusion"] for check_run in result["check_runs"]] == [
@@ -112,7 +88,7 @@ async def test_add_label_to_pr_or_issue(pr_or_issue):
     post = {labels_url: None}
     gh = MockGitHubAPI(post=post)
     await utils.add_label_to_pr_or_issue(
-        gh, number, label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
+        gh, label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
     )
     assert labels_url in gh.post_url
     assert {"labels": [Label.FAILED_TEST]} in gh.post_data
@@ -124,10 +100,7 @@ async def test_add_multiple_labels():
     post = {labels_url: None}
     gh = MockGitHubAPI(post=post)
     await utils.add_label_to_pr_or_issue(
-        gh,
-        number,
-        label=[Label.ANNOTATIONS, Label.AWAITING_REVIEW],
-        pr_or_issue=pr_or_issue,
+        gh, label=[Label.ANNOTATIONS, Label.AWAITING_REVIEW], pr_or_issue=pr_or_issue
     )
     assert labels_url in gh.post_url
     assert {"labels": [Label.ANNOTATIONS, Label.AWAITING_REVIEW]} in gh.post_data
@@ -143,7 +116,7 @@ async def test_remove_label_from_pr_or_issue(pr_or_issue):
     delete = {labels_url + f"/{parse_label}": None}
     gh = MockGitHubAPI(delete=delete)
     await utils.remove_label_from_pr_or_issue(
-        gh, number, label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
+        gh, label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
     )
     assert f"{labels_url}/{parse_label}" in gh.delete_url
 
@@ -159,10 +132,7 @@ async def test_remove_multiple_labels():
     }
     gh = MockGitHubAPI(delete=delete)
     await utils.remove_label_from_pr_or_issue(
-        gh,
-        number,
-        label=[Label.ANNOTATIONS, Label.AWAITING_REVIEW],
-        pr_or_issue=pr_or_issue,
+        gh, label=[Label.ANNOTATIONS, Label.AWAITING_REVIEW], pr_or_issue=pr_or_issue
     )
     assert f"{labels_url}/{parse_label1}" in gh.delete_url
     assert f"{labels_url}/{parse_label2}" in gh.delete_url
@@ -178,7 +148,7 @@ async def test_get_user_open_pr_numbers():
     }
     gh = MockGitHubAPI(getiter=getiter)
     result = await utils.get_user_open_pr_numbers(
-        gh, number, repository=repository, user_login=user
+        gh, repository=repository, user_login=user
     )
     assert result == [1, 2, 3]
     assert gh.getiter_url[0] == pr_user_search_url
@@ -190,9 +160,7 @@ async def test_add_comment_to_pr_or_issue():
     pr_or_issue = {"number": number, "comments_url": comments_url}
     post = {comments_url: None}
     gh = MockGitHubAPI(post=post)
-    await utils.add_comment_to_pr_or_issue(
-        gh, number, comment=comment, pr_or_issue=pr_or_issue
-    )
+    await utils.add_comment_to_pr_or_issue(gh, comment=comment, pr_or_issue=pr_or_issue)
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
 
@@ -207,7 +175,7 @@ async def test_close_pr_no_reviewers():
     post = {comments_url: None}
     patch = {pr_url: None}
     gh = MockGitHubAPI(post=post, patch=patch)
-    await utils.close_pr_or_issue(gh, number, comment=comment, pr_or_issue=pull_request)
+    await utils.close_pr_or_issue(gh, comment=comment, pr_or_issue=pull_request)
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
     assert pr_url in gh.patch_url
@@ -227,7 +195,7 @@ async def test_close_pr_with_reviewers():
     patch = {pr_url: None}
     delete = {reviewers_url: None}
     gh = MockGitHubAPI(post=post, patch=patch, delete=delete)
-    await utils.close_pr_or_issue(gh, number, comment=comment, pr_or_issue=pull_request)
+    await utils.close_pr_or_issue(gh, comment=comment, pr_or_issue=pull_request)
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
     assert pr_url in gh.patch_url
@@ -243,7 +211,7 @@ async def test_close_issue():
     post = {comments_url: None}
     patch = {issue_url: None}
     gh = MockGitHubAPI(post=post, patch=patch)
-    await utils.close_pr_or_issue(gh, number, comment=comment, pr_or_issue=issue)
+    await utils.close_pr_or_issue(gh, comment=comment, pr_or_issue=issue)
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
     assert issue_url in gh.patch_url
@@ -264,11 +232,7 @@ async def test_close_pr_or_issue_with_label():
     patch = {pr_url: None}
     gh = MockGitHubAPI(post=post, patch=patch)
     await utils.close_pr_or_issue(
-        gh,
-        number,
-        comment=comment,
-        pr_or_issue=pull_request,
-        label="invalid",
+        gh, comment=comment, pr_or_issue=pull_request, label="invalid"
     )
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -289,7 +253,7 @@ async def test_get_pr_files():
     }
     pull_request = {"url": pr_url}
     gh = MockGitHubAPI(getiter=getiter)
-    result = await utils.get_pr_files(gh, number, pull_request=pull_request)
+    result = await utils.get_pr_files(gh, pull_request=pull_request)
     assert len(result) == 2
     assert result[0].name == "test1.py"
     assert result[1].name == "test2.py"
@@ -310,7 +274,7 @@ async def test_get_added_pr_files():
     }
     pull_request = {"url": pr_url}
     gh = MockGitHubAPI(getiter=getiter)
-    result = await utils.get_pr_files(gh, number, pull_request=pull_request)
+    result = await utils.get_pr_files(gh, pull_request=pull_request)
     assert len(result) == 1
     assert result[0].name == "test1.py"
     assert files_url in gh.getiter_url
@@ -332,9 +296,7 @@ async def test_get_file_content():
     }
     gh = MockGitHubAPI(getitem=getitem)
     result = await utils.get_file_content(
-        gh,
-        number,
-        file=utils.File("test.py", PurePath("test.py"), contents_url1),
+        gh, file=utils.File("test.py", PurePath("test.py"), contents_url1)
     )
     assert result == (
         b'def test1(a, b, c):\n\t"""\n\tA test function\n\t"""\n\treturn False'

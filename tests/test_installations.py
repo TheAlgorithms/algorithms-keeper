@@ -1,28 +1,12 @@
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
-from gidgethub import apps, sansio
+from gidgethub import sansio
 
 from algorithms_keeper import installations
 from algorithms_keeper.constants import GREETING_COMMENT
 
-from .utils import (
-    MockGitHubAPI,
-    issue_path,
-    issue_url,
-    mock_return,
-    number,
-    repository,
-    user,
-)
+from .utils import MockGitHubAPI, issue_path, issue_url, number, repository, user
 
 GREETING_COMMENT = GREETING_COMMENT.format(login=user)
-
-
-@pytest.fixture(scope="module", autouse=True)
-def patch_module(monkeypatch=MonkeyPatch()):
-    monkeypatch.setattr(apps, "get_installation_access_token", mock_return)
-    yield monkeypatch
-    monkeypatch.undo()
 
 
 @pytest.mark.asyncio

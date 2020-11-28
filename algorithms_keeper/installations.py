@@ -1,10 +1,9 @@
 from typing import Any
 
 from gidgethub import routing
-from gidgethub.aiohttp import GitHubAPI
 from gidgethub.sansio import Event
 
-from . import utils
+from .api import GitHubAPI
 from .constants import GREETING_COMMENT
 
 router = routing.Router()
@@ -21,9 +20,6 @@ async def repo_installation_added(
     1. When a new installation for this app is added
     2. When a new repository is added in an existing installation
     """
-    installation_id = event.data["installation"]["id"]
-    installation_access_token = await utils.get_access_token(gh, installation_id)
-    sender_name = event.data["sender"]["login"]
     try:
         repositories = event.data["repositories"]
     except KeyError:
@@ -34,13 +30,11 @@ async def repo_installation_added(
             f"/repos/{repository['full_name']}/issues",
             data={
                 "title": "Installation successful!",
-                "body": GREETING_COMMENT.format(login=sender_name),
+                "body": GREETING_COMMENT.format(login=event.data["sender"]["login"]),
             },
-            oauth_token=installation_access_token,
+            oauth_token=await gh.access_token,
         )
         issue_url = response["url"]
         await gh.patch(
-            issue_url,
-            data={"state": "closed"},
-            oauth_token=installation_access_token,
+            issue_url, data={"state": "closed"}, oauth_token=await gh.access_token
         )

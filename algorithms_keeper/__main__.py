@@ -36,11 +36,10 @@ async def main(request: web.Request) -> web.Response:
         )
         async with aiohttp.ClientSession() as session:
             gh = GitHubAPI(
+                event.data["installation"]["id"],
                 session,
                 "dhruvmanila/algorithms-keeper",
                 cache=cache,
-                installation_id=event.data["installation"]["id"],
-                logger=logger,
             )
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
@@ -70,7 +69,7 @@ if __name__ == "__main__":  # pragma: no cover
         port = int(port)  # type: ignore
     web.run_app(
         app,
-        port=port,
+        port=port,  # type: ignore
         access_log_class=CustomAccessLogger,
         access_log_format=CustomAccessLogger.LOG_FORMAT,
     )

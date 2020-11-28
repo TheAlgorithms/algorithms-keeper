@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, cast
 from gidgethub import aiohttp, sansio
 
 # Meta information
+token = "12345"
 number = 1
 repository = "user/testing"
 sha = "a06212024d8f1c339c55c5ea4568ech155368c21"
@@ -102,7 +103,7 @@ CHECKBOX_NOT_TICKED = (
 
 
 async def mock_return(*args, **kwargs) -> Dict[str, Any]:
-    return {"token": number}
+    return {"token": token}
 
 
 class _MockGitHubAPI:
@@ -130,6 +131,10 @@ class _MockGitHubAPI:
         self.patch_data: List[str] = []
         self.delete_url: List[str] = []
         self.delete_data: List[str] = []
+
+    @property
+    async def access_token(self) -> str:
+        return token
 
     async def getitem(self, url, *, accept=sansio.accept_format(), oauth_token=None):
         self.getitem_url.append(url)
