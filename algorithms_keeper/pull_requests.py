@@ -137,6 +137,7 @@ async def close_invalid_or_additional_pr(
         await check_pr_files(event, gh, *args, **kwargs)
 
 
+@router.register("pull_request", action="reopened")
 @router.register("pull_request", action="ready_for_review")
 @router.register("pull_request", action="synchronize")
 async def check_pr_files(
@@ -154,8 +155,8 @@ async def check_pr_files(
 
     When a pull request is opened, this function will be triggered only if there the
     pull request is considered valid. This function will also be triggered when a
-    pull request is made ready for review or a new commit has been pushed to the
-    pull request.
+    pull request is made ready for review, a new commit has been pushed to the
+    pull request and when the pull request is reopened.
     """
     installation_id = event.data["installation"]["id"]
     pull_request = event.data["pull_request"]
@@ -214,26 +215,27 @@ async def check_pr_files(
             gh, installation_id, label=labels_to_remove, pr_or_issue=pull_request
         )
 
-    # Comment the report data only when the pull request is opened or made
-    # 'ready_for_review' after being in draft mode and if there are any errors
-    if event.data["action"] in {"opened", "ready_for_review"}:
-        report_content = parser.create_report_content()
-        if report_content:
-            logger.info(
-                "Missing requirements in parsed files [%(file)s]: %(url)s",
-                {
-                    "file": ", ".join([file.name for file in files_to_check]),
-                    "url": pull_request["html_url"],
-                },
-            )
-            await utils.add_comment_to_pr_or_issue(
-                gh,
-                installation_id,
-                comment=PR_REPORT_COMMENT.format(
-                    content=report_content, user_login=pr_author
-                ),
-                pr_or_issue=pull_request,
-            )
+    # No need to comment on every commit pushed to the pull request.
+    if event.data["action"] == "synchronize":
+        return None
+
+    report_content = parser.create_report_content()
+    if report_content:
+        logger.info(
+            "Missing requirements in parsed files [%(file)s]: %(url)s",
+            {
+                "file": ", ".join([file.name for file in files_to_check]),
+                "url": pull_request["html_url"],
+            },
+        )
+        await utils.add_comment_to_pr_or_issue(
+            gh,
+            installation_id,
+            comment=PR_REPORT_COMMENT.format(
+                content=report_content, user_login=pr_author
+            ),
+            pr_or_issue=pull_request,
+        )
 
 
 @router.register("pull_request", action="ready_for_review")
