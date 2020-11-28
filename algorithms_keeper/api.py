@@ -94,7 +94,7 @@ class GitHubAPI(BaseGitHubAPI):
         if response.url.name != TOKEN_ENDPOINT:
             inject_status_color(response.status)
             # Comments are too long to be logged.
-            if response.url.name == "comments":
+            if response.url.name == "comments":  # pragma: no cover
                 data = "COMMENT"
             else:
                 data = body.decode(UTF_8_CHARSET)
