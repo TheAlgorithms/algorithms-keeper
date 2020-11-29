@@ -37,6 +37,10 @@ class File(NamedTuple):
     # the repository on the server.
     contents_url: str
 
+    # The status of the file, can be either "added" or "modified". This will be used to
+    # determine whether a PR is of type enhancement.
+    status: str
+
 
 async def get_pr_for_commit(
     gh: GitHubAPI, *, sha: str, repository: str
@@ -216,7 +220,12 @@ async def get_pr_files(gh: GitHubAPI, *, pull_request: Dict[str, Any]) -> List[F
         # No need to do any checks for files which are removed.
         if data["status"] != "removed":
             files.append(
-                File(data["filename"], PurePath(data["filename"]), data["contents_url"])
+                File(
+                    data["filename"],
+                    PurePath(data["filename"]),
+                    data["contents_url"],
+                    data["status"],
+                )
             )
     return files
 

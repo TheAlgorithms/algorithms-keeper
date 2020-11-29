@@ -296,7 +296,7 @@ async def test_get_file_content():
     }
     gh = MockGitHubAPI(getitem=getitem)
     result = await utils.get_file_content(
-        gh, file=utils.File("test.py", PurePath("test.py"), contents_url1)
+        gh, file=utils.File("test.py", PurePath("test.py"), contents_url1, "added")
     )
     assert result == (
         b'def test1(a, b, c):\n\t"""\n\tA test function\n\t"""\n\treturn False'
