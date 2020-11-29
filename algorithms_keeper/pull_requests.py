@@ -361,3 +361,13 @@ async def add_review_label_on_changes(
     await update_stage_label(
         gh, pull_request=pull_request, next_label=Label.AWAITING_REVIEW
     )
+
+
+@router.register("pull_request", action="closed")
+async def remove_awaiting_labels(
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
+) -> None:
+    """Remove all awaiting labels when the pull request is merged, if there are any."""
+    pull_request = event.data["pull_request"]
+    if pull_request["merged"]:
+        await update_stage_label(gh, pull_request=pull_request)

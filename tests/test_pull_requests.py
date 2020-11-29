@@ -988,3 +988,24 @@ async def test_review_label_after_changes_made():
     assert gh.delete_data == []
     assert labels_url in gh.post_url
     assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+
+
+@pytest.mark.asyncio
+async def test_pr_closed():
+    remove_label = urllib.parse.quote(Label.AWAITING_REVIEW)
+    data = {
+        "action": "closed",
+        "pull_request": {
+            "merged": True,
+            "issue_url": issue_url,
+            "labels": [{"name": Label.AWAITING_REVIEW}],
+        },
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    delete = {f"{labels_url}/{remove_label}": None}
+    gh = MockGitHubAPI(delete=delete)
+    await pull_requests.router.dispatch(event, gh)
+    assert f"{labels_url}/{remove_label}" in gh.delete_url
+    assert gh.delete_data == []
+    assert gh.post_url == []
+    assert gh.post_data == []
