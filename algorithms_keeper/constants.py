@@ -26,6 +26,20 @@ PR_NOT_READY_LABELS = (
     Label.INVALID,
 )
 
+ACCEPTED_EXTENSIONS = (
+    # Configuration files
+    ".ini",
+    ".toml",
+    ".yaml",
+    ".yml",
+    # Data files
+    ".json",
+    ".md",
+    ".txt",
+    # Good old Python file
+    ".py",
+)
+
 # All the comments made by the bot
 
 GREETING_COMMENT = """\
