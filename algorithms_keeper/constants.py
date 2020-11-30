@@ -14,6 +14,8 @@ class Label:
     DESCRIPTIVE_NAMES = "Require: Descriptive names"
     CHANGES_REQUESTED = "Status: awaiting changes"
     INVALID = "invalid"
+    DOCUMENTATION = "Type: documentation"
+    ENHANCEMENT = "Type: enhancement"
 
 
 # If these labels are on a pull request, then the pull request is not ready to be
@@ -26,19 +28,6 @@ PR_NOT_READY_LABELS = (
     Label.INVALID,
 )
 
-ACCEPTED_EXTENSIONS = (
-    # Configuration files
-    ".ini",
-    ".toml",
-    ".yaml",
-    ".yml",
-    # Data files
-    ".json",
-    ".md",
-    ".txt",
-    # Good old Python file
-    ".py",
-)
 
 # All the comments made by the bot
 
