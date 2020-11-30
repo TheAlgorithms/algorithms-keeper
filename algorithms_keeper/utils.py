@@ -24,8 +24,9 @@ from .log import logger
 
 
 class File(NamedTuple):
-    # `name` is the entire path in :class:`str`. This is different from
-    # :attr:`pathlib.PurePath.name` where the latter gives the `basename` of the path.
+    # `name` is the entire path from repository root to the file in :class:`str`.
+    # This is different from :attr:`pathlib.PurePath.name` where the latter gives the
+    # `basename` of the path.
     name: str
 
     # A `pathlib.PurePath` object which represents the `name` in PathLike format which
