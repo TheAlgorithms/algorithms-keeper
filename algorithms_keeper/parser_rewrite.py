@@ -1,14 +1,12 @@
 import ast
-import logging
 from dataclasses import dataclass, field
+from logging import Logger
 from pathlib import PurePath
 from typing import Any, Dict, List, Set, Tuple, Union
 
 from algorithms_keeper.constants import Label
 from algorithms_keeper.log import logger as main_logger
 from algorithms_keeper.utils import File
-
-SEP = "::"
 
 
 def isdotfile(file: PurePath) -> bool:
@@ -17,7 +15,7 @@ def isdotfile(file: PurePath) -> bool:
 
 
 @dataclass(frozen=True)
-class Comment:
+class ReviewComment:
     # Text of the review comment. This is different from the body of the review itself.
     body: str
     # The relative path to the file that necessitates a review comment.
@@ -30,15 +28,26 @@ class Comment:
     # shown for context.
     side: str = "RIGHT"
 
+    @property
+    def as_dict(self) -> Dict[str, Any]:
+        """Helper function to represent a ``Comment`` instance in the ``dictionary``
+        format. Useful for collecting all the comments into a list."""
+        return {
+            "body": self.body,
+            "path": self.path,
+            "line": self.line,
+            "side": self.side,
+        }
+
 
 @dataclass(frozen=True)
 class PullRequestRecord:
 
-    doctest: List[Comment] = field(default_factory=list)
-    annotation: List[Comment] = field(default_factory=list)
-    return_annotation: List[Comment] = field(default_factory=list)
-    descriptive_name: List[Comment] = field(default_factory=list)
-    error: List[Comment] = field(default_factory=list)
+    doctest: List[ReviewComment] = field(default_factory=list)
+    annotation: List[ReviewComment] = field(default_factory=list)
+    return_annotation: List[ReviewComment] = field(default_factory=list)
+    descriptive_name: List[ReviewComment] = field(default_factory=list)
+    error: List[ReviewComment] = field(default_factory=list)
 
     def add_doctest(
         self,
@@ -49,7 +58,7 @@ class PullRequestRecord:
         side: str = "RIGHT",
     ) -> None:
         body = f"Please provide doctest for the {nodetype}: `{nodename}`"
-        self.doctest.append(Comment(body, filepath, lineno, side))
+        self.doctest.append(ReviewComment(body, filepath, lineno, side))
 
     def add_annotation(
         self,
@@ -60,7 +69,7 @@ class PullRequestRecord:
         side: str = "RIGHT",
     ) -> None:
         body = f"Please provide type hint for the {nodetype}: `{nodename}`"
-        self.annotation.append(Comment(body, filepath, lineno, side))
+        self.annotation.append(ReviewComment(body, filepath, lineno, side))
 
     def add_return_annotation(
         self,
@@ -75,7 +84,7 @@ class PullRequestRecord:
             f"**NOTE: If the {nodetype} returns `None`, please provide the type hint "
             f"as: `def function() -> None`"
         )
-        self.return_annotation.append(Comment(body, filepath, lineno, side))
+        self.return_annotation.append(ReviewComment(body, filepath, lineno, side))
 
     def add_descriptive_name(
         self,
@@ -86,27 +95,20 @@ class PullRequestRecord:
         side: str = "RIGHT",
     ) -> None:
         body = f"Please provide descriptive name for the {nodetype}: `{nodename}`"
-        self.descriptive_name.append(Comment(body, filepath, lineno, side))
+        self.descriptive_name.append(ReviewComment(body, filepath, lineno, side))
 
     def add_error(self, message: str, filepath: str, lineno: int) -> None:
         body = (
             f"An error occured while parsing the file: `{filepath}`\n"
             f"```python\n{message}\n```"
         )
-        self.error.append(Comment(body, filepath, lineno))
+        self.error.append(ReviewComment(body, filepath, lineno))
 
     def collect_comments(self) -> List[Dict[str, Any]]:
         c = []
         for comments in self.__dict__.values():
             for comment in comments:
-                c.append(
-                    {
-                        "body": comment.body,
-                        "path": comment.path,
-                        "line": comment.line,
-                        "side": comment.side,
-                    }
-                )
+                c.append(comment.as_dict)
         return c
 
 
@@ -134,7 +136,7 @@ class PullRequestFilesParser:
         pr_files: List[File],
         *,
         pull_request: Dict[str, Any],
-        logger: logging.Logger = main_logger,
+        logger: Logger = main_logger,
     ) -> None:
         self.pr_files = pr_files
         self.pull_request = pull_request
@@ -151,7 +153,7 @@ class PullRequestFilesParser:
         self._skip_doctest = self._contains_testfile()
 
         # Attribute to store all the report data.
-        self._pr_report = PullRequestRecord()
+        self._pr_record = PullRequestRecord()
 
         # Initiate the label attributes. We are representing labels data in Set because
         # the parser will fill the data for each file and thus, there could be same
@@ -206,10 +208,11 @@ class PullRequestFilesParser:
         valid otherwise a comma separated string containing the filepaths.
 
         A file is considered invalid if:
+
         - It is extensionless and is not a dotfile. NOTE: Files present only in the
-        root directory will be checked for `isdotfile`.
+          root directory will be checked for `isdotfile`.
         - File extension is not accepted in the repository.
-        See: `constants.ACCEPTED_EXTENSION`
+          See: `constants.ACCEPTED_EXTENSION`
 
         NOTE: Extensionless files will be considered valid only if it is present in
         the ".github" directory. Eg: ".github/CODEOWNERS"
@@ -284,7 +287,7 @@ class PullRequestFilesParser:
             import traceback
 
             msg = traceback.format_exc(limit=1)
-            self._pr_report.add_error(msg, file.name, exc.lineno)
+            self._pr_record.add_error(msg, file.name, exc.lineno)
             self.logger.info(
                 "Invalid Python code for the file: [%(file)s] %(url)s",
                 {"file": file.name, "url": self.pull_request["url"]},
@@ -299,11 +302,11 @@ class PullRequestFilesParser:
             # `self._contains_doctest` as that will override the value for all files
             # present in the current pull request.
             visitor = PullRequestFileNodeVisitor(
-                file, self._pr_report, self._contains_testnode(module)
+                file, self._pr_record, self._contains_testnode(module)
             )
         else:
             visitor = PullRequestFileNodeVisitor(
-                file, self._pr_report, self._skip_doctest
+                file, self._pr_record, self._skip_doctest
             )
 
         for node in ast.walk(module):
@@ -314,27 +317,27 @@ class PullRequestFilesParser:
         self._fill_labels()
 
     def collect_comments(self) -> List[Dict[str, Any]]:
-        return self._pr_report.collect_comments()
+        return self._pr_record.collect_comments()
 
     def _fill_labels(self) -> None:
         """Fill the property `add_labels` and `remove_labels` with the appropriate labels
         as per the missing requirements and the current PR labels."""
         # Add or remove REQUIRE_TEST label
-        if self._pr_report.doctest:
+        if self._pr_record.doctest:
             if Label.REQUIRE_TEST not in self.pr_labels:
                 self._add_labels.add(Label.REQUIRE_TEST)
         elif Label.REQUIRE_TEST in self.pr_labels:
             self._remove_labels.add(Label.REQUIRE_TEST)
 
         # Add or remove DESCRIPTIVE_NAMES label
-        if self._pr_report.descriptive_name:
+        if self._pr_record.descriptive_name:
             if Label.DESCRIPTIVE_NAMES not in self.pr_labels:
                 self._add_labels.add(Label.DESCRIPTIVE_NAMES)
         elif Label.DESCRIPTIVE_NAMES in self.pr_labels:
             self._remove_labels.add(Label.DESCRIPTIVE_NAMES)
 
         # Add or remove ANNOTATIONS label
-        if self._pr_report.annotation or self._pr_report.return_annotation:
+        if self._pr_record.annotation or self._pr_record.return_annotation:
             if Label.ANNOTATIONS not in self.pr_labels:
                 self._add_labels.add(Label.ANNOTATIONS)
         elif Label.ANNOTATIONS in self.pr_labels:
@@ -360,9 +363,9 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
     """
 
     def __init__(
-        self, file: File, report: PullRequestRecord, skip_doctest: bool
+        self, file: File, record: PullRequestRecord, skip_doctest: bool
     ) -> None:
-        self.report = report
+        self.record = record
         self.file = file
         self.skip_doctest = skip_doctest
 
@@ -399,7 +402,7 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         """
         nodedata = self._nodedata(function)
         if len(function.name) == 1:
-            self.report.add_descriptive_name(*nodedata)
+            self.record.add_descriptive_name(*nodedata)
         if not self.skip_doctest and function.name != "__init__":
             docstring = ast.get_docstring(function)
             if docstring is not None:
@@ -407,11 +410,11 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
                     if line.strip().startswith(">>> "):
                         break
                 else:
-                    self.report.add_doctest(*nodedata)
+                    self.record.add_doctest(*nodedata)
             else:
-                self.report.add_doctest(*nodedata)
+                self.record.add_doctest(*nodedata)
         if function.returns is None:
-            self.report.add_return_annotation(*nodedata)
+            self.record.add_return_annotation(*nodedata)
 
     def visit_arg(self, arg: ast.arg) -> None:
         """Visit the argument node. The argument can be positional-only, keyword-only or
@@ -424,9 +427,9 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         """
         nodedata = self._nodedata(arg)
         if len(arg.arg) == 1:
-            self.report.add_descriptive_name(*nodedata)
+            self.record.add_descriptive_name(*nodedata)
         if arg.arg != "self" and arg.annotation is None:
-            self.report.add_annotation(*nodedata)
+            self.record.add_annotation(*nodedata)
 
     def visit_ClassDef(self, klass: ast.ClassDef) -> None:
         """Visit the class node.
@@ -436,7 +439,7 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         - Class name should be of length > 1.
         """
         if len(klass.name) == 1:
-            self.report.add_descriptive_name(*self._nodedata(klass))
+            self.record.add_descriptive_name(*self._nodedata(klass))
 
     def _nodedata(self, node: ast.AST) -> Tuple[str, int, str, str]:
         """Helper function to fill data required in the ``Comment`` object as per the

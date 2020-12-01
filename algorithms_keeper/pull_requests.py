@@ -37,9 +37,9 @@ from typing import Any, Dict, Optional
 from gidgethub import routing
 from gidgethub.sansio import Event
 
-from . import utils
-from .api import GitHubAPI
-from .constants import (
+from algorithms_keeper import utils
+from algorithms_keeper.api import GitHubAPI
+from algorithms_keeper.constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
     EMPTY_BODY_COMMENT,
     MAX_PR_REACHED_COMMENT,
@@ -47,8 +47,8 @@ from .constants import (
     PR_NOT_READY_LABELS,
     Label,
 )
-from .log import logger
-from .parser_rewrite import PullRequestFilesParser
+from algorithms_keeper.log import logger
+from algorithms_keeper.parser_rewrite import PullRequestFilesParser
 
 MAX_PR_PER_USER = 1
 STAGE_PREFIX = "awaiting"
@@ -223,9 +223,9 @@ async def check_pr_files(
 #
 #     # We will collect all the files first as there is this one problem case:
 #     # A pull request with two files: `main.py` and `test_main.py`
-#     # If in this loop, the main file came first, we will check for `doctest` even though
-#     # there is a separate test file. We cannot hope that the test file comes first in
-#     # the loop.
+#     # If in this loop, the main file came first, we will check for `doctest` even
+#     # though there is a separate test file. We cannot hope that the test file comes
+#     # first in the loop.
 #     for file in pr_files:
 #         filepath = file.path
 #         if not filepath.suffix and ".github" not in filepath.parts:

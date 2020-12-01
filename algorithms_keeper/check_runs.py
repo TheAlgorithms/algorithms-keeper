@@ -3,10 +3,10 @@ from typing import Any
 from gidgethub import routing
 from gidgethub.sansio import Event
 
-from . import utils
-from .api import GitHubAPI
-from .constants import Label
-from .log import logger
+from algorithms_keeper import utils
+from algorithms_keeper.api import GitHubAPI
+from algorithms_keeper.constants import Label
+from algorithms_keeper.log import logger
 
 router = routing.Router()
 

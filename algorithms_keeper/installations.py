@@ -3,8 +3,8 @@ from typing import Any
 from gidgethub import routing
 from gidgethub.sansio import Event
 
-from .api import GitHubAPI
-from .constants import GREETING_COMMENT
+from algorithms_keeper.api import GitHubAPI
+from algorithms_keeper.constants import GREETING_COMMENT
 
 router = routing.Router()
 

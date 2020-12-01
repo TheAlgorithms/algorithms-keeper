@@ -182,7 +182,6 @@ class CustomFormatter(logging.Formatter):  # pragma: no cover
 handler = logging.StreamHandler()
 handler.setFormatter(CustomFormatter())
 # This is done so that we can change the level directly from Heroku.
-loglevel = os.environ.get("LOG_LEVEL", "INFO")
-logging.basicConfig(level=loglevel, handlers=[handler])
+logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"), handlers=[handler])
 # Main logger for the bot.
 logger = logging.getLogger(__package__)

@@ -14,23 +14,25 @@ that uses all the given functions.
 """
 import base64
 import urllib.parse
+from dataclasses import dataclass
 from pathlib import PurePath
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from gidgethub import BadRequest
 
-from .api import GitHubAPI
-from .constants import PR_REVIEW_BODY
-from .log import logger
+from algorithms_keeper.api import GitHubAPI
+from algorithms_keeper.constants import PR_REVIEW_BODY
+from algorithms_keeper.log import logger
 
 
-class File(NamedTuple):
-    # `name` is the entire path from repository root to the file in :class:`str`.
-    # This is different from :attr:`pathlib.PurePath.name` where the latter gives the
+@dataclass(frozen=True)
+class File:
+    # `name` is the entire path from repository root to the file in ``str``.
+    # This is different from ``pathlib.PurePath.name`` where the latter gives the
     # `basename` of the path.
     name: str
 
-    # A `pathlib.PurePath` object which represents the `name` in PathLike format which
+    # A ``pathlib.PurePath`` object which represents the `name` in PathLike format which
     # can be used to check extension and filename.
     path: PurePath
 
@@ -240,7 +242,12 @@ async def get_file_content(gh: GitHubAPI, *, file: File) -> bytes:
 
 async def create_pr_review(
     gh: GitHubAPI, *, pull_request: Dict[str, Any], comments: List[Dict[str, Any]]
-):
+) -> None:
+    """Submit a comment review for the given pull request.
+
+    `comments` is the list `parser.ReviewComment.as_dict` which represents the
+    pull request review comment.
+    """
     await gh.post(
         pull_request["url"] + "/reviews",
         data={

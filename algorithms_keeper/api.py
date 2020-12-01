@@ -1,28 +1,26 @@
-import logging
 import os
+from logging import Logger
 from typing import Mapping, Tuple
 
-import cachetools
 from aiohttp import ClientResponse
+from cachetools import TTLCache
 from gidgethub import apps
 from gidgethub.abc import UTF_8_CHARSET
 from gidgethub.aiohttp import GitHubAPI as BaseGitHubAPI
 
-from .log import STATUS_OK, inject_status_color
-from .log import logger as main_logger
+from algorithms_keeper.log import STATUS_OK, inject_status_color
+from algorithms_keeper.log import logger as main_logger
 
 TOKEN_ENDPOINT = "access_tokens"
 
 # Timed cache for installation access token (1 minute less than an hour)
-cache = cachetools.TTLCache(
-    maxsize=10, ttl=1 * 59 * 60
-)  # type: cachetools.TTLCache[int, str]
+cache: TTLCache[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)
 
 
 class GitHubAPI(BaseGitHubAPI):
 
     _installation_id: int
-    logger: logging.Logger
+    logger: Logger
 
     LOG_FORMAT = 'api "%(method)s %(path)s %(data)s %(version)s" => %(status)s'
 
