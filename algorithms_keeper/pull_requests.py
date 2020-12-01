@@ -45,11 +45,10 @@ from .constants import (
     MAX_PR_REACHED_COMMENT,
     NO_EXTENSION_COMMENT,
     PR_NOT_READY_LABELS,
-    PR_REPORT_COMMENT,
     Label,
 )
 from .log import logger
-from .parser import PullRequestFilesParser
+from .parser_rewrite import PullRequestFilesParser
 
 MAX_PR_PER_USER = 1
 STAGE_PREFIX = "awaiting"
@@ -156,76 +155,136 @@ async def check_pr_files(
     if pull_request["draft"]:
         return None
 
-    pr_labels = [label["name"] for label in pull_request["labels"]]
-    pr_author = pull_request["user"]["login"]
     pr_files = await utils.get_pr_files(gh, pull_request=pull_request)
-    parser = PullRequestFilesParser()
-    files_to_check = []
+    parser = PullRequestFilesParser(pr_files, pull_request=pull_request)
 
-    # We will collect all the files first as there is this one problem case:
-    # A pull request with two files: `main.py` and `test_main.py`
-    # If in this loop, the main file came first, we will check for `doctest` even though
-    # there is a separate test file. We cannot hope that the test file comes first in
-    # the loop.
-    for file in pr_files:
-        filepath = file.path
-        if not filepath.suffix and ".github" not in filepath.parts:
-            logger.info(
-                "No extension file [%(file)s]: %(url)s",
-                {"file": file.name, "url": pull_request["html_url"]},
-            )
-            await utils.close_pr_or_issue(
-                gh,
-                comment=NO_EXTENSION_COMMENT.format(user_login=pr_author),
-                pr_or_issue=pull_request,
-                label=Label.INVALID,
-            )
-            return None
-        elif filepath.suffix != ".py" or filepath.name.startswith("__"):
-            continue
-        # If there is a test file then we do not want to check for `doctest`.
-        # NOTE: This should come after the check for `.py` files.
-        elif filepath.name.startswith("test_") or filepath.name.endswith("_test.py"):
-            parser.skip_doctest = True
-            continue
-        files_to_check.append(file)
-
-    for file in files_to_check:
-        code = await utils.get_file_content(gh, file=file)
-        parser.parse_code(file.name, code)
-
-    labels_to_add, labels_to_remove = parser.labels_to_add_and_remove(pr_labels)
-
-    if labels_to_add:
-        await utils.add_label_to_pr_or_issue(
-            gh, label=labels_to_add, pr_or_issue=pull_request
-        )
-
-    if labels_to_remove:
-        await utils.remove_label_from_pr_or_issue(
-            gh, label=labels_to_remove, pr_or_issue=pull_request
-        )
-
-    # No need to comment on every commit pushed to the pull request.
-    if event.data["action"] == "synchronize":
-        return None
-
-    report_content = parser.create_report_content()
-    if report_content:
-        logger.info(
-            "Missing requirements in parsed files [%(file)s]: %(url)s",
-            {
-                "file": ", ".join([file.name for file in files_to_check]),
-                "url": pull_request["html_url"],
-            },
-        )
-        await utils.add_comment_to_pr_or_issue(
+    if invalid_files := parser.validate_extension():
+        await utils.close_pr_or_issue(
             gh,
-            comment=PR_REPORT_COMMENT.format(
-                content=report_content, user_login=pr_author
+            comment=NO_EXTENSION_COMMENT.format(
+                user_login=parser.pr_author, files=invalid_files
             ),
             pr_or_issue=pull_request,
+            label=Label.INVALID,
         )
+        return None
+    if label := parser.type_label():
+        await utils.add_label_to_pr_or_issue(gh, label=label, pr_or_issue=pull_request)
+
+    for file in parser.files_to_check:
+        code = await utils.get_file_content(gh, file=file)
+        parser.parse(file, code)
+
+    if parser.add_labels:
+        await utils.add_label_to_pr_or_issue(
+            gh, label=parser.add_labels, pr_or_issue=pull_request
+        )
+    if parser.remove_labels:
+        await utils.remove_label_from_pr_or_issue(
+            gh, label=parser.remove_labels, pr_or_issue=pull_request
+        )
+
+    await utils.create_pr_review(
+        gh, pull_request=pull_request, comments=parser.collect_comments()
+    )
+
+
+# @router.register("pull_request", action="reopened")
+# @router.register("pull_request", action="ready_for_review")
+# @router.register("pull_request", action="synchronize")
+# async def check_pr_files(
+#     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
+# ) -> None:
+#     """Check all the pull request files for extension, type hints, tests and
+#     class, function and parameter names.
+#
+#     This function will accomplish the following tasks:
+#     - Check for file extension and close the pull request if a file do not contain any
+#       extension. Ignores all non-python files and any file in `.github` directory.
+#     - Check for type hints, tests and descriptive names in the submitted files and
+#       label it appropriately. Sends the report if there are any errors only when the
+#       pull request is opened.
+#
+#     When a pull request is opened, this function will be triggered only if there the
+#     pull request is considered valid. This function will also be triggered when a
+#     pull request is made ready for review, a new commit has been pushed to the
+#     pull request and when the pull request is reopened.
+#     """
+#     pull_request = event.data["pull_request"]
+#
+#     if pull_request["draft"]:
+#         return None
+#
+#     pr_labels = [label["name"] for label in pull_request["labels"]]
+#     pr_author = pull_request["user"]["login"]
+#     pr_files = await utils.get_pr_files(gh, pull_request=pull_request)
+#     parser = PullRequestFilesParser()
+#     files_to_check = []
+#
+#     # We will collect all the files first as there is this one problem case:
+#     # A pull request with two files: `main.py` and `test_main.py`
+#     # If in this loop, the main file came first, we will check for `doctest` even though
+#     # there is a separate test file. We cannot hope that the test file comes first in
+#     # the loop.
+#     for file in pr_files:
+#         filepath = file.path
+#         if not filepath.suffix and ".github" not in filepath.parts:
+#             logger.info(
+#                 "No extension file [%(file)s]: %(url)s",
+#                 {"file": file.name, "url": pull_request["html_url"]},
+#             )
+#             await utils.close_pr_or_issue(
+#                 gh,
+#                 comment=NO_EXTENSION_COMMENT.format(user_login=pr_author),
+#                 pr_or_issue=pull_request,
+#                 label=Label.INVALID,
+#             )
+#             return None
+#         elif filepath.suffix != ".py" or filepath.name.startswith("__"):
+#             continue
+#         # If there is a test file then we do not want to check for `doctest`.
+#         # NOTE: This should come after the check for `.py` files.
+#         elif filepath.name.startswith("test_") or filepath.name.endswith("_test.py"):
+#             parser.skip_doctest = True
+#             continue
+#         files_to_check.append(file)
+#
+#     for file in files_to_check:
+#         code = await utils.get_file_content(gh, file=file)
+#         parser.parse_code(file.name, code)
+#
+#     labels_to_add, labels_to_remove = parser.labels_to_add_and_remove(pr_labels)
+#
+#     if labels_to_add:
+#         await utils.add_label_to_pr_or_issue(
+#             gh, label=labels_to_add, pr_or_issue=pull_request
+#         )
+#
+#     if labels_to_remove:
+#         await utils.remove_label_from_pr_or_issue(
+#             gh, label=labels_to_remove, pr_or_issue=pull_request
+#         )
+#
+#     # No need to comment on every commit pushed to the pull request.
+#     if event.data["action"] == "synchronize":
+#         return None
+#
+#     report_content = parser.create_report_content()
+#     if report_content:
+#         logger.info(
+#             "Missing requirements in parsed files [%(file)s]: %(url)s",
+#             {
+#                 "file": ", ".join([file.name for file in files_to_check]),
+#                 "url": pull_request["html_url"],
+#             },
+#         )
+#         await utils.add_comment_to_pr_or_issue(
+#             gh,
+#             comment=PR_REPORT_COMMENT.format(
+#                 content=report_content, user_login=pr_author
+#             ),
+#             pr_or_issue=pull_request,
+#         )
 
 
 @router.register("pull_request", action="ready_for_review")
@@ -371,3 +430,38 @@ async def remove_awaiting_labels(
     pull_request = event.data["pull_request"]
     if pull_request["merged"]:
         await update_stage_label(gh, pull_request=pull_request)
+
+
+@router.register("pull_request", action="opened")
+@router.register("pull_request", action="reopened")
+@router.register("pull_request", action="synchronize")
+async def check_merge_status(
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
+) -> None:
+    """Check whether the given pull request has any merge conflicts. If it has, then
+    comment on the pull request on how to resolve the conflict.
+
+    Notes: (remove this in production)
+
+    pull_request["mergeable"] -> True, False, None
+    pull_request["mergeable_state"] -> dirty: The merge commit cannot be cleanly
+    created.
+
+    https://docs.github.com/en/free-pro-team@latest/rest/reference/pulls#get-a-pull-request
+
+    When you get, create, or edit a pull request, GitHub creates a merge commit to
+    test whether the pull request can be automatically merged into the base branch.
+    This test commit is not added to the base branch or the head branch. You can
+    review the status of the test commit using the mergeable key. For more
+    information, see "Checking mergeability of pull requests".
+
+    The value of the mergeable attribute can be true, false, or null. If the value
+    is null, then GitHub has started a background job to compute the mergeability.
+    After giving the job time to complete, resubmit the request. When the job finishes,
+    you will see a non-null value for the mergeable attribute in the response. If
+    mergeable is true, then merge_commit_sha will be the SHA of the test merge commit.
+
+    Other option:
+    Run on every push to master, check every pull request for merge status.
+    """
+    pass
