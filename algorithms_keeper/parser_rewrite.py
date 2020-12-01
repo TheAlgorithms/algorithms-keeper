@@ -2,7 +2,7 @@ import ast
 import logging
 from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Set, Tuple, Union
 
 from algorithms_keeper.constants import Label
 from algorithms_keeper.log import logger as main_logger
@@ -17,40 +17,97 @@ def isdotfile(file: PurePath) -> bool:
 
 
 @dataclass(frozen=True)
-class MissingRequirementData:
-    # Path from repository root to file as given by :attr:`utils.File.name`
-    filename: str
-    # Line number where the requirement is missing
-    lineno: int
-    # Class/function/argument name which is missing the requirement
-    name: str
-    # Type of name as in class/function/argument
-    typ: str
+class Comment:
+    # Text of the review comment. This is different from the body of the review itself.
+    body: str
+    # The relative path to the file that necessitates a review comment.
+    path: str
+    # The line of the blob in the pull request diff that the comment applies to.
+    line: int
+    # In a split diff view, the side of the diff that the pull request's changes appear
+    # on. Can be LEFT or RIGHT. Use LEFT for deletions that appear in red. Use RIGHT for
+    # additions that appear in green or unchanged lines that appear in white and are
+    # shown for context.
+    side: str = "RIGHT"
 
 
 @dataclass(frozen=True)
-class PullRequestReporter:
+class PullRequestRecord:
 
-    doctest: List[str] = field(default_factory=list)
-    annotation: List[str] = field(default_factory=list)
-    return_annotation: List[str] = field(default_factory=list)
-    descriptive_names: List[str] = field(default_factory=list)
-    error: List[str] = field(default_factory=list)
+    doctest: List[Comment] = field(default_factory=list)
+    annotation: List[Comment] = field(default_factory=list)
+    return_annotation: List[Comment] = field(default_factory=list)
+    descriptive_name: List[Comment] = field(default_factory=list)
+    error: List[Comment] = field(default_factory=list)
 
-    def add_doctest(self, data: MissingRequirementData) -> None:
-        pass
+    def add_doctest(
+        self,
+        filepath: str,
+        lineno: int,
+        nodename: str,
+        nodetype: str,
+        side: str = "RIGHT",
+    ) -> None:
+        body = f"Please provide doctest for the {nodetype}: `{nodename}`"
+        self.doctest.append(Comment(body, filepath, lineno, side))
 
-    def add_annotation(self, data: MissingRequirementData) -> None:
-        pass
+    def add_annotation(
+        self,
+        filepath: str,
+        lineno: int,
+        nodename: str,
+        nodetype: str,
+        side: str = "RIGHT",
+    ) -> None:
+        body = f"Please provide type hint for the {nodetype}: `{nodename}`"
+        self.annotation.append(Comment(body, filepath, lineno, side))
 
-    def add_return_annotation(self, data: MissingRequirementData) -> None:
-        pass
+    def add_return_annotation(
+        self,
+        filepath: str,
+        lineno: int,
+        nodename: str,
+        nodetype: str,
+        side: str = "RIGHT",
+    ) -> None:
+        body = (
+            f"Please provide return type hint for the {nodetype}: `{nodename}`.\n"
+            f"**NOTE: If the {nodetype} returns `None`, please provide the type hint "
+            f"as: `def function() -> None`"
+        )
+        self.return_annotation.append(Comment(body, filepath, lineno, side))
 
-    def add_descriptive_names(self, data: MissingRequirementData) -> None:
-        pass
+    def add_descriptive_name(
+        self,
+        filepath: str,
+        lineno: int,
+        nodename: str,
+        nodetype: str,
+        side: str = "RIGHT",
+    ) -> None:
+        body = f"Please provide descriptive name for the {nodetype}: `{nodename}`"
+        self.descriptive_name.append(Comment(body, filepath, lineno, side))
 
-    def add_error(self, msg: str) -> None:
-        pass
+    def add_error(self, message: str, filepath: str, lineno: int) -> None:
+        body = (
+            f"An error occured while parsing the file: `{filepath}`\n"
+            f"```python\n{message}\n```"
+        )
+        self.error.append(Comment(body, filepath, lineno))
+
+    def collect_comments(self) -> List[Dict[str, Any]]:
+        c = []
+        for comments in self.__dict__.values():
+            for comment in comments:
+                c.append(
+                    {
+                        "body": comment.body,
+                        "path": comment.path,
+                        "line": comment.line,
+                        "side": comment.side,
+                    }
+                )
+        return c
 
 
 class PullRequestFilesParser:
@@ -94,20 +151,22 @@ class PullRequestFilesParser:
         self._skip_doctest = self._contains_testfile()
 
         # Attribute to store all the report data.
-        self._pr_reporter = PullRequestReporter()
+        self._pr_report = PullRequestRecord()
 
-        # Initiate the label attributes.
-        # TODO: Is it possible to use a `tuple` instead of `list`?
-        self._add_labels: List[str] = []
-        self._remove_labels: List[str] = []
+        # Initiate the label attributes. We are representing labels data in Set because
+        # the parser will fill the data for each file and thus, there could be same
+        # errors in multiple files resulting in the addition of the corresponding labels
+        # multiple times.
+        self._add_labels: Set[str] = set()
+        self._remove_labels: Set[str] = set()
 
     @property
     def add_labels(self) -> List[str]:
-        return self._add_labels
+        return list(self._add_labels)
 
     @property
     def remove_labels(self) -> List[str]:
-        return self._remove_labels
+        return list(self._remove_labels)
 
     @property
     def files_to_check(self) -> Tuple[File, ...]:
@@ -221,13 +280,13 @@ class PullRequestFilesParser:
         """Parse the Python source code for tests, type hints and descriptive names."""
         try:
             module = ast.parse(source, filename=file.name)
-        except SyntaxError:
+        except SyntaxError as exc:
             import traceback
 
-            exc = traceback.format_exc(limit=1)
-            self._pr_reporter.add_error(exc)
+            msg = traceback.format_exc(limit=1)
+            self._pr_report.add_error(msg, file.name, exc.lineno)
             self.logger.info(
-                "SyntaxError while parsing file: [%(file)s] %(url)s",
+                "Invalid Python code for the file: [%(file)s] %(url)s",
                 {"file": file.name, "url": self.pull_request["url"]},
             )
             return None
@@ -240,23 +299,46 @@ class PullRequestFilesParser:
             # `self._contains_doctest` as that will override the value for all files
             # present in the current pull request.
             visitor = PullRequestFileNodeVisitor(
-                file, self._pr_reporter, self._contains_testnode(module)
+                file, self._pr_report, self._contains_testnode(module)
             )
         else:
             visitor = PullRequestFileNodeVisitor(
-                file, self._pr_reporter, self._skip_doctest
+                file, self._pr_report, self._skip_doctest
             )
 
         for node in ast.walk(module):
             visitor.visit(node)
 
-    def create_report_content(self) -> str:
-        pass
+        # As this is going to be called for each file, we will represent the sequence
+        # of labels as ``Set`` to avoid duplications.
+        self._fill_labels()
+
+    def collect_comments(self) -> List[Dict[str, Any]]:
+        return self._pr_report.collect_comments()
 
     def _fill_labels(self) -> None:
         """Fill the property `add_labels` and `remove_labels` with the appropriate labels
         as per the missing requirements and the current PR labels."""
-        pass
+        # Add or remove REQUIRE_TEST label
+        if self._pr_report.doctest:
+            if Label.REQUIRE_TEST not in self.pr_labels:
+                self._add_labels.add(Label.REQUIRE_TEST)
+        elif Label.REQUIRE_TEST in self.pr_labels:
+            self._remove_labels.add(Label.REQUIRE_TEST)
+
+        # Add or remove DESCRIPTIVE_NAMES label
+        if self._pr_report.descriptive_name:
+            if Label.DESCRIPTIVE_NAMES not in self.pr_labels:
+                self._add_labels.add(Label.DESCRIPTIVE_NAMES)
+        elif Label.DESCRIPTIVE_NAMES in self.pr_labels:
+            self._remove_labels.add(Label.DESCRIPTIVE_NAMES)
+
+        # Add or remove ANNOTATIONS label
+        if self._pr_report.annotation or self._pr_report.return_annotation:
+            if Label.ANNOTATIONS not in self.pr_labels:
+                self._add_labels.add(Label.ANNOTATIONS)
+        elif Label.ANNOTATIONS in self.pr_labels:
+            self._remove_labels.add(Label.ANNOTATIONS)
 
 
 class PullRequestFileNodeVisitor(ast.NodeVisitor):
@@ -278,18 +360,14 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
     """
 
     def __init__(
-        self,
-        file: File,
-        reporter: PullRequestReporter,
-        skip_doctest: bool,
+        self, file: File, report: PullRequestRecord, skip_doctest: bool
     ) -> None:
-        super().__init__()
-        self.reporter = reporter
+        self.report = report
         self.file = file
         self.skip_doctest = skip_doctest
 
     def visit(self, node: ast.AST) -> None:
-        """Visit a node if the `visit` function is defined."""
+        """Visit a node only if the `visit` function is defined."""
         method = "visit_" + node.__class__.__name__
         try:
             # We don't want to perform a `generic_visit`.
@@ -321,7 +399,7 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         """
         nodedata = self._nodedata(function)
         if len(function.name) == 1:
-            self.reporter.add_descriptive_names(nodedata)
+            self.report.add_descriptive_name(*nodedata)
         if not self.skip_doctest and function.name != "__init__":
             docstring = ast.get_docstring(function)
             if docstring is not None:
@@ -329,11 +407,11 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
                     if line.strip().startswith(">>> "):
                         break
                 else:
-                    self.reporter.add_doctest(nodedata)
+                    self.report.add_doctest(*nodedata)
             else:
-                self.reporter.add_doctest(nodedata)
+                self.report.add_doctest(*nodedata)
         if function.returns is None:
-            self.reporter.add_return_annotation(nodedata)
+            self.report.add_return_annotation(*nodedata)
 
     def visit_arg(self, arg: ast.arg) -> None:
         """Visit the argument node. The argument can be positional-only, keyword-only or
@@ -346,9 +424,9 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         """
         nodedata = self._nodedata(arg)
         if len(arg.arg) == 1:
-            self.reporter.add_descriptive_names(nodedata)
+            self.report.add_descriptive_name(*nodedata)
         if arg.arg != "self" and arg.annotation is None:
-            self.reporter.add_annotation(nodedata)
+            self.report.add_annotation(*nodedata)
 
     def visit_ClassDef(self, klass: ast.ClassDef) -> None:
         """Visit the class node.
@@ -358,15 +436,15 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         - Class name should be of length > 1.
         """
         if len(klass.name) == 1:
-            self.reporter.add_descriptive_names(self._nodedata(klass))
+            self.report.add_descriptive_name(*self._nodedata(klass))
 
-    def _nodedata(self, node: ast.AST) -> MissingRequirementData:
-        """Helper function to fill data in and return the ``MissingRequirementData``
-        instance as per the given node."""
+    def _nodedata(self, node: ast.AST) -> Tuple[str, int, str, str]:
+        """Helper function to fill data required in the ``Comment`` object as per the
+        given node."""
         if isinstance(node, ast.ClassDef):
-            args = self.file.name, node.lineno, node.name, "class"
+            ret = self.file.name, node.lineno, node.name, "class"
         elif isinstance(node, ast.FunctionDef):
-            args = self.file.name, node.lineno, node.name, "function"
+            ret = self.file.name, node.lineno, node.name, "function"
         elif isinstance(node, ast.arg):
-            args = self.file.name, node.lineno, node.arg, "argument"
-        return MissingRequirementData(*args)
+            ret = self.file.name, node.lineno, node.arg, "argument"
+        return ret
