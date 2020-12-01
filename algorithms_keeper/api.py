@@ -14,7 +14,8 @@ from algorithms_keeper.log import logger as main_logger
 TOKEN_ENDPOINT = "access_tokens"
 
 # Timed cache for installation access token (1 minute less than an hour)
-cache: TTLCache[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)
+# TTLCache[int, str]: TypeError: 'ABCMeta' object is not subscriptable
+cache = TTLCache(maxsize=10, ttl=1 * 59 * 60)  # type: TTLCache[int, str]
 
 
 class GitHubAPI(BaseGitHubAPI):

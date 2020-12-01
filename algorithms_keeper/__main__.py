@@ -19,7 +19,7 @@ router = routing.Router(
     check_runs.router, installations.router, issues.router, pull_requests.router
 )
 
-cache: LRUCache[Any, Any] = LRUCache(maxsize=500)
+cache = LRUCache(maxsize=500)  # type: LRUCache[Any, Any]
 
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN"),
