@@ -20,6 +20,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Union
 from gidgethub import BadRequest
 
 from .api import GitHubAPI
+from .constants import PR_REVIEW_BODY
 from .log import logger
 
 
@@ -235,3 +236,19 @@ async def get_file_content(gh: GitHubAPI, *, file: File) -> bytes:
     """Return the file content decoded into Python bytes object."""
     data = await gh.getitem(file.contents_url, oauth_token=await gh.access_token)
     return base64.decodebytes(data["content"].encode())
+
+
+async def create_pr_review(
+    gh: GitHubAPI, *, pull_request: Dict[str, Any], comments: List[Dict[str, Any]]
+):
+    await gh.post(
+        pull_request["url"] + "/reviews",
+        data={
+            "commit_id": pull_request["head"]["sha"],
+            "body": PR_REVIEW_BODY,
+            "event": "COMMENT",
+            "comments": comments,
+        },
+        accept="application/vnd.github.comfort-fade-preview+json",
+        oauth_token=await gh.access_token,
+    )
