@@ -12,8 +12,8 @@ The rest of the arguments must be keyword-only arguments. This is done to
 maintain consistency throughout the module and improve readability in files
 that uses all the given functions.
 """
-import base64
 import urllib.parse
+from base64 import b64decode
 from dataclasses import dataclass
 from pathlib import PurePath
 from typing import Any, Dict, List, Optional, Union
@@ -237,7 +237,7 @@ async def get_pr_files(gh: GitHubAPI, *, pull_request: Dict[str, Any]) -> List[F
 async def get_file_content(gh: GitHubAPI, *, file: File) -> bytes:
     """Return the file content decoded into Python bytes object."""
     data = await gh.getitem(file.contents_url, oauth_token=await gh.access_token)
-    return base64.decodebytes(data["content"].encode())
+    return b64decode(data["content"])
 
 
 async def create_pr_review(
