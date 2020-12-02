@@ -1,6 +1,6 @@
 import os
 from logging import Logger
-from typing import Mapping, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 from aiohttp import ClientResponse
 from cachetools import TTLCache
@@ -14,31 +14,29 @@ from algorithms_keeper.log import logger as main_logger
 TOKEN_ENDPOINT = "access_tokens"
 
 # Timed cache for installation access token (1 minute less than an hour)
-# TTLCache[int, str]: TypeError: 'ABCMeta' object is not subscriptable
-cache = TTLCache(maxsize=10, ttl=1 * 59 * 60)  # type: TTLCache[int, str]
+cache: MutableMapping[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)
 
 
 class GitHubAPI(BaseGitHubAPI):
 
-    _installation_id: int
     logger: Logger
 
     LOG_FORMAT = 'api "%(method)s %(path)s %(data)s %(version)s" => %(status)s'
 
-    def __init__(self, installation_id, *args, **kwargs) -> None:
+    def __init__(self, installation_id: int, *args: Any, **kwargs: Any) -> None:
         self._installation_id = installation_id
         self.logger = kwargs.pop("logger", main_logger)
         super().__init__(*args, **kwargs)
 
     @property
-    def headers(self):
+    def headers(self) -> Optional[Mapping[str, Any]]:
         """Return the response headers after it is stored."""
         if hasattr(self, "_headers"):
             return self._headers
         return None
 
     @headers.setter
-    def headers(self, *args, **kwargs):
+    def headers(self, *args: Any, **kwargs: Any) -> None:
         raise AttributeError("'headers' property is read-only")
 
     @property
@@ -65,7 +63,7 @@ class GitHubAPI(BaseGitHubAPI):
         return cache[installation_id]
 
     @access_token.setter
-    def access_token(self, *args, **kwargs) -> None:
+    def access_token(self, *args: Any, **kwargs: Any) -> None:
         raise AttributeError("'access_token' property is read-only")
 
     async def _request(
@@ -92,22 +90,29 @@ class GitHubAPI(BaseGitHubAPI):
         # We don't want to reveal the `installation_id` from the URL.
         if response.url.name != TOKEN_ENDPOINT:
             inject_status_color(response.status)
-            # Comments are too long to be logged.
+            # Comments and reviews are too long to be logged.
             if response.url.name == "comments":  # pragma: no cover
                 data = "COMMENT"
+            elif response.url.name == "reviews":
+                data = "REVIEW"
             else:
                 data = body.decode(UTF_8_CHARSET)
             loggerlevel = (
                 self.logger.info if response.status in STATUS_OK else self.logger.error
             )
+            # Trying to satisfy ``mypy`` be like...
+            version = (
+                f"{response.version.major}.{response.version.minor}"
+                if response.version is not None
+                else ""
+            )
             loggerlevel(
                 self.LOG_FORMAT,
                 {
                     "method": response.method,
-                    # host is always going to be 'api.github.com'.
+                    # Host is always going to be 'api.github.com'.
                     "path": response.url.raw_path_qs,
-                    "version": f"{response.url.scheme.upper()}/"
-                    f"{response.version.major}.{response.version.minor}",
+                    "version": f"{response.url.scheme.upper()}/{version}",
                     "data": data,
                     "status": f"{response.status}:{response.reason}",
                 },

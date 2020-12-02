@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import os
-from typing import Any
+from typing import Any, MutableMapping
 
 import sentry_sdk
 from aiohttp import ClientSession
@@ -19,7 +19,7 @@ router = routing.Router(
     check_runs.router, installations.router, issues.router, pull_requests.router
 )
 
-cache = LRUCache(maxsize=500)  # type: LRUCache[Any, Any]
+cache: MutableMapping[Any, Any] = LRUCache(maxsize=500)
 
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN"),
@@ -51,7 +51,7 @@ async def main(request: Request) -> Response:
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
-        try:
+        if gh.rate_limit is not None:
             logger.info(
                 "ratelimit=%(ratelimit)s time_remaining=%(time_remaining)s",
                 {
@@ -60,8 +60,6 @@ async def main(request: Request) -> Response:
                     - datetime.datetime.now(datetime.timezone.utc),
                 },
             )
-        except AttributeError:
-            pass
         return Response(status=200)
     except Exception as err:
         logger.exception(err)
