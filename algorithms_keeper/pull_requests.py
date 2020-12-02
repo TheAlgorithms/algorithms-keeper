@@ -171,7 +171,7 @@ async def check_pr_files(
     if label := parser.type_label():
         await utils.add_label_to_pr_or_issue(gh, label=label, pr_or_issue=pull_request)
 
-    for file in parser.files_to_check:
+    for file in parser.files_to_check():
         code = await utils.get_file_content(gh, file=file)
         parser.parse(file, code)
 

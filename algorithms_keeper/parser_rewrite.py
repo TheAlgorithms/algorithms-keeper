@@ -10,7 +10,7 @@ from algorithms_keeper.utils import File
 
 
 def isdotfile(file: PurePath) -> bool:
-    """Helper function to determine whether the given file is a dotfiles or not."""
+    """Helper function to determine whether the given file is a dotfile or not."""
     return file.name.startswith(".")
 
 
@@ -29,19 +29,33 @@ class ReviewComment:
     side: str = "RIGHT"
 
     @property
-    def as_dict(self) -> Dict[str, Any]:
-        """Helper function to represent a ``Comment`` instance in the ``dictionary``
-        format. Useful for collecting all the comments into a list."""
-        return {
-            "body": self.body,
-            "path": self.path,
-            "line": self.line,
-            "side": self.side,
-        }
+    def asdict(self) -> Dict[str, Any]:
+        """A wrapper around the ``__dict__`` attribute of ``ReviewComment`` instances.
+
+        Useful for collecting all the comments into a list.
+        """
+        return self.__dict__
 
 
 @dataclass(frozen=True)
-class PullRequestRecord:
+class PullRequestReviewRecord:
+    """A Record object to store all the ``ReviewComment`` instances.
+
+    This should be initialized once per pull request and use the *add_* methods to
+    add a ``ReviewComment`` instance to their respective group.
+
+    All *add_* methods except the ``add_error`` have the same parameters:
+
+    filepath: Path from the repository root to the file
+    lineno: Line number in the file
+    nodename: Name of the class/function/parameter
+    nodetype: Type of nodename as in class/function/parameter
+    side: In a split diff view, which side the node appears on (default: RIGHT)
+
+    ``add_error`` is used to include any exceptions faced while parsing the source
+    code in the parser. It requires the *message* argument which is the last part of
+    the traceback message.
+    """
 
     doctest: List[ReviewComment] = field(default_factory=list)
     annotation: List[ReviewComment] = field(default_factory=list)
@@ -80,9 +94,9 @@ class PullRequestRecord:
         side: str = "RIGHT",
     ) -> None:
         body = (
-            f"Please provide return type hint for the {nodetype}: `{nodename}`.\n"
+            f"Please provide return type hint for the {nodetype}: `{nodename}`.\n\n"
             f"**NOTE: If the {nodetype} returns `None`, please provide the type hint "
-            f"as: `def function() -> None`"
+            f"as:**\n```python\ndef function() -> None:\n```"
         )
         self.return_annotation.append(ReviewComment(body, filepath, lineno, side))
 
@@ -105,15 +119,30 @@ class PullRequestRecord:
         self.error.append(ReviewComment(body, filepath, lineno))
 
     def collect_comments(self) -> List[Dict[str, Any]]:
+        """Return all the review comments in the record instance.
+
+        This is how GitHub wants the *comments* value while creating the review.
+        """
         c = []
         for comments in self.__dict__.values():
             for comment in comments:
-                c.append(comment.as_dict)
+                c.append(comment.asdict)
         return c
 
 
 class PullRequestFilesParser:
-    """A parser for all the pull request Python files."""
+    """A parser for all the pull request Python files.
+
+    This class needs to be initialized once per pull request and use its public methods
+    to process, store and access the relevant information regarding the pull request.
+
+    This object performs no I/O of its own as the logic needs to be separated. This
+    means that the function instantiating the object needs to provide the source code
+    of the file to be parsed. For this, there's a helper function ``files_to_check``
+    to get the list of all the valid Python files in the provided pull request. The
+    user function will request the file content from GitHub and pass it to the main
+    function ``parse``.
+    """
 
     _DOCS_EXTENSIONS: Tuple[str, ...] = (".md", ".rst")
 
@@ -145,20 +174,21 @@ class PullRequestFilesParser:
         self.pr_labels = [label["name"] for label in pull_request["labels"]]
 
         # By providing the logger to the class, we won't have to log anything from the
-        # pull requests module. Defaults to :attr:`algorithms_keeper.log.logger`
+        # pull requests module. Defaults to ``algorithms_keeper.log.logger``
         self.logger = logger
 
         # Attribute to determine whether to skip doctest checking or not. This will
-        # be set to `True` if the pull request contains a test file.
+        # be set to ``True`` if the pull request contains a test file.
         self._skip_doctest = self._contains_testfile()
 
-        # Attribute to store all the report data.
-        self._pr_record = PullRequestRecord()
+        # Attribute to store all the review data.
+        self._pr_record = PullRequestReviewRecord()
 
-        # Initiate the label attributes. We are representing labels data in Set because
-        # the parser will fill the data for each file and thus, there could be same
-        # errors in multiple files resulting in the addition of the corresponding labels
-        # multiple times.
+        # Initiate the label attributes. These are represented as ``Set`` internally to
+        # avoid the duplication of labels.
+        # The parser will fill the data for each file parsed and there could be
+        # same errors in multiple files resulting in the addition of the corresponding
+        # labels multiple times.
         self._add_labels: Set[str] = set()
         self._remove_labels: Set[str] = set()
 
@@ -170,18 +200,16 @@ class PullRequestFilesParser:
     def remove_labels(self) -> List[str]:
         return list(self._remove_labels)
 
-    @property
-    def files_to_check(self) -> Tuple[File, ...]:
-        """Collect and return all the files which should be checked.
+    def files_to_check(self) -> List[File]:
+        """Collect and return all the ``File`` which should be checked.
 
         Ignores:
+
         - Python test files
-        - Dunder filenames like `__init__.py`
+        - Dunder filenames like *__init__.py*
         - Files which were modified (Issue #11)
-        - Files in the `scripts/` directory (Issue #11)
+        - Files in the *scripts/* directory (Issue #11)
         """
-        if hasattr(self, "_files_to_check"):
-            return self._files_to_check
         f = []
         for file in self.pr_files:
             filepath = file.path
@@ -199,9 +227,11 @@ class PullRequestFilesParser:
                 )
             ):
                 f.append(file)
-        # Cache for later use.
-        self._files_to_check: Tuple[File, ...] = tuple(f)
-        return self._files_to_check
+        # TODO: Discuss: If the number of files is > {?}, then return an empty list.
+        # This should be done so as to avoid the case where the user resolved the merge
+        # conflicts by merging *master* thus, adding dozens or hundreds of files in the
+        # pull request. Log a warning and add the comment as well.
+        return f
 
     def validate_extension(self) -> str:
         """Check pull request files extension. Returns an empty string if all files are
@@ -241,11 +271,12 @@ class PullRequestFilesParser:
         label for it. Returns an empty string if the label already exists or the type is
         not programmed.
 
-        "documentation": Contains a file with an extension from `_DOCS_EXTENSIONS`
-        "enhancement": Some/all files were 'modified'
+        *documentation*: Contains a file with an extension from ``_DOCS_EXTENSIONS``
+
+        *enhancement*: Some/all files were 'modified'
 
         NOTE: These two types are mutually exclusive which means a modified markdown
-        file will be labeled "documentation" and not "enhancement".
+        file will be labeled *documentation* and not *enhancement*.
         """
         label = ""
         if any(file.path.suffix in self._DOCS_EXTENSIONS for file in self.pr_files):
@@ -287,7 +318,13 @@ class PullRequestFilesParser:
             import traceback
 
             msg = traceback.format_exc(limit=1)
-            self._pr_record.add_error(msg, file.name, exc.lineno)
+            lineno = exc.lineno
+            # ``exc.lineno`` has type ``Optional[int]`` while ``add_error`` expects an
+            # ``int`` making *mypy* mad. In the case where it is actually ``None``, we
+            # will default the error comment to be posted on the first line of the file.
+            if lineno is None:
+                lineno = 1
+            self._pr_record.add_error(msg, file.name, lineno)
             self.logger.info(
                 "Invalid Python code for the file: [%(file)s] %(url)s",
                 {"file": file.name, "url": self.pull_request["url"]},
@@ -298,8 +335,8 @@ class PullRequestFilesParser:
             # If the pull request does not contain any test file, then we will check
             # whether the file contains any test functions or classes as per the naming
             # convention.
-            # We cannot assign the value we get from `_contains_testnode` to
-            # `self._contains_doctest` as that will override the value for all files
+            # We cannot assign the value we get from ``_contains_testnode`` to
+            # ``self._contains_doctest`` as that will override the value for all files
             # present in the current pull request.
             visitor = PullRequestFileNodeVisitor(
                 file, self._pr_record, self._contains_testnode(module)
@@ -317,26 +354,27 @@ class PullRequestFilesParser:
         self._fill_labels()
 
     def collect_comments(self) -> List[Dict[str, Any]]:
+        """A wrapper function to collect comments from the record instance."""
         return self._pr_record.collect_comments()
 
     def _fill_labels(self) -> None:
-        """Fill the property `add_labels` and `remove_labels` with the appropriate labels
-        as per the missing requirements and the current PR labels."""
-        # Add or remove REQUIRE_TEST label
+        """Fill the property ``add_labels`` and ``remove_labels`` with the appropriate
+        labels as per the missing requirements and the current PR labels."""
+        # Add or remove ``REQUIRE_TEST`` label
         if self._pr_record.doctest:
             if Label.REQUIRE_TEST not in self.pr_labels:
                 self._add_labels.add(Label.REQUIRE_TEST)
         elif Label.REQUIRE_TEST in self.pr_labels:
             self._remove_labels.add(Label.REQUIRE_TEST)
 
-        # Add or remove DESCRIPTIVE_NAMES label
+        # Add or remove ``DESCRIPTIVE_NAMES`` label
         if self._pr_record.descriptive_name:
             if Label.DESCRIPTIVE_NAMES not in self.pr_labels:
                 self._add_labels.add(Label.DESCRIPTIVE_NAMES)
         elif Label.DESCRIPTIVE_NAMES in self.pr_labels:
             self._remove_labels.add(Label.DESCRIPTIVE_NAMES)
 
-        # Add or remove ANNOTATIONS label
+        # Add or remove ``ANNOTATIONS`` label
         if self._pr_record.annotation or self._pr_record.return_annotation:
             if Label.ANNOTATIONS not in self.pr_labels:
                 self._add_labels.add(Label.ANNOTATIONS)
@@ -363,7 +401,7 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
     """
 
     def __init__(
-        self, file: File, record: PullRequestRecord, skip_doctest: bool
+        self, file: File, record: PullRequestReviewRecord, skip_doctest: bool
     ) -> None:
         self.record = record
         self.file = file
