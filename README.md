@@ -2,7 +2,7 @@
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dhruvmanila/algorithms-keeper/CI?label=CI&logo=github&style=flat-square)](https://github.com/dhruvmanila/algorithms-keeper/actions)
 [![Codecov](https://img.shields.io/codecov/c/gh/dhruvmanila/algorithms-keeper?label=codecov&logo=codecov&style=flat-square)](https://codecov.io/gh/dhruvmanila/algorithms-keeper)
 [![code style: black](https://img.shields.io/static/v1?label=code%20style&message=black&color=black&style=flat-square)](https://github.com/psf/black)
-[![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
+[![Checked with mypy](https://img.shields.io/static/v1?label=mypy&message=checked&style=flat-square&color=2a6db2&labelColor=505050)](http://mypy-lang.org/)
 
 A bot for [TheAlgorithms/Python](https://www.github.com/TheAlgorithms/Python) repository. This bot is based on [this tutorial](https://github-app-tutorial.readthedocs.io/en/latest/index.html) and also inspired by the ones working for the [CPython](https://github.com/python/cpython) repository which are [miss-islington](https://github.com/python/miss-islington), [bedevere](https://github.com/python/bedevere) and [the-knights-who-say-ni](https://github.com/python/the-knights-who-say-ni). This bot is basically a GitHub app which can be installed in any repository using [this link](https://github.com/apps/algorithms-keeper).
 
