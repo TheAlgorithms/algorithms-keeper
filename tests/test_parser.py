@@ -62,27 +62,20 @@ def test_contains_testfile(parser, expected):
     "source, expected",
     (
         (
-            """\
-def no_test_node():
-    pass
-
-class NoTestNode:
-    pass""",
+            "def no_test_node():\n"
+            "    pass\n"
+            "\n"
+            "\n"
+            "class NoTestNode:\n"
+            "    pass",
             False,
         ),
         (
-            """\
-def test_function():
-    pass""",
+            "def test_function():\n" "    pass",
             True,
         ),
         (
-            """\
-def random():
-    pass
-
-class TestClass:
-    pass""",
+            "def random():\n" "    pass\n" "\n" "\n" "class TestClass:\n" "    pass",
             True,
         ),
     ),
@@ -137,13 +130,14 @@ def test_files_to_check(parser, expected):
 
 
 def test_record_error():
-    source = """\
-def valid_syntax() -> None:
-    return None
-
-
-def invalid_syntax() -> None:
-return None"""
+    source = (
+        "def valid_syntax() -> None:\n"
+        "    return None\n"
+        "\n"
+        "\n"
+        "def invalid_syntax() -> None:\n"
+        "return None"
+    )
     parser = get_parser("invalid_syntax.py")
     parser.parse(parser.pr_files[0], source)
     assert not parser.add_labels

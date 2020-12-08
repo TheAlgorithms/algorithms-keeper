@@ -166,6 +166,7 @@ class PullRequestFilesParser:
         # Extract out some useful information.
         self.pr_author = pull_request["user"]["login"]
         self.pr_labels = [label["name"] for label in pull_request["labels"]]
+        self.pr_html_url = pull_request["html_url"]
 
         # By providing the logger to the class, we won't have to log anything from the
         # pull requests module. Defaults to ``algorithms_keeper.log.logger``
@@ -225,7 +226,7 @@ class PullRequestFilesParser:
         if invalid_files:
             self.logger.info(
                 "Invalid file(s) [%(file)s]: %(url)s",
-                {"file": invalid_files, "url": self.pull_request["html_url"]},
+                {"file": invalid_files, "url": self.pr_html_url},
             )
         return invalid_files
 
@@ -316,7 +317,7 @@ class PullRequestFilesParser:
             self._pr_record.add_error(msg, file.name, lineno)
             self.logger.info(
                 "Invalid Python code for the file: [%(file)s] %(url)s",
-                {"file": file.name, "url": self.pull_request["url"]},
+                {"file": file.name, "url": self.pr_html_url},
             )
             return None
 
@@ -408,7 +409,7 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
             # the top level function and class nodes and call the respective `visit_`
             # function. But, we are still walking and so after this cycle is over, we
             # will be calling the top level function and class nodes again. This will
-            # add `MissingRequirementData` to the reporter multiple times.
+            # add `ReviewComment` data to the report multiple times.
             visitor = getattr(self, method)
             visitor(node)
         except AttributeError:

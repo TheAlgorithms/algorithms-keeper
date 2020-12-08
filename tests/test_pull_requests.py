@@ -988,6 +988,7 @@ async def test_no_review_label_when_pr_not_ready():
         "action": "synchronize",
         "pull_request": {
             "url": pr_url,
+            "html_url": html_pr_url,
             "user": {"login": user},
             "issue_url": issue_url,
             "labels": [{"name": Label.ANNOTATIONS}],
@@ -1010,6 +1011,7 @@ async def test_review_label_after_changes_made():
         "action": "synchronize",
         "pull_request": {
             "url": pr_url,
+            "html_url": html_pr_url,
             "user": {"login": user},
             "issue_url": issue_url,
             "labels": [{"name": Label.CHANGES_REQUESTED}],
