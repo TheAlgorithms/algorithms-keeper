@@ -35,36 +35,25 @@ class GitHubAPI(BaseGitHubAPI):
             return self._headers
         return None
 
-    @headers.setter
-    def headers(self, *args: Any, **kwargs: Any) -> None:
-        raise AttributeError("'headers' property is read-only")
-
     @property
     async def access_token(self) -> str:
         """Return the installation access token if it is present in the cache else
-        create a new token and store it for later use.
-
-        This is a read-only property.
-        """
+        create a new token and store it for later use."""
         # Currently, the token lasts for 1 hour.
         # https://docs.github.com/en/developers/apps/differences-between-github-apps-and-oauth-apps#token-based-identification
         # We will store the token with key as installation ID so that the app can be
-        # installed in multiple repositories.
+        # installed in multiple repositories (max installation determined by the
+        # maxsize argument to the cache).
         installation_id = self._installation_id
-        if installation_id in cache:
-            return cache[installation_id]
-        data = await apps.get_installation_access_token(
-            self,
-            installation_id=str(installation_id),
-            app_id=os.environ["GITHUB_APP_ID"],
-            private_key=os.environ["GITHUB_PRIVATE_KEY"],
-        )
-        cache[installation_id] = data["token"]
+        if installation_id not in cache:
+            data = await apps.get_installation_access_token(
+                self,
+                installation_id=str(installation_id),
+                app_id=os.environ["GITHUB_APP_ID"],
+                private_key=os.environ["GITHUB_PRIVATE_KEY"],
+            )
+            cache[installation_id] = data["token"]
         return cache[installation_id]
-
-    @access_token.setter
-    def access_token(self, *args: Any, **kwargs: Any) -> None:
-        raise AttributeError("'access_token' property is read-only")
 
     async def _request(
         self, method: str, url: str, headers: Mapping[str, str], body: bytes = b""

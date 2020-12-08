@@ -1,14 +1,14 @@
-import asyncio
-import datetime
 import os
+from asyncio import sleep as async_sleep
+from datetime import datetime, timezone
 from typing import Any, MutableMapping
 
-import sentry_sdk
 from aiohttp import ClientSession
 from aiohttp.web import Application, Request, Response, run_app
 from cachetools import LRUCache
 from gidgethub import routing
 from gidgethub.sansio import Event
+from sentry_sdk import init as sentry_init
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from algorithms_keeper import check_runs, installations, issues, pull_requests
@@ -21,7 +21,7 @@ router = routing.Router(
 
 cache: MutableMapping[Any, Any] = LRUCache(maxsize=500)
 
-sentry_sdk.init(
+sentry_init(
     dsn=os.environ.get("SENTRY_DSN"),
     integrations=[AioHttpIntegration(transaction_style="method_and_path_pattern")],
 )
@@ -49,7 +49,7 @@ async def main(request: Request) -> Response:
                 cache=cache,
             )
             # Give GitHub some time to reach internal consistency.
-            await asyncio.sleep(1)
+            await async_sleep(1)
             await router.dispatch(event, gh)
         if gh.rate_limit is not None:  # pragma: no cover
             logger.info(
@@ -57,7 +57,7 @@ async def main(request: Request) -> Response:
                 {
                     "ratelimit": f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}",
                     "time_remaining": gh.rate_limit.reset_datetime
-                    - datetime.datetime.now(datetime.timezone.utc),
+                    - datetime.now(timezone.utc),
                 },
             )
         return Response(status=200)
