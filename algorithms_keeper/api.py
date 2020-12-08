@@ -93,7 +93,7 @@ class GitHubAPI(BaseGitHubAPI):
             # Comments and reviews are too long to be logged.
             if response.url.name == "comments":  # pragma: no cover
                 data = "COMMENT"
-            elif response.url.name == "reviews":
+            elif response.url.name == "reviews":  # pragma: no cover
                 data = "REVIEW"
             else:
                 data = body.decode(UTF_8_CHARSET)

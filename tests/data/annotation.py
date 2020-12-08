@@ -22,14 +22,6 @@ def no_annotations(num: int, boolean: bool) -> None:
     return None
 
 
-def self_in_function(self=1) -> None:
-    """A function containing `self` argument should not be ignored
-    >>> self_in_function()
-    None
-    """
-    return None
-
-
 class ClassTest:
     def __init__(self, num) -> None:
         """__init__ requires annotation"""

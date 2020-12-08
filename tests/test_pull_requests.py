@@ -8,12 +8,12 @@ from algorithms_keeper import pull_requests, utils
 from algorithms_keeper.constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
     EMPTY_BODY_COMMENT,
+    INVALID_EXTENSION_COMMENT,
     MAX_PR_REACHED_COMMENT,
-    NO_EXTENSION_COMMENT,
     Label,
 )
 
-from .test_parser import get_file_code
+from .test_parser import get_source
 from .utils import (
     CHECKBOX_NOT_TICKED,
     CHECKBOX_TICKED,
@@ -28,6 +28,7 @@ from .utils import (
     pr_url,
     pr_user_search_url,
     repository,
+    review_url,
     reviewers_url,
     sha,
     user,
@@ -36,7 +37,6 @@ from .utils import (
 # Comment constants
 EMPTY_BODY_COMMENT = EMPTY_BODY_COMMENT.format(user_login=user)
 CHECKBOX_NOT_TICKED_COMMENT = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=user)
-NO_EXTENSION_COMMENT = NO_EXTENSION_COMMENT.format(user_login=user)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -44,13 +44,13 @@ def patch_module(monkeypatch=MonkeyPatch()):
     async def mock_get_file_content(*args, **kwargs):
         filename = kwargs["file"].name
         if filename in {
-            "require_doctest.py",
-            "require_annotations.py",
-            "require_descriptive_names.py",
-            "require_return_annotation.py",
+            "doctest.py",
+            "annotation.py",
+            "descriptive_name.py",
+            "return_annotation.py",
             "no_errors.py",
         }:
-            return get_file_code(filename)
+            return get_source(filename)
         else:
             return ""
 
@@ -139,13 +139,13 @@ async def test_pr_opened_synchronize_in_draft_mode(action):
     if action == "opened":
         assert pr_user_search_url in gh.getiter_url
     else:
-        assert gh.getiter_url == []
-    assert gh.post_url == []
-    assert gh.post_data == []
-    assert gh.patch_url == []
-    assert gh.patch_data == []
-    assert gh.delete_url == []
-    assert gh.delete_data == []
+        assert not gh.getiter_url
+    assert not gh.post_url
+    assert not gh.post_data
+    assert not gh.patch_url
+    assert not gh.patch_data
+    assert not gh.delete_url
+    assert not gh.delete_data
 
 
 @pytest.mark.asyncio
@@ -253,6 +253,7 @@ async def test_for_extensionless_files():
         "pull_request": {
             "url": pr_url,
             "body": CHECKBOX_TICKED,
+            "head": {"sha": sha},
             "labels": [],
             "user": {"login": user},
             "author_association": "NONE",
@@ -285,7 +286,9 @@ async def test_for_extensionless_files():
     assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     assert comments_url in gh.post_url
     assert labels_url in gh.post_url
-    assert {"body": NO_EXTENSION_COMMENT} in gh.post_data
+    assert {
+        "body": INVALID_EXTENSION_COMMENT.format(user_login=user, files="fibonacci")
+    } in gh.post_data
     assert {"labels": [Label.INVALID]} in gh.post_data
     assert pr_url in gh.patch_url
     assert {"state": "closed"} in gh.patch_data
@@ -303,6 +306,7 @@ async def test_pr_with_no_python_files():
             "url": pr_url,
             # The label was added when the PR was opened.
             "labels": [{"name": Label.AWAITING_REVIEW}],
+            "head": {"sha": sha},
             "user": {"login": user},
             "author_association": "NONE",
             "comments_url": comments_url,
@@ -327,13 +331,13 @@ async def test_pr_with_no_python_files():
     await pull_requests.router.dispatch(event, gh)
     assert len(gh.getiter_url) == 1
     assert files_url in gh.getiter_url
-    assert gh.post_url == []
-    assert gh.post_data == []
+    assert not gh.post_url
+    assert not gh.post_data
     # Nothing happens as there are no Python files
-    assert gh.patch_url == []
-    assert gh.patch_data == []
-    assert gh.delete_url == []
-    assert gh.delete_data == []
+    assert not gh.patch_url
+    assert not gh.patch_data
+    assert not gh.delete_url
+    assert not gh.delete_data
 
 
 @pytest.mark.asyncio
@@ -346,13 +350,13 @@ async def test_pr_with_no_python_files():
                 pr_user_search_url: {"total_count": 1, "items": [{"number": 1}]},
                 files_url: [
                     {
-                        "filename": "require_doctest.py",
+                        "filename": "doctest.py",
                         "contents_url": "",
                         "status": "added",
                     },
                     {"filename": "test_algo.py", "contents_url": "", "status": "added"},
                     {
-                        "filename": "require_annotations.py",
+                        "filename": "annotation.py",
                         "contents_url": "",
                         "status": "added",
                     },
@@ -364,13 +368,13 @@ async def test_pr_with_no_python_files():
             {
                 files_url: [
                     {
-                        "filename": "require_doctest.py",
+                        "filename": "doctest.py",
                         "contents_url": "",
                         "status": "added",
                     },
                     {"filename": "test_algo.py", "contents_url": "", "status": "added"},
                     {
-                        "filename": "require_annotations.py",
+                        "filename": "annotation.py",
                         "contents_url": "",
                         "status": "added",
                     },
@@ -388,6 +392,7 @@ async def test_pr_with_test_file(action, getiter):
             "body": CHECKBOX_TICKED,
             # This is like a marker to test the function, the label should be removed.
             "labels": [{"name": Label.REQUIRE_TEST}],
+            "head": {"sha": sha},
             "user": {"login": user},
             "author_association": "NONE",
             "comments_url": comments_url,
@@ -398,7 +403,7 @@ async def test_pr_with_test_file(action, getiter):
         "repository": {"full_name": repository},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
-    post = {labels_url: None, comments_url: None}
+    post = {labels_url: None, review_url: None}
     delete = {f"{labels_url}/{remove_label}": None}
     gh = MockGitHubAPI(getiter=getiter, post=post, delete=delete)
     await pull_requests.router.dispatch(event, gh)
@@ -407,18 +412,18 @@ async def test_pr_with_test_file(action, getiter):
         assert pr_user_search_url in gh.getiter_url
         assert files_url in gh.getiter_url
         assert len(gh.post_url) == 3  # Two labels and one comment.
-        assert comments_url in gh.post_url
+        assert review_url in gh.post_url
         assert labels_url in gh.post_url
         assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
-        assert gh.getiter_url[0] == files_url
-        assert len(gh.post_url) == 1
-        # No comment is posted in `synchronize`
-        assert gh.post_url == [labels_url]
+        assert files_url in gh.getiter_url
+        assert len(gh.post_url) == 2
+        assert review_url in gh.post_url
+        assert labels_url in gh.post_url
     assert {"labels": [Label.ANNOTATIONS]} in gh.post_data
     assert gh.delete_url[0] == f"{labels_url}/{remove_label}"
-    assert gh.delete_data == []
+    assert not gh.delete_data
 
 
 @pytest.mark.asyncio
@@ -453,6 +458,7 @@ async def test_pr_with_successful_tests(action, getiter):
             "url": pr_url,
             "body": CHECKBOX_TICKED,
             "labels": [],
+            "head": {"sha": sha},
             "user": {"login": user},
             "author_association": "NONE",
             "comments_url": comments_url,
@@ -486,22 +492,22 @@ async def test_pr_with_successful_tests(action, getiter):
                 pr_user_search_url: {"total_count": 1, "items": [{"number": 1}]},
                 files_url: [
                     {
-                        "filename": "require_doctest.py",
+                        "filename": "doctest.py",
                         "contents_url": "",
                         "status": "added",
                     },
                     {
-                        "filename": "require_descriptive_names.py",
+                        "filename": "descriptive_name.py",
                         "contents_url": "",
                         "status": "added",
                     },
                     {
-                        "filename": "require_annotations.py",
+                        "filename": "annotation.py",
                         "contents_url": "",
                         "status": "added",
                     },
                     {
-                        "filename": "require_return_annotation.py",
+                        "filename": "return_annotation.py",
                         "contents_url": "",
                         "status": "added",
                     },
@@ -513,22 +519,22 @@ async def test_pr_with_successful_tests(action, getiter):
             {
                 files_url: [
                     {
-                        "filename": "require_doctest.py",
+                        "filename": "doctest.py",
                         "contents_url": "",
                         "status": "added",
                     },
                     {
-                        "filename": "require_descriptive_names.py",
+                        "filename": "descriptive_name.py",
                         "contents_url": "",
                         "status": "added",
                     },
                     {
-                        "filename": "require_annotations.py",
+                        "filename": "annotation.py",
                         "contents_url": "",
                         "status": "added",
                     },
                     {
-                        "filename": "require_return_annotation.py",
+                        "filename": "return_annotation.py",
                         "contents_url": "",
                         "status": "added",
                     },
@@ -544,6 +550,7 @@ async def test_pr_with_add_all_require_labels(action, getiter):
             "url": pr_url,
             "body": CHECKBOX_TICKED,
             "labels": [],
+            "head": {"sha": sha},
             "user": {"login": user},
             "author_association": "NONE",
             "comments_url": comments_url,
@@ -554,7 +561,7 @@ async def test_pr_with_add_all_require_labels(action, getiter):
         "repository": {"full_name": repository},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
-    post = {labels_url: None, comments_url: None}
+    post = {labels_url: None, review_url: None}
     gh = MockGitHubAPI(getiter=getiter, post=post)
     await pull_requests.router.dispatch(event, gh)
     if data["action"] == "opened":
@@ -563,18 +570,15 @@ async def test_pr_with_add_all_require_labels(action, getiter):
         assert files_url in gh.getiter_url
         assert len(gh.post_url) == 3
         assert labels_url in gh.post_url
-        assert comments_url in gh.post_url
+        assert review_url in gh.post_url
         assert {"labels": [Label.AWAITING_REVIEW]}
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
         assert files_url in gh.getiter_url
-        assert len(gh.post_url) == 2
-        # No comment is posted in `synchronize`
+        assert len(gh.post_url) == 3
+        assert review_url in gh.post_url
         assert comments_url not in gh.post_url
         assert labels_url in gh.post_url
-    assert {
-        "labels": [Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES, Label.ANNOTATIONS]
-    } in gh.post_data
     assert gh.delete_url == []
     assert gh.delete_data == []
 
@@ -624,6 +628,40 @@ async def test_pr_with_remove_all_require_labels():
     assert names_label_url in gh.delete_url
     assert annotation_label_url in gh.delete_url
     assert gh.delete_data == []
+
+
+@pytest.mark.asyncio
+async def test_add_type_label_on_pr():
+    # Event action is reopened so as to test only the "type label" part.
+    data = {
+        "action": "reopened",
+        "pull_request": {
+            "url": pr_url,
+            # The label was added when the PR was opened.
+            "labels": [{"name": Label.AWAITING_REVIEW}],
+            "head": {"sha": sha},
+            "user": {"login": user},
+            "author_association": "NONE",
+            "comments_url": comments_url,
+            "issue_url": issue_url,
+            "html_url": html_pr_url,
+            "draft": False,
+        },
+        "repository": {"full_name": repository},
+    }
+    event = sansio.Event(data, event="pull_request", delivery_id="1")
+    getiter = {
+        files_url: [
+            {"filename": "no_errors.py", "contents_url": "", "status": "modified"},
+        ]
+    }
+    post = {labels_url: None}
+    gh = MockGitHubAPI(getiter=getiter, post=post)
+    await pull_requests.router.dispatch(event, gh)
+    assert len(gh.getiter_url) == 1
+    assert files_url in gh.getiter_url
+    assert labels_url in gh.post_url
+    assert {"labels": [Label.ENHANCEMENT]} in gh.post_data
 
 
 @pytest.mark.asyncio

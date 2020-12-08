@@ -245,7 +245,7 @@ async def create_pr_review(
 ) -> None:
     """Submit a comment review for the given pull request.
 
-    `comments` is the list `parser.ReviewComment.as_dict` which represents the
+    `comments` is a list of ``parser.ReviewComment.asdict`` which represents the
     pull request review comment.
     """
     await gh.post(

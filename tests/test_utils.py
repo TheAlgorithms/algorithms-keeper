@@ -19,6 +19,7 @@ from .utils import (
     pr_url,
     pr_user_search_url,
     repository,
+    review_url,
     reviewers_url,
     search_url,
     sha,
@@ -305,3 +306,15 @@ async def test_get_file_content():
         b"\n\treturn None\n\nif __name__ == '__main__':\n\tpass\n"
     )
     assert contents_url1 in gh.getitem_url
+
+
+@pytest.mark.asyncio
+async def test_create_pr_review():
+    post = {review_url: None}
+    pull_request = {"url": pr_url, "head": {"sha": sha}}
+    gh = MockGitHubAPI(post=post)
+    await utils.create_pr_review(
+        gh, pull_request=pull_request, comments=[{"body": "test"}]
+    )
+    assert review_url in gh.post_url
+    assert gh.post_data[0]["event"] == "COMMENT"

@@ -51,7 +51,7 @@ async def main(request: Request) -> Response:
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             await router.dispatch(event, gh)
-        if gh.rate_limit is not None:
+        if gh.rate_limit is not None:  # pragma: no cover
             logger.info(
                 "ratelimit=%(ratelimit)s time_remaining=%(time_remaining)s",
                 {

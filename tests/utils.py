@@ -23,6 +23,7 @@ reviewers_url = pr_url + "/requested_reviewers"
 files_url = pr_url + "/files"
 contents_url1 = f"https://api.github.com/repos/{repository}/contents/test1.py?ref={sha}"
 contents_url2 = f"https://api.github.com/repos/{repository}/contents/test2.py?ref={sha}"
+review_url = pr_url + "/reviews"
 
 # Check run
 check_run_url = f"/repos/{repository}/commits/{sha}/check-runs"

@@ -88,13 +88,15 @@ between the brackets, that will be marked as invalid. If that is the case then p
 open a new pull request with the appropriate changes.***
 """
 
-NO_EXTENSION_COMMENT = """\
+INVALID_EXTENSION_COMMENT = """\
 # Closing this pull request as invalid
 
-@{user_login}, this pull request is being closed as the files submitted contains no \
-extension. This repository only accepts Python algorithms. Please read the \
+@{user_login}, this pull request is being closed as the files submitted contains an \
+invalid extension. This repository only accepts Python algorithms. Please read the \
 [Contributing guidelines]\
 (https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md) first.
+
+Invalid files in this pull request: {files}
 """
 
 PR_REVIEW_BODY = """\
