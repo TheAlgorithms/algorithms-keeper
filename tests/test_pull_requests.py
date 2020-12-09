@@ -78,6 +78,7 @@ async def test_invalid_pr_opened(body, comment, draft):
             "url": pr_url,
             "body": body,
             "user": {"login": user},
+            "labels": [],
             "author_association": "NONE",
             "comments_url": comments_url,
             "issue_url": issue_url,
@@ -93,7 +94,11 @@ async def test_invalid_pr_opened(body, comment, draft):
     delete = {reviewers_url: None}
     gh = MockGitHubAPI(post=post, patch=patch, delete=delete)
     await pull_requests.router.dispatch(event, gh)
-    assert len(gh.post_url) == 2
+    if draft:
+        assert len(gh.post_url) == 2
+    else:
+        assert len(gh.post_url) == 3  # Two labels and one comment
+        assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     assert comments_url in gh.post_url
     assert labels_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -184,6 +189,7 @@ async def test_max_pr_reached():
             "url": pr_url,
             "body": CHECKBOX_TICKED_UPPER,  # Case doesn't matter
             "user": {"login": user},
+            "labels": [],
             "author_association": "NONE",
             "comments_url": comments_url,
             "issue_url": issue_url,
@@ -200,13 +206,15 @@ async def test_max_pr_reached():
         pr_user_search_url: {"total_count": len(items), "items": items},
         files_url: [],  # for check_pr_files function
     }
-    post = {comments_url: None}
+    post = {comments_url: None, labels_url: None}
     patch = {pr_url: None}
     delete = {reviewers_url: None}
     gh = MockGitHubAPI(getiter=getiter, post=post, patch=patch, delete=delete)
     await pull_requests.router.dispatch(event, gh)
     assert pr_user_search_url in gh.getiter_url
     assert comments_url in gh.post_url
+    assert labels_url in gh.post_url
+    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
     assert {
         "body": MAX_PR_REACHED_COMMENT.format(user_login=user, pr_number="#1, #2")
     } in gh.post_data
@@ -706,6 +714,7 @@ async def test_label_on_ready_for_review_pr():
     assert files_url in gh.getiter_url
     assert labels_url in gh.post_url
     assert {"labels": [Label.FAILED_TEST]} in gh.post_data
+    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
 
 
 @pytest.mark.parametrize("state", ("commented", "changes_requested", "approved"))
