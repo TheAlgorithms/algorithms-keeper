@@ -11,12 +11,16 @@ from gidgethub.sansio import Event
 from sentry_sdk import init as sentry_init
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
-from algorithms_keeper import check_runs, installations, issues, pull_requests
+from algorithms_keeper import check_runs, commands, installations, issues, pull_requests
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.log import CustomAccessLogger, logger
 
 router = routing.Router(
-    check_runs.router, installations.router, issues.router, pull_requests.router
+    check_runs.router,
+    commands.router,
+    installations.router,
+    issues.router,
+    pull_requests.router,
 )
 
 cache: MutableMapping[Any, Any] = LRUCache(maxsize=500)
