@@ -259,3 +259,19 @@ async def create_pr_review(
         accept="application/vnd.github.comfort-fade-preview+json",
         oauth_token=await gh.access_token,
     )
+
+
+async def add_reaction(
+    gh: GitHubAPI, *, reaction: str, comment: Dict[str, Any]
+) -> None:
+    """Add the given ``reaction`` to the provided ``comment``."""
+    await gh.post(
+        comment["url"] + "/reactions",
+        data={"content": reaction},
+        oauth_token=await gh.access_token,
+    )
+
+
+async def get_pr_for_issue(gh: GitHubAPI, *, issue: Dict[str, Any]) -> None:
+    """Return the pull request object for the given issue object."""
+    await gh.getitem(issue["pull_request"]["url"], oauth_token=await gh.access_token)
