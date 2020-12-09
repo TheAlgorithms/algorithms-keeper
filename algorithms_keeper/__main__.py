@@ -69,8 +69,11 @@ async def main(request: Request) -> Response:
 if __name__ == "__main__":  # pragma: no cover
     app = Application()
     app.router.add_post("/", main)
+    # Heroku dynamically assigns the app a port, so we can't set the port to a fixed
+    # number. Heroku adds the port to the env, so we need to pull it from there.
     run_app(
         app,
+        port=int(os.environ.get("PORT", 5000)),
         access_log_class=CustomAccessLogger,
         access_log_format=CustomAccessLogger.LOG_FORMAT,
     )
