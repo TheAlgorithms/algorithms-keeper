@@ -96,7 +96,7 @@ invalid extension. This repository only accepts Python algorithms. Please read t
 [Contributing guidelines]\
 (https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md) first.
 
-Invalid files in this pull request: {files}
+Invalid files in this pull request: `{files}`
 """
 
 PR_REVIEW_BODY = """\

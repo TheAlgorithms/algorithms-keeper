@@ -13,8 +13,8 @@ from algorithms_keeper.log import logger as main_logger
 
 TOKEN_ENDPOINT = "access_tokens"
 
-# Timed cache for installation access token (1 minute less than an hour)
-cache: MutableMapping[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)
+# Timed token_cache for installation access token (1 minute less than an hour)
+token_cache: MutableMapping[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)
 
 
 class GitHubAPI(BaseGitHubAPI):
@@ -37,39 +37,40 @@ class GitHubAPI(BaseGitHubAPI):
 
     @property
     async def access_token(self) -> str:
-        """Return the installation access token if it is present in the cache else
-        create a new token and store it for later use."""
+        """Return the installation access token if it is present in the ``token_cache``
+        else create a new token and store it for later use."""
         # Currently, the token lasts for 1 hour.
         # https://docs.github.com/en/developers/apps/differences-between-github-apps-and-oauth-apps#token-based-identification
         # We will store the token with key as installation ID so that the app can be
         # installed in multiple repositories (max installation determined by the
-        # maxsize argument to the cache).
+        # maxsize argument to the token_cache).
         installation_id = self._installation_id
-        if installation_id not in cache:
+        if installation_id not in token_cache:
             data = await apps.get_installation_access_token(
                 self,
                 installation_id=str(installation_id),
                 app_id=os.environ["GITHUB_APP_ID"],
                 private_key=os.environ["GITHUB_PRIVATE_KEY"],
             )
-            cache[installation_id] = data["token"]
-        return cache[installation_id]
+            token_cache[installation_id] = data["token"]
+        return token_cache[installation_id]
 
     async def _request(
         self, method: str, url: str, headers: Mapping[str, str], body: bytes = b""
     ) -> Tuple[int, Mapping[str, str], bytes]:
-        """This is the same method as `gidgethub.aiohttp.GitHubAPI._request` with the
-        addition of logging the request-response cycle. No need to cover this function.
+        """Make the API request and log the request-response cycle along with storing
+        the response headers.
+
+        This is the same method as ``gidgethub.aiohttp.GitHubAPI._request``.
         """
         async with self._session.request(
             method, url, headers=headers, data=body
         ) as response:
             self.log(response, body)
-            # Let's store the headers for later use.
             self._headers = response.headers
             return response.status, response.headers, await response.read()
 
-    def log(self, response: ClientResponse, body: bytes) -> None:
+    def log(self, response: ClientResponse, body: bytes) -> None:  # pragma: no cover
         """Log the request-response cycle for the GitHub API calls made by the bot.
 
         The logger information will be useful to know what actions the bot made.
@@ -77,32 +78,34 @@ class GitHubAPI(BaseGitHubAPI):
         ERROR: Unknown error in the API call.
         """
         # We don't want to reveal the `installation_id` from the URL.
-        if response.url.name != TOKEN_ENDPOINT:
-            inject_status_color(response.status)
+        if response.url.name == TOKEN_ENDPOINT:
+            return None
+
+        inject_status_color(response.status)
+        if response.status in STATUS_OK:
+            loggerlevel = self.logger.info
             # Comments and reviews are too long to be logged.
-            if response.url.name == "comments":  # pragma: no cover
+            if response.url.name == "comments":
                 data = "COMMENT"
-            elif response.url.name == "reviews":  # pragma: no cover
+            elif response.url.name == "reviews":
                 data = "REVIEW"
             else:
                 data = body.decode(UTF_8_CHARSET)
-            loggerlevel = (
-                self.logger.info if response.status in STATUS_OK else self.logger.error
-            )
-            # Trying to satisfy ``mypy`` be like...
-            version = (
-                f"{response.version.major}.{response.version.minor}"
-                if response.version is not None
-                else ""
-            )
-            loggerlevel(
-                self.LOG_FORMAT,
-                {
-                    "method": response.method,
-                    # Host is always going to be 'api.github.com'.
-                    "path": response.url.raw_path_qs,
-                    "version": f"{response.url.scheme.upper()}/{version}",
-                    "data": data,
-                    "status": f"{response.status}:{response.reason}",
-                },
-            )
+        else:
+            loggerlevel = self.logger.error
+            data = body.decode(UTF_8_CHARSET)
+        # Trying to satisfy ``mypy`` be like...
+        version = response.version
+        if version is not None:
+            version = f"{version.major}.{version.minor}"
+        loggerlevel(
+            self.LOG_FORMAT,
+            {
+                "method": response.method,
+                # Host is always going to be 'api.github.com'.
+                "path": response.url.raw_path_qs,
+                "version": f"{response.url.scheme.upper()}/{version}",
+                "data": data,
+                "status": f"{response.status}:{response.reason}",
+            },
+        )

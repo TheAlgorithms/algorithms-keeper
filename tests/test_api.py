@@ -44,7 +44,7 @@ async def test_access_token(github_api, monkeypatch):
     monkeypatch.setattr(apps, "get_installation_access_token", mock_return)
     monkeypatch.setenv("GITHUB_APP_ID", "")
     monkeypatch.setenv("GITHUB_PRIVATE_KEY", "")
-    api.cache.clear()  # Make sure the cache is cleared
+    api.token_cache.clear()  # Make sure the token_cache is cleared
     access_token = await github_api.access_token
     assert access_token == token
     # This is to make sure it actually returns the cached token
