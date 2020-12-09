@@ -1,4 +1,4 @@
-"""Bot commands module
+"""algorithms-keeper commands module
 
 ``@algorithms-keeper review`` to trigger the checks for pull request files.
 """
@@ -34,18 +34,22 @@ async def main(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:
     if match := COMMAND_RE.search(comment["body"]):
         command = match.group(1).lower()
         logger.info(
-            "match=%(match)s command=%(command)s %(url)s",
-            {"match": match.string, "command": command, "url": comment["html_url"]},
+            "match=%(match)s command=%(command)s",
+            {"match": match.string, "command": command},
         )
-        # Give a heads up that the command has been received.
-        await utils.add_reaction(gh, reaction="+1", comment=comment)
         if command == "review":
             await review(event, gh, *args, **kwargs)
 
 
 async def review(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:
     """Review command to trigger the checks for all the pull request files."""
-    event.data["pull_request"] = await utils.get_pr_for_issue(
-        gh, issue=event.data["issue"]
-    )
-    await check_pr_files(event, gh, *args, **kwargs)
+    issue = event.data["issue"]
+    comment = event.data["comment"]
+    if "pull_request" in issue:
+        # Give a heads up that the command has been received.
+        await utils.add_reaction(gh, reaction="+1", comment=comment)
+        event.data["pull_request"] = await utils.get_pr_for_issue(gh, issue=issue)
+        await check_pr_files(event, gh, *args, **kwargs)
+    else:
+        # The command cannot be run on an issue.
+        await utils.add_reaction(gh, reaction="-1", comment=comment)

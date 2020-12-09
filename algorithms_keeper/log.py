@@ -21,6 +21,8 @@ MSG_ARGS_FORMAT = {
     "path": {"color": "blue"},
     "data": {"color": "yellow"},
     "version": {"color": "yellow"},
+    "match": {"color": "green"},
+    "command": {"color": "white", "style": "bold"},
 }
 
 # From `gidgethub.sansio.decipher_response()`
