@@ -11,8 +11,6 @@ from gidgethub.aiohttp import GitHubAPI as BaseGitHubAPI
 from algorithms_keeper.log import STATUS_OK, inject_status_color
 from algorithms_keeper.log import logger as main_logger
 
-TOKEN_ENDPOINT = "access_tokens"
-
 # Timed token_cache for installation access token (1 minute less than an hour)
 token_cache: MutableMapping[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)
 
@@ -77,10 +75,6 @@ class GitHubAPI(BaseGitHubAPI):
         INFO: All actions taken by the bot.
         ERROR: Unknown error in the API call.
         """
-        # We don't want to reveal the `installation_id` from the URL.
-        if response.url.name == TOKEN_ENDPOINT:
-            return None
-
         inject_status_color(response.status)
         if response.status in STATUS_OK:
             loggerlevel = self.logger.info
