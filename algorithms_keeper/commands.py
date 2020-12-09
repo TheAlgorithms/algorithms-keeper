@@ -19,8 +19,13 @@ COMMAND_RE = re.compile(r"@algorithms[\-_]keeper\s+([a-z]+)", re.IGNORECASE)
 
 
 @router.register("issue_comment", action="created")
-async def review(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:
-    """Review command to trigger the checks for pull request files."""
+async def main(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:
+    """Main function to parse the issue comment body and call the respective command
+    function if it matches.
+
+    Only the comments made by either the member or the owner of the organization will
+    be considered.
+    """
     comment = event.data["comment"]
 
     if comment["author_association"].lower() not in {"member", "owner"}:
@@ -32,9 +37,15 @@ async def review(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None
             "match=%(match)s command=%(command)s %(url)s",
             {"match": match.string, "command": command, "url": comment["html_url"]},
         )
+        # Give a heads up that the command has been received.
+        await utils.add_reaction(gh, reaction="+1", comment=comment)
         if command == "review":
-            await utils.add_reaction(gh, reaction="+1", comment=comment)
-            event.data["pull_request"] = await utils.get_pr_for_issue(
-                gh, issue=event.data["issue"]
-            )
-            await check_pr_files(event, gh, *args, **kwargs)
+            await review(event, gh, *args, **kwargs)
+
+
+async def review(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:
+    """Review command to trigger the checks for all the pull request files."""
+    event.data["pull_request"] = await utils.get_pr_for_issue(
+        gh, issue=event.data["issue"]
+    )
+    await check_pr_files(event, gh, *args, **kwargs)
