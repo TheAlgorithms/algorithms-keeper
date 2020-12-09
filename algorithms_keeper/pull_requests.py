@@ -56,6 +56,50 @@ STAGE_PREFIX = "awaiting"
 router = routing.Router()
 
 
+async def update_stage_label(
+    gh: GitHubAPI, *, pull_request: Dict[str, Any], next_label: Optional[str] = None
+) -> None:
+    """Update the stage label of the given pull request.
+
+    This is a two steps process with one being optional:
+    1. Remove any of the stage labels, if present.
+    2. Add the next stage label given in the `next_label` argument.
+
+    If the next_label argument is not provided, then only the first step is performed.
+    """
+    for label in pull_request["labels"]:
+        # The bot should be smart enough to figure out that if the next_label
+        # already exist, then there's no need to change the pull request stage.
+        if label["name"] == next_label:
+            return None
+        elif STAGE_PREFIX in label["name"]:
+            await utils.remove_label_from_pr_or_issue(
+                gh, label=label["name"], pr_or_issue=pull_request
+            )
+    if next_label is not None:
+        await utils.add_label_to_pr_or_issue(
+            gh, label=next_label, pr_or_issue=pull_request
+        )
+
+
+@router.register("pull_request", action="opened")
+@router.register("pull_request", action="ready_for_review")
+async def add_review_label_on_pr_opened(
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
+) -> None:
+    """Add the awaiting reviews label when a pull request is opened.
+
+    Assume that the pull request is perfect and ready for review, then when any
+    `require_` labels or `failed_test` label is added, this label will be removed.
+    The label will be added back when all those labels are removed.
+    """
+    pull_request = event.data["pull_request"]
+    if not pull_request["draft"]:
+        await update_stage_label(
+            gh, pull_request=pull_request, next_label=Label.AWAITING_REVIEW
+        )
+
+
 @router.register("pull_request", action="opened")
 async def close_invalid_or_additional_pr(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
@@ -202,50 +246,6 @@ async def check_ci_ready_for_review_pr(
     await check_runs.check_ci_status_and_label(event, gh, *args, **kwargs)
 
 
-async def update_stage_label(
-    gh: GitHubAPI, *, pull_request: Dict[str, Any], next_label: Optional[str] = None
-) -> None:
-    """Update the stage label of the given pull request.
-
-    This is a two steps process with one being optional:
-    1. Remove any of the stage labels, if present.
-    2. Add the next stage label given in the `next_label` argument.
-
-    If the next_label argument is not provided, then only the first step is performed.
-    """
-    for label in pull_request["labels"]:
-        # The bot should be smart enough to figure out that if the next_label
-        # already exist, then there's no need to change the pull request stage.
-        if label["name"] == next_label:
-            return None
-        elif STAGE_PREFIX in label["name"]:
-            await utils.remove_label_from_pr_or_issue(
-                gh, label=label["name"], pr_or_issue=pull_request
-            )
-    if next_label is not None:
-        await utils.add_label_to_pr_or_issue(
-            gh, label=next_label, pr_or_issue=pull_request
-        )
-
-
-@router.register("pull_request", action="opened")
-@router.register("pull_request", action="ready_for_review")
-async def add_review_label_on_pr_opened(
-    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
-) -> None:
-    """Add the awaiting reviews label when a pull request is opened.
-
-    Assume that the pull request is perfect and ready for review, then when any
-    `require_` labels or `failed_test` label is added, this label will be removed.
-    The label will be added back when all those labels are removed.
-    """
-    pull_request = event.data["pull_request"]
-    if not pull_request["draft"]:
-        await update_stage_label(
-            gh, pull_request=pull_request, next_label=Label.AWAITING_REVIEW
-        )
-
-
 @router.register("pull_request_review", action="submitted")
 async def update_pr_label_for_review(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
@@ -348,7 +348,5 @@ async def remove_awaiting_labels(
     - If the pull request is invalid and got closed.
     """
     pull_request = event.data["pull_request"]
-    if pull_request["merged"] or any(
-        label["name"] == "invalid" for label in pull_request["labels"]
-    ):
+    if pull_request["merged"]:
         await update_stage_label(gh, pull_request=pull_request)
