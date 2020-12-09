@@ -268,6 +268,7 @@ async def add_reaction(
     await gh.post(
         comment["url"] + "/reactions",
         data={"content": reaction},
+        accept="application/vnd.github.squirrel-girl-preview+json",
         oauth_token=await gh.access_token,
     )
 
