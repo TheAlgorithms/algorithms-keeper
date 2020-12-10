@@ -8,22 +8,25 @@ number = 1
 repository = "user/testing"
 sha = "a06212024d8f1c339c55c5ea4568ech155368c21"
 user = "user"
+comment = "This is a comment"
 
 # Issue
 html_issue_url = f"https://github.com/{repository}/issues/{number}"
 issue_path = f"/repos/{repository}/issues"
 issue_url = f"https://api.github.com/repos/{repository}/issues/{number}"
-labels_url = issue_url + "/labels"
-comments_url = issue_url + "/comments"
+labels_url = f"{issue_url}/labels"
+comments_url = f"{issue_url}/comments"
+comment_url = f"{comments_url}/{number}"
+reactions_url = f"{comment_url}/reactions"
 
 # Pull request
 pr_url = f"https://api.github.com/repos/{repository}/pulls/{number}"
 html_pr_url = f"https://github.com/{repository}/pulls/{number}"
-reviewers_url = pr_url + "/requested_reviewers"
-files_url = pr_url + "/files"
+reviewers_url = f"{pr_url}/requested_reviewers"
+files_url = f"{pr_url}/files"
 contents_url1 = f"https://api.github.com/repos/{repository}/contents/test1.py?ref={sha}"
 contents_url2 = f"https://api.github.com/repos/{repository}/contents/test2.py?ref={sha}"
-review_url = pr_url + "/reviews"
+review_url = f"{pr_url}/reviews"
 
 # Check run
 check_run_url = f"/repos/{repository}/commits/{sha}/check-runs"

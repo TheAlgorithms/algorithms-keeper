@@ -9,6 +9,8 @@ from algorithms_keeper.constants import Label
 from .utils import (
     MockGitHubAPI,
     check_run_url,
+    comment,
+    comment_url,
     comments_url,
     contents_url1,
     contents_url2,
@@ -18,6 +20,7 @@ from .utils import (
     number,
     pr_url,
     pr_user_search_url,
+    reactions_url,
     repository,
     review_url,
     reviewers_url,
@@ -25,8 +28,6 @@ from .utils import (
     sha,
     user,
 )
-
-comment = "This is a comment"
 
 
 @pytest.mark.asyncio
@@ -318,3 +319,23 @@ async def test_create_pr_review():
     )
     assert review_url in gh.post_url
     assert gh.post_data[0]["event"] == "COMMENT"
+
+
+@pytest.mark.asyncio
+async def test_add_reaction():
+    post = {reactions_url: None}
+    comment = {"url": comment_url}
+    gh = MockGitHubAPI(post=post)
+    await utils.add_reaction(gh, reaction="+1", comment=comment)
+    assert reactions_url in gh.post_url
+    assert {"content": "+1"} in gh.post_data
+
+
+@pytest.mark.asyncio
+async def test_get_pr_for_issue():
+    getitem = {pr_url: None}
+    issue = {"pull_request": {"url": pr_url}}
+    gh = MockGitHubAPI(getitem=getitem)
+    result = await utils.get_pr_for_issue(gh, issue=issue)
+    assert result is None
+    assert pr_url in gh.getitem_url

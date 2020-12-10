@@ -15,7 +15,7 @@ from algorithms_keeper.pull_requests import check_pr_files
 
 router = routing.Router()
 
-COMMAND_RE = re.compile(r"@algorithms[\-_]keeper\s+([a-z]+)", re.IGNORECASE)
+COMMAND_RE = re.compile(r"@algorithms-keeper\s+([a-z]+)", re.IGNORECASE)
 
 
 @router.register("issue_comment", action="created")
