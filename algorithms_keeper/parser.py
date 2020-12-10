@@ -8,7 +8,7 @@ from algorithms_keeper.log import logger as main_logger
 from algorithms_keeper.utils import File
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class ReviewComment:
     # Text of the review comment. This is different from the body of the review itself.
     body: str
@@ -66,6 +66,8 @@ class PullRequestReviewRecord:
         side: str = "RIGHT",
     ) -> None:
         body = f"Please provide doctest for the {nodetype}: `{nodename}`"
+        if self._lineno_exist(lineno, filepath, body):
+            return None
         self.doctest.append(ReviewComment(body, filepath, lineno, side))
 
     def add_annotation(
@@ -77,6 +79,8 @@ class PullRequestReviewRecord:
         side: str = "RIGHT",
     ) -> None:
         body = f"Please provide type hint for the {nodetype}: `{nodename}`"
+        if self._lineno_exist(lineno, filepath, body):
+            return None
         self.annotation.append(ReviewComment(body, filepath, lineno, side))
 
     def add_return_annotation(
@@ -88,10 +92,12 @@ class PullRequestReviewRecord:
         side: str = "RIGHT",
     ) -> None:
         body = (
-            f"Please provide return type hint for the {nodetype}: `{nodename}`.\n\n"
-            f"**NOTE: If the {nodetype} returns `None`, please provide the type hint "
-            f"as:**\n```python\ndef function() -> None:\n```"
+            f"Please provide return type hint for the {nodetype}: `{nodename}`. **If "
+            f"the {nodetype} does not return a value, please provide the type hint "
+            f"as:** `def function() -> None:`"
         )
+        if self._lineno_exist(lineno, filepath, body):
+            return None
         self.return_annotation.append(ReviewComment(body, filepath, lineno, side))
 
     def add_descriptive_name(
@@ -103,6 +109,8 @@ class PullRequestReviewRecord:
         side: str = "RIGHT",
     ) -> None:
         body = f"Please provide descriptive name for the {nodetype}: `{nodename}`"
+        if self._lineno_exist(lineno, filepath, body):
+            return None
         self.descriptive_name.append(ReviewComment(body, filepath, lineno, side))
 
     def add_error(self, message: str, filepath: str, lineno: int) -> None:
@@ -111,6 +119,22 @@ class PullRequestReviewRecord:
             f"```python\n{message}\n```"
         )
         self.error.append(ReviewComment(body, filepath, lineno))
+
+    def _lineno_exist(self, lineno: int, filepath: str, body: str) -> bool:
+        """Determine whether any review comment is registered for the given *lineno*
+        for the given *filepath*.
+
+        If ``True``, add the provided *body* to the respective comment body. This helps
+        in avoiding multiple review comments on the same line.
+        """
+        for group in self.__dict__:
+            if group == "error":
+                continue
+            for comment in getattr(self, group):
+                if comment.line == lineno and comment.path == filepath:
+                    comment.body += f"\n\n{body}"
+                    return True
+        return False
 
     def collect_comments(self) -> List[Dict[str, Any]]:
         """Return all the review comments in the record instance.
@@ -496,5 +520,5 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             data = self.file.name, node.lineno, node.name, "function"
         elif isinstance(node, ast.arg):
-            data = self.file.name, node.lineno, node.arg, "argument"
+            data = self.file.name, node.lineno, node.arg, "parameter"
         return data
