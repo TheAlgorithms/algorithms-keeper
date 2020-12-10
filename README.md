@@ -16,7 +16,9 @@ Open an issue with the message greeting the user who either installed the app or
 ### Add or remove label(s) to pull requests
 - To indicate that some of the tests are failing for this pull request if it is not present and remove it when all the tests are passing. It does nothing if the tests are already passing. ***NOTE: This check will be skipped if the pull request is in draft mode.***
 - To indicate that the pull request is ready to be reviewed by a maintainer which means all the checks are passing and all the requirements have been satisfied.
-- To indicate the user that a maintainer has requested some changes to their submission. The bot will remove the label once the pull request is approved.
+- To indicate the user that a maintainer has requested some changes to their submission.
+
+The pull request label stages can be best described in a [graphviz](http://www.webgraphviz.com/) diagram whose code is in the [pull requests module](https://github.com/dhruvmanila/algorithms-keeper/blob/master/algorithms_keeper/pull_requests.py).
 
 ### Close invalid pull requests
 A pull request is considered invalid if:
@@ -32,9 +34,13 @@ A user will be allowed a fix number of pull requests at a time which will be ind
 ***NOTE: These checks will be skipped for any member or owner of the organization and also for the pull request which is in draft mode.***
 
 ### Check all Python files in a pull request
-All the Python files will be checked for tests [`doctest`/`unittest`/`pytest`], type hints and descriptive class/function/parameter names. Labels will be added and/or removed according to the latest commit in a pull request. A report will be created and commented by the bot if there are any errors found, but ***only*** when a pull request is ***opened*** or is made ***ready for review*** and not on the subsequent commits.
+All the Python files will be checked for tests [`doctest`/`unittest`/`pytest`], type hints and descriptive class/function/parameter names. Labels will be added and/or removed according to the latest commit in a pull request. The bot will post the review with all the details regarding the missing requirements.
 
 ***NOTE: These checks will be skipped if the pull request is in draft mode and if the pull request is invalid.***
+
+### Commands
+Some of the actions of the bot can be triggered using commands:
+- `@algorithms-keeper review` to trigger the checks for all the pull request files. ***This command is valid only if it is commented on a pull request and only by either the member or owner of the organization.***
 
 ## Logging
 There are three loggers out of which one is the main `logger` for the bot that is being used to log certain events and exceptions. The other two loggers are: `aiohttp.access` from `aiohttp.log.access_logger`, used to log `POST` requests made by GitHub for delivering the payload and `api`, used to log all the API calls made to GitHub. The logs can be viewed best using the following command ([_requires Heroku CLI_](https://devcenter.heroku.com/articles/heroku-cli#download-and-install)):
