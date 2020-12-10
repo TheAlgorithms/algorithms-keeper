@@ -40,7 +40,7 @@ All the Python files will be checked for tests [`doctest`/`unittest`/`pytest`], 
 
 ### Commands
 Some of the actions of the bot can be triggered using commands:
-- `@algorithms-keeper review` to trigger the checks for all the pull request files. ***This command is valid only if it is commented on a pull request and only by either the member or owner of the organization.***
+- `@algorithms-keeper review` to trigger the checks for all the pull request files. ***This command is valid only if it is commented on a pull request and only by either a member or owner of the organization.***
 
 ## Logging
 There are three loggers out of which one is the main `logger` for the bot that is being used to log certain events and exceptions. The other two loggers are: `aiohttp.access` from `aiohttp.log.access_logger`, used to log `POST` requests made by GitHub for delivering the payload and `api`, used to log all the API calls made to GitHub. The logs can be viewed best using the following command ([_requires Heroku CLI_](https://devcenter.heroku.com/articles/heroku-cli#download-and-install)):
