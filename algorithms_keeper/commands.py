@@ -2,7 +2,8 @@
 
 ``@algorithms-keeper review`` to trigger the checks for only added pull request files.
 ``@algorithms-keeper review-all`` to trigger the checks for all the pull request files,
-including the modified files.
+including the modified files. As we cannot post review comments on lines not part of
+the diff, this command only modify the labels accordingly.
 """
 import re
 from typing import Any

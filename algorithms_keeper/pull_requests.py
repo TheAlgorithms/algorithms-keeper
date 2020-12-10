@@ -193,6 +193,7 @@ async def check_pr_files(
     if pull_request["draft"]:
         return None
 
+    ignore_modified = kwargs.pop("ignore_modified", True)
     pr_files = await utils.get_pr_files(gh, pull_request=pull_request)
     parser = PullRequestFilesParser(pr_files, pull_request=pull_request)
 
@@ -214,8 +215,9 @@ async def check_pr_files(
             )
 
     # Default behavior is to ignore modified files but that can be changed.
-    # This will come only from the commands module.
-    for file in parser.files_to_check(kwargs.pop("ignore_modified", True)):
+    # This will come only from the commands module through the command:
+    # ``@algorithms-keeper review-all``
+    for file in parser.files_to_check(ignore_modified):
         code = await utils.get_file_content(gh, file=file)
         parser.parse(file, code)
 
@@ -227,7 +229,11 @@ async def check_pr_files(
         await utils.remove_label_from_pr_or_issue(
             gh, label=parser.remove_labels, pr_or_issue=pull_request
         )
-    if comments := parser.collect_comments():
+    # We can only post the review comments on lines included in the pull request diff.
+    # If the bot tries to post on lines not in the diff, GitHub will complain. For now
+    # we will not post review comments when ``@algorithms-keeper review-all`` command
+    # is run, we will only change the labels.
+    if ignore_modified and (comments := parser.collect_comments()):
         await utils.create_pr_review(gh, pull_request=pull_request, comments=comments)
 
 

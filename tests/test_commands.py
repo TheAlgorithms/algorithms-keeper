@@ -188,10 +188,10 @@ async def test_review_all_command():
     }
     gh = MockGitHubAPI(post=post, getitem=getitem, getiter=getiter)
     await commands.router.dispatch(event, gh)
-    assert len(gh.post_url) == 4  # Two labels, one reaction, one review
+    assert len(gh.post_url) == 3  # Two labels, one reaction
     assert reactions_url in gh.post_url
     assert labels_url in gh.post_url
-    assert review_url in gh.post_url
+    assert review_url not in gh.post_url
     assert {"labels": [Label.ENHANCEMENT]} in gh.post_data
     assert {"labels": [Label.REQUIRE_TEST]} in gh.post_data
     assert {"content": "+1"} in gh.post_data

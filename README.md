@@ -41,7 +41,7 @@ All the Python files will be checked for tests [`doctest`/`unittest`/`pytest`], 
 ### Commands
 Some of the actions of the bot can be triggered using commands:
 - `@algorithms-keeper review` to trigger the checks for only added pull request files.
-- `@algorithms-keeper review-all` to trigger the checks for all the pull request files, including the modified files.
+- `@algorithms-keeper review-all` to trigger the checks for all the pull request files, including the modified files. As we cannot post review comments on lines not part of the diff, this command only modify the labels accordingly.
 
 ***NOTE: Commands are in BETA and valid only if it is commented on a pull request and only by either a member or owner of the organization.***
 

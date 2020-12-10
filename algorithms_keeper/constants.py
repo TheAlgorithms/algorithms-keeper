@@ -134,7 +134,8 @@ this review, [please open an issue about it.]\
 ### algorithms-keeper actions can be triggered by commenting on this PR:
 - `@algorithms-keeper review` to trigger the checks for only added pull request files
 - `@algorithms-keeper review-all` to trigger the checks for all the pull request \
-files, including the modified files
+files, including the modified files. As we cannot post review comments on lines not \
+part of the diff, this command will only modify the labels accordingly.
 
 NOTE: Commands are in beta and so this feature is restricted only to a member or owner \
 of the organization.
