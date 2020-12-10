@@ -213,7 +213,9 @@ async def check_pr_files(
                 gh, label=label, pr_or_issue=pull_request
             )
 
-    for file in parser.files_to_check():
+    # Default behavior is to ignore modified files but that can be changed.
+    # This will come only from the commands module.
+    for file in parser.files_to_check(kwargs.pop("ignore_modified", True)):
         code = await utils.get_file_content(gh, file=file)
         parser.parse(file, code)
 

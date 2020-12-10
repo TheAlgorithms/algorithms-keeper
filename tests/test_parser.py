@@ -119,16 +119,18 @@ def test_type_label(parser, expected):
 
 
 @pytest.mark.parametrize(
-    "parser, expected",
+    "parser, ignore_modified, expected",
     (
-        (get_parser("test.txt, README.md, scripts/validate.py"), 0),
-        (get_parser("project/sol1.py, project/__init__.py"), 1),
-        (get_parser("algo.py, test_algo.py, algo_test.py"), 1),
-        (get_parser("algo.py, another.py, yetanother.py", "modified"), 0),
+        (get_parser("test.txt, README.md, scripts/validate.py"), True, 0),
+        (get_parser("project/sol1.py, project/__init__.py"), True, 1),
+        (get_parser("algo.py, test_algo.py, algo_test.py"), True, 1),
+        (get_parser("algo.py, another.py, yetanother.py", "modified"), True, 0),
+        (get_parser("algo.py, another.py, README.md", "modified"), False, 2),
+        (get_parser("algo.py, another.py, README.md"), False, 2),
     ),
 )
-def test_files_to_check(parser, expected):
-    assert len(parser.files_to_check()) == expected
+def test_files_to_check(parser, ignore_modified, expected):
+    assert len(parser.files_to_check(ignore_modified)) == expected
 
 
 def test_record_error():

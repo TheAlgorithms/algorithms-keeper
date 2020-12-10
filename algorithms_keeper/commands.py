@@ -1,6 +1,8 @@
 """algorithms-keeper commands module
 
-``@algorithms-keeper review`` to trigger the checks for pull request files.
+``@algorithms-keeper review`` to trigger the checks for only added pull request files.
+``@algorithms-keeper review-all`` to trigger the checks for all the pull request files,
+including the modified files.
 """
 import re
 from typing import Any
@@ -15,7 +17,7 @@ from algorithms_keeper.pull_requests import check_pr_files
 
 router = routing.Router()
 
-COMMAND_RE = re.compile(r"@algorithms-keeper\s+([a-z]+)", re.IGNORECASE)
+COMMAND_RE = re.compile(r"@algorithms-keeper\s+([a-z\-]+)", re.IGNORECASE)
 
 
 @router.register("issue_comment", action="created")
@@ -39,6 +41,8 @@ async def main(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:
         )
         if command == "review":
             await review(event, gh, *args, **kwargs)
+        elif command == "review-all":
+            await review(event, gh, *args, ignore_modified=False, **kwargs)
 
 
 async def review(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:

@@ -252,21 +252,22 @@ class PullRequestFilesParser:
                 label = Label.ENHANCEMENT
         return label if label not in self.pr_labels else ""
 
-    def files_to_check(self) -> List[File]:
+    def files_to_check(self, ignore_modified: bool) -> List[File]:
         """Collect and return all the ``File`` which should be checked.
 
         Ignores:
 
         - Python test files
         - Dunder filenames like *__init__.py*
-        - Files which were modified (Issue #11)
+        - Optionally ignore files which were modified (Issue #11)
         - Files in the *scripts/* directory (Issue #11)
         """
         f = []
+        ignore = "modified" if ignore_modified else None
         for file in self.pr_files:
             filepath = file.path
             if (
-                file.status != "modified"
+                file.status != ignore
                 and filepath.suffix == ".py"
                 and "scripts" not in filepath.parts
                 and not filepath.name.startswith("__")
