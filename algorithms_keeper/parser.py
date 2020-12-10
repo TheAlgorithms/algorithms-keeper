@@ -336,8 +336,9 @@ class PullRequestFilesParser:
                 file, self._pr_record, self._skip_doctest
             )
 
-        for node in ast.walk(module):
-            visitor.visit(node)
+        # We will only visit the top level nodes, rest will be taken care by the
+        # node functions.
+        visitor.generic_visit(module)
 
         # As this is going to be called for each file, we will represent the sequence
         # of labels as ``Set`` to avoid duplications.
@@ -372,6 +373,10 @@ class PullRequestFilesParser:
             self._remove_labels.add(Label.ANNOTATIONS)
 
 
+DoctestNodeT = Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module]
+AnyFunctionT = Union[ast.FunctionDef, ast.AsyncFunctionDef]
+
+
 class PullRequestFileNodeVisitor(ast.NodeVisitor):
     """Main Visitor class to visit all the nodes in the given file.
 
@@ -401,22 +406,21 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         """Visit a node only if the `visit` function is defined."""
         method = "visit_" + node.__class__.__name__
         try:
-            # We don't want to perform a `generic_visit`.
-            # We will be walking down the abstract syntax tree and visit the nodes for
-            # which the `visit_` function is defined. Now, first time we walk, we will
-            # visit the `ast.Module` object whose function is not defined, thus
-            # performing a `generic_visit` which will call all the child nodes which are
-            # the top level function and class nodes and call the respective `visit_`
-            # function. But, we are still walking and so after this cycle is over, we
-            # will be calling the top level function and class nodes again. This will
-            # add `ReviewComment` data to the report multiple times.
+            # There's no need to perform a ``generic_visit`` everytime a node function
+            # is not present.
             visitor = getattr(self, method)
             visitor(node)
         except AttributeError:
             pass
 
-    def visit_FunctionDef(self, function: ast.FunctionDef) -> None:
-        """Visit the function node.
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._visit_AnyFunctionDef(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._visit_AnyFunctionDef(node)
+
+    def _visit_AnyFunctionDef(self, function: AnyFunctionT) -> None:
+        """Visit the sync/async function node.
 
         Rules:
 
@@ -431,18 +435,11 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         nodedata = self._nodedata(function)
         if len(function.name) == 1:
             self.record.add_descriptive_name(*nodedata)
-        if not self.skip_doctest and function.name != "__init__":
-            docstring = ast.get_docstring(function)
-            if docstring is not None:
-                for line in docstring.splitlines():
-                    if line.strip().startswith(">>> "):
-                        break
-                else:
-                    self.record.add_doctest(*nodedata)
-            else:
-                self.record.add_doctest(*nodedata)
+        if function.name != "__init__" and not self._contains_doctest(function):
+            self.record.add_doctest(*nodedata)
         if function.returns is None:
             self.record.add_return_annotation(*nodedata)
+        self.generic_visit(function.args)
 
     def visit_arg(self, arg: ast.arg) -> None:
         """Visit the argument node. The argument can be positional-only, keyword-only or
@@ -465,9 +462,28 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         Rules:
 
         - Class name should be of length > 1.
+        - If a class contains doctest in the class-level docstring, doctest checking
+          will be skipped for all its methods.
         """
         if len(klass.name) == 1:
             self.record.add_descriptive_name(*self._nodedata(klass))
+        temp = self.skip_doctest
+        if not self.skip_doctest and self._contains_doctest(klass):
+            self.skip_doctest = True
+        # Make a visit to all the methods in a class after checking whether the class
+        # contains doctest or not.
+        self.generic_visit(klass)
+        self.skip_doctest = temp
+
+    def _contains_doctest(self, node: DoctestNodeT) -> bool:
+        if not self.skip_doctest:
+            docstring = ast.get_docstring(node)
+            if docstring is not None:
+                for line in docstring.splitlines():
+                    if line.strip().startswith(">>> "):
+                        return True
+            return False
+        return True
 
     def _nodedata(self, node: ast.AST) -> Tuple[str, int, str, str]:
         """Helper function to fill data required in the ``Comment`` object as per the

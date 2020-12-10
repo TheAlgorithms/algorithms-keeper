@@ -41,3 +41,31 @@ class ClassTest:
         15
         """
         return num + 5
+
+
+class ClassContainingDoctest:
+    """This class contains doctest in its class-level docstring.
+
+    >>> obj = ClassContainingDoctest(10)
+    >>> obj.value
+    10
+    >>> obj.value = 11
+    >>> obj.value
+    11
+    >>> obj.cls_method()
+    None
+    """
+
+    def __init__(self, value: int) -> None:
+        self._value = value
+
+    @property
+    def value(self) -> int:
+        return self._value
+
+    @value.setter
+    def value(self, val: int) -> None:
+        self._value = val
+
+    def cls_method(self) -> None:
+        return None
