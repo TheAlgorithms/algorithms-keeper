@@ -244,8 +244,9 @@ class PullRequestFilesParser:
         label = ""
         for file in self.pr_files:
             if file.path.suffix in self._DOCS_EXTENSIONS:
-                label = Label.DOCUMENTATION
-                break
+                if file.path.name != "DIRECTORY.md":
+                    label = Label.DOCUMENTATION
+                    break
             elif file.status == "modified":
                 label = Label.ENHANCEMENT
         return label

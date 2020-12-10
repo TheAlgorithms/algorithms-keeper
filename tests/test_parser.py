@@ -109,6 +109,8 @@ def test_validate_extension(parser, expected):
         (get_parser("README.rst", "modified"), Label.DOCUMENTATION),
         (get_parser("test.py, README.md", "modified"), Label.DOCUMENTATION),
         (get_parser("test.py", "modified"), Label.ENHANCEMENT),
+        # DIRECTORY.md gets updated automatically in every PR.
+        (get_parser("sol1.py, DIRECTORY.md"), ""),
         (get_parser("test.py"), ""),
     ),
 )
