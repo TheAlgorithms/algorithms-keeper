@@ -232,7 +232,8 @@ class PullRequestFilesParser:
 
     def type_label(self) -> str:
         """Determine the type of the given pull request and return an appropriate
-        label for it. Returns an empty string if the type is not programmed.
+        label for it. Returns an empty string if the type is not programmed or the label
+        already exists on the pull request.
 
         **documentation**: Contains a file with an extension from ``_DOCS_EXTENSIONS``
 
@@ -249,7 +250,7 @@ class PullRequestFilesParser:
                     break
             elif file.status == "modified":
                 label = Label.ENHANCEMENT
-        return label
+        return label if label not in self.pr_labels else ""
 
     def files_to_check(self) -> List[File]:
         """Collect and return all the ``File`` which should be checked.
