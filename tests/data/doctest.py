@@ -52,7 +52,7 @@ class ClassContainingDoctest:
     >>> obj.value = 11
     >>> obj.value
     11
-    >>> obj.cls_method()
+    >>> await obj.cls_method()
     None
     """
 
@@ -67,5 +67,5 @@ class ClassContainingDoctest:
     def value(self, val: int) -> None:
         self._value = val
 
-    def cls_method(self) -> None:
+    async def cls_method(self) -> None:
         return None

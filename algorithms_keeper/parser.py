@@ -490,7 +490,7 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         given node."""
         if isinstance(node, ast.ClassDef):
             data = self.file.name, node.lineno, node.name, "class"
-        elif isinstance(node, ast.FunctionDef):
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             data = self.file.name, node.lineno, node.name, "function"
         elif isinstance(node, ast.arg):
             data = self.file.name, node.lineno, node.arg, "argument"
