@@ -57,7 +57,7 @@ async def test_check_run_completed_some_in_progress():
     getitem = {
         search_url: {
             "total_count": 1,
-            "items": [{"labels": [{"name": Label.AWAITING_REVIEW}]}],
+            "items": [{"labels": [{"name": Label.REVIEW}]}],
         },
         check_run_url: {
             "total_count": 2,
@@ -91,7 +91,7 @@ async def test_check_run_completed_passing_no_label():
     getitem = {
         search_url: {
             "total_count": 1,
-            "items": [{"labels": [{"name": Label.AWAITING_REVIEW}]}],
+            "items": [{"labels": [{"name": Label.REVIEW}]}],
         },
         check_run_url: {
             "total_count": 2,
@@ -168,7 +168,7 @@ async def test_check_run_completed_failing_no_label():
             "total_count": 1,
             "items": [
                 {
-                    "labels": [{"name": Label.AWAITING_REVIEW}],
+                    "labels": [{"name": Label.REVIEW}],
                     "labels_url": labels_url,
                 }
             ],

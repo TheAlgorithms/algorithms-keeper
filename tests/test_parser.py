@@ -185,7 +185,7 @@ def test_same_lineno_multiple_source():
         (
             "return_annotation.py",
             3,
-            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES),
+            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAME),
             1,
             2,
         ),
@@ -193,18 +193,18 @@ def test_same_lineno_multiple_source():
         (
             "annotation.py",
             7,
-            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES, Label.ANNOTATIONS),
+            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAME, Label.TYPE_HINT),
             0,
             2,
         ),
-        ("doctest.py, return_annotation.py", 7, (Label.ANNOTATIONS,), 1, 0),
+        ("doctest.py, return_annotation.py", 7, (Label.TYPE_HINT,), 1, 0),
         # As there is a test file, there should not be a check for doctest. Now, all the
         # labels exist and we will be using `doctest.py`, thus the parser should remove
         # all the labels.
         (
             "doctest.py, test_file.py",
             0,
-            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES, Label.ANNOTATIONS),
+            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAME, Label.TYPE_HINT),
             0,
             3,
         ),

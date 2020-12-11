@@ -102,10 +102,10 @@ async def test_add_multiple_labels():
     post = {labels_url: None}
     gh = MockGitHubAPI(post=post)
     await utils.add_label_to_pr_or_issue(
-        gh, label=[Label.ANNOTATIONS, Label.AWAITING_REVIEW], pr_or_issue=pr_or_issue
+        gh, label=[Label.TYPE_HINT, Label.REVIEW], pr_or_issue=pr_or_issue
     )
     assert labels_url in gh.post_url
-    assert {"labels": [Label.ANNOTATIONS, Label.AWAITING_REVIEW]} in gh.post_data
+    assert {"labels": [Label.TYPE_HINT, Label.REVIEW]} in gh.post_data
 
 
 @pytest.mark.asyncio
@@ -125,8 +125,8 @@ async def test_remove_label_from_pr_or_issue(pr_or_issue):
 
 @pytest.mark.asyncio
 async def test_remove_multiple_labels():
-    parse_label1 = urllib.parse.quote(Label.ANNOTATIONS)
-    parse_label2 = urllib.parse.quote(Label.AWAITING_REVIEW)
+    parse_label1 = urllib.parse.quote(Label.TYPE_HINT)
+    parse_label2 = urllib.parse.quote(Label.REVIEW)
     pr_or_issue = {"issue_url": issue_url}
     delete = {
         f"{labels_url}/{parse_label1}": None,
@@ -134,7 +134,7 @@ async def test_remove_multiple_labels():
     }
     gh = MockGitHubAPI(delete=delete)
     await utils.remove_label_from_pr_or_issue(
-        gh, label=[Label.ANNOTATIONS, Label.AWAITING_REVIEW], pr_or_issue=pr_or_issue
+        gh, label=[Label.TYPE_HINT, Label.REVIEW], pr_or_issue=pr_or_issue
     )
     assert f"{labels_url}/{parse_label1}" in gh.delete_url
     assert f"{labels_url}/{parse_label2}" in gh.delete_url

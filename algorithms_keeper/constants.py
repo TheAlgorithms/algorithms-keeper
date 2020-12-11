@@ -7,13 +7,13 @@ constant related to pull request will be defined in the `pull_requests` module.
 
 
 class Label:
-    FAILED_TEST = "Status: Tests are failing"
-    AWAITING_REVIEW = "Status: awaiting reviews"
-    ANNOTATIONS = "Require: Type hints"
-    REQUIRE_TEST = "Require: Tests"
-    DESCRIPTIVE_NAMES = "Require: Descriptive names"
-    CHANGES_REQUESTED = "Status: awaiting changes"
     INVALID = "invalid"
+    DESCRIPTIVE_NAME = "Require: Descriptive names"
+    REQUIRE_TEST = "Require: Tests"
+    TYPE_HINT = "Require: Type hints"
+    CHANGE = "Status: awaiting changes"
+    REVIEW = "Status: awaiting reviews"
+    FAILED_TEST = "Status: Tests are failing"
     DOCUMENTATION = "Type: documentation"
     ENHANCEMENT = "Type: enhancement"
 
@@ -23,25 +23,6 @@ class Missing:
     DOCTEST = "doctest"
     RETURN_TYPE_HINT = "return type hint"
     DESCRIPTIVE_NAME = "descriptive name"
-
-
-# Mapping of missing requirement to the appropriate label.
-# ``Missing.RETURN_TYPE_HINT`` and ``Missing.TYPE_HINT`` corresponds to the same label.
-REQUIREMENT_TO_LABEL = {
-    Missing.DOCTEST: Label.REQUIRE_TEST,
-    Missing.TYPE_HINT: Label.ANNOTATIONS,
-    Missing.DESCRIPTIVE_NAME: Label.DESCRIPTIVE_NAMES,
-}
-
-# If these labels are on a pull request, then the pull request is not ready to be
-# reviewed by a maintainer and thus, remove Label.AWAITING_REVIEW if present.
-PR_NOT_READY_LABELS = (
-    Label.FAILED_TEST,
-    Label.REQUIRE_TEST,
-    Label.DESCRIPTIVE_NAMES,
-    Label.ANNOTATIONS,
-    Label.INVALID,
-)
 
 
 # All the comments made by the bot
@@ -73,7 +54,7 @@ If you believe that this is being done by mistake, please open the issue with th
 necessary details regarding the problem.
 """
 
-EMPTY_BODY_COMMENT = """\
+EMPTY_PR_BODY_COMMENT = """\
 # Closing this pull request as invalid
 
 @{user_login}, this pull request is being closed because the description is empty. \

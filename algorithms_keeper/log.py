@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, MutableMapping
+from typing import Any, MutableMapping
 
 from aiohttp.abc import AbstractAccessLogger
 from aiohttp.web_request import BaseRequest
@@ -46,23 +46,6 @@ def inject_status_color(status: int) -> None:  # pragma: no cover
     MSG_ARGS_FORMAT["status"]["color"] = STATUS_COLOR.get(status, "red")
 
 
-def format_args(
-    args: MutableMapping[str, Any], level: str
-) -> Dict[str, str]:  # pragma: no cover
-    """Inject the color and style according to the specification provided in the
-    format dictionary."""
-    # We could directly mutate the `args` dictionary but it is better this way in
-    # the long run.
-    formatted = {}
-    for key, value in args.items():
-        if key in MSG_ARGS_FORMAT:
-            c = MSG_ARGS_FORMAT[key]
-            style = "normal" if "style" not in c else c["style"]
-            value = Color.inject(str(value), c["color"], style, level)
-        formatted[key] = value
-    return formatted
-
-
 class AnsiColor:  # pragma: no cover
     BLACK = colorcode(30)
     RED = colorcode(31)
@@ -106,6 +89,17 @@ class AnsiColor:  # pragma: no cover
 
 
 Color = AnsiColor()
+
+
+def format_args(args: MutableMapping[str, Any], level: str) -> None:  # pragma: no cover
+    """Inject the color and style according to the specification provided in the
+    format dictionary."""
+    for key, value in args.items():
+        if key in MSG_ARGS_FORMAT:
+            c = MSG_ARGS_FORMAT[key]
+            style = "normal" if "style" not in c else c["style"]
+            value = Color.inject(str(value), c["color"], style, level)
+        args[key] = value
 
 
 class CustomAccessLogger(AbstractAccessLogger):  # pragma: no cover
@@ -154,16 +148,17 @@ class CustomFormatter(logging.Formatter):  # pragma: no cover
     def format(self, record: logging.LogRecord) -> str:
         """Custom formating for the log message.
 
-        If the record contains an exception, then add that to the 'message'. Heroku
-        splits the message according to newline and thus the color format will
-        disappear, so add the color format after every newline as well.
+        If the record contains an exception, then add that to the 'message'.
         """
         custom_fmt = self.LOG_LEVEL_FORMAT.get(record.levelname, self.default_fmt)
         # Inject custom formating to the base class which `self.formatMessage` calls.
         self._style._fmt = custom_fmt
         if record.args and isinstance(record.args, MutableMapping):
-            record.args = format_args(record.args, record.levelname)
+            format_args(record.args, record.levelname)
         msg = record.getMessage()
+        # The below ``if`` statements are taken directly from
+        # ``logging.Formatter.format`` with the addition of injecting colors in the
+        # exception text.
         if record.exc_info:
             if not record.exc_text:
                 record.exc_text = self.formatException(record.exc_info)
@@ -171,12 +166,9 @@ class CustomFormatter(logging.Formatter):  # pragma: no cover
             if msg[-1:] != "\n":
                 msg += "\n"
             msg += record.exc_text
-            c = getattr(AnsiColor, record.levelname)
-            msg = msg.replace("\n", f"\n{c}")
-        if record.stack_info:
-            if msg[-1:] != "\n":
-                msg += "\n"
-            msg += self.formatStack(record.stack_info)
+            # Heroku splits the message according to newline and thus the color format
+            # will disappear, so add the color format after every newline as well.
+            msg = msg.replace("\n", f"\n{getattr(AnsiColor, record.levelname)}")
         record.message = msg
         return self.formatMessage(record)
 

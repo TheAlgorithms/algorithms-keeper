@@ -41,17 +41,27 @@ from algorithms_keeper import utils
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
-    EMPTY_BODY_COMMENT,
+    EMPTY_PR_BODY_COMMENT,
     INVALID_EXTENSION_COMMENT,
     MAX_PR_REACHED_COMMENT,
-    PR_NOT_READY_LABELS,
     Label,
 )
 from algorithms_keeper.log import logger
 from algorithms_keeper.parser import PullRequestFilesParser
 
+# To disable this check, set the constant to 0.
 MAX_PR_PER_USER = 1
 STAGE_PREFIX = "awaiting"
+
+# If these labels are on a pull request, then the pull request is not ready to be
+# reviewed by a maintainer and thus, remove Label.REVIEW if present.
+PR_NOT_READY_LABELS = (
+    Label.FAILED_TEST,
+    Label.REQUIRE_TEST,
+    Label.DESCRIPTIVE_NAME,
+    Label.TYPE_HINT,
+    Label.INVALID,
+)
 
 router = routing.Router()
 
@@ -95,9 +105,7 @@ async def add_review_label_on_pr_opened(
     """
     pull_request = event.data["pull_request"]
     if not pull_request["draft"]:
-        await update_stage_label(
-            gh, pull_request=pull_request, next_label=Label.AWAITING_REVIEW
-        )
+        await update_stage_label(gh, pull_request=pull_request, next_label=Label.REVIEW)
 
 
 @router.register("pull_request", action="opened")
@@ -129,7 +137,7 @@ async def close_invalid_or_additional_pr(
         comment = None
 
         if not pr_body:
-            comment = EMPTY_BODY_COMMENT.format(user_login=pr_author)
+            comment = EMPTY_PR_BODY_COMMENT.format(user_login=pr_author)
             logger.info("Empty PR body: %(url)s", {"url": pull_request["html_url"]})
         elif re.search(r"\[x]", pr_body, re.IGNORECASE) is None:
             comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
@@ -275,7 +283,7 @@ async def update_pr_label_for_review(
     if review["author_association"].lower() in {"member", "owner"}:
         if review_state == "changes_requested":
             await update_stage_label(
-                gh, pull_request=pull_request, next_label=Label.CHANGES_REQUESTED
+                gh, pull_request=pull_request, next_label=Label.CHANGE
             )
         elif review_state == "approved":
             await update_stage_label(gh, pull_request=pull_request)
@@ -294,11 +302,9 @@ async def remove_awaiting_review_label(
     """
     pull_request = event.data["pull_request"]
     if event.data["label"]["name"] in PR_NOT_READY_LABELS:
-        if any(
-            label["name"] == Label.AWAITING_REVIEW for label in pull_request["labels"]
-        ):
+        if any(label["name"] == Label.REVIEW for label in pull_request["labels"]):
             await utils.remove_label_from_pr_or_issue(
-                gh, label=Label.AWAITING_REVIEW, pr_or_issue=pull_request
+                gh, label=Label.REVIEW, pr_or_issue=pull_request
             )
 
 
@@ -310,7 +316,7 @@ async def add_awaiting_review_label(
     labels exists on the given pull request.
 
     To know whether the pull request has already been reviewed, we will check whether
-    `Label.CHANGES_REQUESTED` exist or not.
+    `Label.CHANGE` exist or not.
     """
     pull_request = event.data["pull_request"]
 
@@ -321,9 +327,7 @@ async def add_awaiting_review_label(
     for pr_label in pull_request["labels"]:
         if pr_label["name"] in PR_NOT_READY_LABELS:
             return None
-    await update_stage_label(
-        gh, pull_request=pull_request, next_label=Label.AWAITING_REVIEW
-    )
+    await update_stage_label(gh, pull_request=pull_request, next_label=Label.REVIEW)
 
 
 @router.register("pull_request", action="synchronize")
@@ -341,9 +345,7 @@ async def add_review_label_on_changes(
     for label in pull_request["labels"]:
         if label["name"] in PR_NOT_READY_LABELS:
             return None
-    await update_stage_label(
-        gh, pull_request=pull_request, next_label=Label.AWAITING_REVIEW
-    )
+    await update_stage_label(gh, pull_request=pull_request, next_label=Label.REVIEW)
 
 
 @router.register("pull_request", action="closed")

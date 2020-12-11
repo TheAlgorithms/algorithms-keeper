@@ -7,7 +7,7 @@ from gidgethub import sansio
 from algorithms_keeper import pull_requests, utils
 from algorithms_keeper.constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
-    EMPTY_BODY_COMMENT,
+    EMPTY_PR_BODY_COMMENT,
     INVALID_EXTENSION_COMMENT,
     MAX_PR_REACHED_COMMENT,
     Label,
@@ -35,7 +35,7 @@ from .utils import (
 )
 
 # Comment constants
-EMPTY_BODY_COMMENT = EMPTY_BODY_COMMENT.format(user_login=user)
+EMPTY_BODY_COMMENT = EMPTY_PR_BODY_COMMENT.format(user_login=user)
 CHECKBOX_NOT_TICKED_COMMENT = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=user)
 
 
@@ -98,7 +98,7 @@ async def test_invalid_pr_opened(body, comment, draft):
         assert len(gh.post_url) == 2
     else:
         assert len(gh.post_url) == 3  # Two labels and one comment
-        assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+        assert {"labels": [Label.REVIEW]} in gh.post_data
     assert comments_url in gh.post_url
     assert labels_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -178,7 +178,7 @@ async def test_pr_opened_by_member():
     await pull_requests.router.dispatch(event, gh)
     assert files_url in gh.getiter_url
     assert labels_url in gh.post_url
-    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+    assert {"labels": [Label.REVIEW]} in gh.post_data
 
 
 @pytest.mark.asyncio
@@ -214,7 +214,7 @@ async def test_max_pr_reached():
     assert pr_user_search_url in gh.getiter_url
     assert comments_url in gh.post_url
     assert labels_url in gh.post_url
-    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+    assert {"labels": [Label.REVIEW]} in gh.post_data
     assert {
         "body": MAX_PR_REACHED_COMMENT.format(user_login=user, pr_number="#1, #2")
     } in gh.post_data
@@ -249,7 +249,7 @@ async def test_max_pr_disabled(monkeypatch):
     assert files_url in gh.getiter_url
     # No changes as max pr checks are disabled
     assert labels_url in gh.post_url
-    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+    assert {"labels": [Label.REVIEW]} in gh.post_data
 
 
 @pytest.mark.asyncio
@@ -291,7 +291,7 @@ async def test_for_extensionless_files():
     assert pr_user_search_url in gh.getiter_url
     assert files_url in gh.getiter_url
     assert len(gh.post_url) == 3  # Two labels and one comment.
-    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+    assert {"labels": [Label.REVIEW]} in gh.post_data
     assert comments_url in gh.post_url
     assert labels_url in gh.post_url
     assert {
@@ -313,7 +313,7 @@ async def test_pr_with_no_python_files():
         "pull_request": {
             "url": pr_url,
             # The label was added when the PR was opened.
-            "labels": [{"name": Label.AWAITING_REVIEW}],
+            "labels": [{"name": Label.REVIEW}],
             "head": {"sha": sha},
             "user": {"login": user},
             "author_association": "NONE",
@@ -422,14 +422,14 @@ async def test_pr_with_test_file(action, getiter):
         assert len(gh.post_url) == 3  # Two labels and one comment.
         assert review_url in gh.post_url
         assert labels_url in gh.post_url
-        assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+        assert {"labels": [Label.REVIEW]} in gh.post_data
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
         assert files_url in gh.getiter_url
         assert len(gh.post_url) == 2
         assert review_url in gh.post_url
         assert labels_url in gh.post_url
-    assert {"labels": [Label.ANNOTATIONS]} in gh.post_data
+    assert {"labels": [Label.TYPE_HINT]} in gh.post_data
     assert gh.delete_url[0] == f"{labels_url}/{remove_label}"
     assert not gh.delete_data
 
@@ -484,7 +484,7 @@ async def test_pr_with_successful_tests(action, getiter):
         assert len(gh.getiter_url) == 2
         assert gh.getiter_url == [pr_user_search_url, files_url]
         assert labels_url in gh.post_url
-        assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+        assert {"labels": [Label.REVIEW]} in gh.post_data
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
         assert gh.getiter_url[0] == files_url
@@ -579,7 +579,7 @@ async def test_pr_with_add_all_require_labels(action, getiter):
         assert len(gh.post_url) == 3
         assert labels_url in gh.post_url
         assert review_url in gh.post_url
-        assert {"labels": [Label.AWAITING_REVIEW]}
+        assert {"labels": [Label.REVIEW]}
     elif data["action"] == "synchronize":
         assert len(gh.getiter_url) == 1
         assert files_url in gh.getiter_url
@@ -595,8 +595,8 @@ async def test_pr_with_add_all_require_labels(action, getiter):
 async def test_pr_with_remove_all_require_labels():
     # This case will only be true when the action is `synchronize`
     test_label_url = labels_url + f"/{urllib.parse.quote(Label.REQUIRE_TEST)}"
-    names_label_url = labels_url + f"/{urllib.parse.quote(Label.DESCRIPTIVE_NAMES)}"
-    annotation_label_url = labels_url + f"/{urllib.parse.quote(Label.ANNOTATIONS)}"
+    names_label_url = labels_url + f"/{urllib.parse.quote(Label.DESCRIPTIVE_NAME)}"
+    annotation_label_url = labels_url + f"/{urllib.parse.quote(Label.TYPE_HINT)}"
     data = {
         "action": "synchronize",
         "pull_request": {
@@ -604,8 +604,8 @@ async def test_pr_with_remove_all_require_labels():
             "body": CHECKBOX_TICKED,
             "labels": [
                 {"name": Label.REQUIRE_TEST},
-                {"name": Label.DESCRIPTIVE_NAMES},
-                {"name": Label.ANNOTATIONS},
+                {"name": Label.DESCRIPTIVE_NAME},
+                {"name": Label.TYPE_HINT},
             ],
             "user": {"login": user},
             "author_association": "NONE",
@@ -646,7 +646,7 @@ async def test_add_type_label_on_pr():
         "pull_request": {
             "url": pr_url,
             # The label was added when the PR was opened.
-            "labels": [{"name": Label.AWAITING_REVIEW}],
+            "labels": [{"name": Label.REVIEW}],
             "head": {"sha": sha},
             "user": {"login": user},
             "author_association": "NONE",
@@ -714,7 +714,7 @@ async def test_label_on_ready_for_review_pr():
     assert files_url in gh.getiter_url
     assert labels_url in gh.post_url
     assert {"labels": [Label.FAILED_TEST]} in gh.post_data
-    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+    assert {"labels": [Label.REVIEW]} in gh.post_data
 
 
 @pytest.mark.parametrize("state", ("commented", "changes_requested", "approved"))
@@ -754,7 +754,7 @@ async def test_pr_review_changes_requested_no_label():
     gh = MockGitHubAPI(post=post)
     await pull_requests.router.dispatch(event, gh)
     assert labels_url in gh.post_url
-    assert {"labels": [Label.CHANGES_REQUESTED]} in gh.post_data
+    assert {"labels": [Label.CHANGE]} in gh.post_data
     assert gh.delete_url == []
     assert gh.delete_data == []
 
@@ -768,7 +768,7 @@ async def test_pr_review_changes_requested_with_label():
             "author_association": "MEMBER",
         },
         "pull_request": {
-            "labels": [{"name": Label.CHANGES_REQUESTED}],
+            "labels": [{"name": Label.CHANGE}],
             "issue_url": issue_url,
         },
     }
@@ -784,7 +784,7 @@ async def test_pr_review_changes_requested_with_label():
 
 @pytest.mark.asyncio
 async def test_pr_review_changes_requested_with_review_label():
-    remove_label = urllib.parse.quote(Label.AWAITING_REVIEW)
+    remove_label = urllib.parse.quote(Label.REVIEW)
     data = {
         "action": "submitted",
         "review": {
@@ -792,7 +792,7 @@ async def test_pr_review_changes_requested_with_review_label():
             "author_association": "MEMBER",
         },
         "pull_request": {
-            "labels": [{"name": Label.AWAITING_REVIEW}],
+            "labels": [{"name": Label.REVIEW}],
             "issue_url": issue_url,
         },
     }
@@ -802,15 +802,13 @@ async def test_pr_review_changes_requested_with_review_label():
     gh = MockGitHubAPI(post=post, delete=delete)
     await pull_requests.router.dispatch(event, gh)
     assert labels_url in gh.post_url
-    assert {"labels": [Label.CHANGES_REQUESTED]} in gh.post_data
+    assert {"labels": [Label.CHANGE]} in gh.post_data
     assert f"{labels_url}/{remove_label}" in gh.delete_url
     assert gh.delete_data == []
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "labels", ([{"name": Label.AWAITING_REVIEW}], [{"name": Label.CHANGES_REQUESTED}])
-)
+@pytest.mark.parametrize("labels", ([{"name": Label.REVIEW}], [{"name": Label.CHANGE}]))
 async def test_pr_approved_with_label(labels):
     remove_label = urllib.parse.quote(labels[0]["name"])
     data = {
@@ -834,15 +832,15 @@ async def test_pr_approved_with_label(labels):
     assert gh.post_data == []
 
 
-# Test conditions for when to add and remove `Label.AWAITING_REVIEW` label:
-# NOTE: All conditions assumes the PR has been already been labeled AWAITING_REVIEW when
+# Test conditions for when to add and remove `Label.REVIEW` label:
+# NOTE: All conditions assumes the PR has been already been labeled REVIEW when
 #       it was opened.
 # 1. PR opened with no errors (No error labels were added)
 # 2. PR opened with errors (Error labels were added)
 # 3. One or more label from PR_NOT_READY_LABELS were removed but not all
 # 4. All labels from PR present in PR_NOT_READY_LABELS were removed
-# 5. CHANGES_REQUESTED label was added (PR was reviewed)
-# 6. CHANGES_REQUESTED label was removed (PR was approved)
+# 5. CHANGE label was added (PR was reviewed)
+# 6. CHANGE label was removed (PR was approved)
 
 
 @pytest.mark.asyncio
@@ -850,10 +848,10 @@ async def test_pr_opened_with_no_errors_and_labeled():
     data = {
         "action": "labeled",
         "pull_request": {
-            "labels": [{"name": Label.AWAITING_REVIEW}],
+            "labels": [{"name": Label.REVIEW}],
             "issue_url": issue_url,
         },
-        "label": {"name": Label.AWAITING_REVIEW},
+        "label": {"name": Label.REVIEW},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
@@ -867,11 +865,11 @@ async def test_pr_opened_with_no_errors_and_labeled():
 
 @pytest.mark.asyncio
 async def test_pr_opened_with_errors_and_labeled():
-    remove_label = urllib.parse.quote(Label.AWAITING_REVIEW)
+    remove_label = urllib.parse.quote(Label.REVIEW)
     data = {
         "action": "labeled",
         "pull_request": {
-            "labels": [{"name": Label.AWAITING_REVIEW}, {"name": Label.REQUIRE_TEST}],
+            "labels": [{"name": Label.REVIEW}, {"name": Label.REQUIRE_TEST}],
             "issue_url": issue_url,
         },
         "label": {"name": Label.REQUIRE_TEST},
@@ -883,7 +881,7 @@ async def test_pr_opened_with_errors_and_labeled():
     # No labels were added.
     assert gh.post_url == []
     assert gh.post_data == []
-    # AWAITING_REVIEW label was removed.
+    # REVIEW label was removed.
     assert f"{labels_url}/{remove_label}" in gh.delete_url
     assert gh.delete_data == []
 
@@ -896,7 +894,7 @@ async def test_pr_not_all_labels_removed():
             "labels": [{"name": Label.REQUIRE_TEST}],
             "issue_url": issue_url,
         },
-        "label": {"name": Label.ANNOTATIONS},
+        "label": {"name": Label.TYPE_HINT},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
@@ -916,21 +914,21 @@ async def test_pr_all_labels_removed():
             "labels": [{"name": "good first issue"}],  # Random label.
             "issue_url": issue_url,
         },
-        "label": {"name": Label.ANNOTATIONS},
+        "label": {"name": Label.TYPE_HINT},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     post = {labels_url: None}
     gh = MockGitHubAPI(post=post)
     await pull_requests.router.dispatch(event, gh)
-    # No error labels so the AWAITING_REVIEW label should be added.
+    # No error labels so the REVIEW label should be added.
     assert labels_url in gh.post_url
-    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+    assert {"labels": [Label.REVIEW]} in gh.post_data
     assert gh.delete_url == []
     assert gh.delete_data == []
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("labels", ([{"name": Label.CHANGES_REQUESTED}], []))
+@pytest.mark.parametrize("labels", ([{"name": Label.CHANGE}], []))
 async def test_changes_requested_label_added_and_removed(labels):
     data = {
         "action": "labeled",
@@ -938,7 +936,7 @@ async def test_changes_requested_label_added_and_removed(labels):
             "labels": labels,
             "issue_url": issue_url,
         },
-        "label": {"name": Label.CHANGES_REQUESTED},
+        "label": {"name": Label.CHANGE},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
@@ -958,7 +956,7 @@ async def test_awaiting_review_label_removed():
             "labels": [],
             "issue_url": issue_url,
         },
-        "label": {"name": Label.AWAITING_REVIEW},
+        "label": {"name": Label.REVIEW},
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
@@ -977,7 +975,7 @@ async def test_no_label_in_draft_mode():
         "pull_request": {
             "user": {"login": user},
             "issue_url": issue_url,
-            "labels": [{"name": Label.CHANGES_REQUESTED}],
+            "labels": [{"name": Label.CHANGE}],
             "draft": True,
         },
     }
@@ -992,7 +990,7 @@ async def test_no_label_in_draft_mode():
 
 @pytest.mark.asyncio
 async def test_no_review_label_when_pr_not_ready():
-    remove_label = urllib.parse.quote(Label.ANNOTATIONS)
+    remove_label = urllib.parse.quote(Label.TYPE_HINT)
     data = {
         "action": "synchronize",
         "pull_request": {
@@ -1000,7 +998,7 @@ async def test_no_review_label_when_pr_not_ready():
             "html_url": html_pr_url,
             "user": {"login": user},
             "issue_url": issue_url,
-            "labels": [{"name": Label.ANNOTATIONS}],
+            "labels": [{"name": Label.TYPE_HINT}],
             "draft": False,
         },
     }
@@ -1015,7 +1013,7 @@ async def test_no_review_label_when_pr_not_ready():
 
 @pytest.mark.asyncio
 async def test_review_label_after_changes_made():
-    remove_label = urllib.parse.quote(Label.CHANGES_REQUESTED)
+    remove_label = urllib.parse.quote(Label.CHANGE)
     data = {
         "action": "synchronize",
         "pull_request": {
@@ -1023,7 +1021,7 @@ async def test_review_label_after_changes_made():
             "html_url": html_pr_url,
             "user": {"login": user},
             "issue_url": issue_url,
-            "labels": [{"name": Label.CHANGES_REQUESTED}],
+            "labels": [{"name": Label.CHANGE}],
             "draft": False,
         },
     }
@@ -1036,18 +1034,18 @@ async def test_review_label_after_changes_made():
     assert f"{labels_url}/{remove_label}" in gh.delete_url
     assert gh.delete_data == []
     assert labels_url in gh.post_url
-    assert {"labels": [Label.AWAITING_REVIEW]} in gh.post_data
+    assert {"labels": [Label.REVIEW]} in gh.post_data
 
 
 @pytest.mark.asyncio
 async def test_pr_closed():
-    remove_label = urllib.parse.quote(Label.AWAITING_REVIEW)
+    remove_label = urllib.parse.quote(Label.REVIEW)
     data = {
         "action": "closed",
         "pull_request": {
             "merged": True,
             "issue_url": issue_url,
-            "labels": [{"name": Label.AWAITING_REVIEW}],
+            "labels": [{"name": Label.REVIEW}],
         },
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")

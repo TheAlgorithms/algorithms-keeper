@@ -23,9 +23,9 @@ class PullRequestFilesParser:
     function ``parse``.
     """
 
-    _DOCS_EXTENSIONS: Tuple[str, ...] = (".md", ".rst")
+    DOCS_EXTENSIONS: Tuple[str, ...] = (".md", ".rst")
 
-    _ACCEPTED_EXTENSIONS: Tuple[str, ...] = (
+    ACCEPTED_EXTENSIONS: Tuple[str, ...] = (
         # Configuration files
         ".ini",
         ".toml",
@@ -37,7 +37,7 @@ class PullRequestFilesParser:
         ".txt",
         # Good old Python file
         ".py",
-    ) + _DOCS_EXTENSIONS
+    ) + DOCS_EXTENSIONS
 
     def __init__(
         self,
@@ -101,7 +101,7 @@ class PullRequestFilesParser:
                     # root of the repository
                     elif not filepath.name.startswith("."):
                         invalid_filepath.append(file.name)
-            elif filepath.suffix not in self._ACCEPTED_EXTENSIONS:
+            elif filepath.suffix not in self.ACCEPTED_EXTENSIONS:
                 invalid_filepath.append(file.name)
         invalid_files = ", ".join(invalid_filepath)
         if invalid_files:
@@ -125,7 +125,7 @@ class PullRequestFilesParser:
         """
         label = ""
         for file in self.pr_files:
-            if file.path.suffix in self._DOCS_EXTENSIONS:
+            if file.path.suffix in self.DOCS_EXTENSIONS:
                 if file.path.name != "DIRECTORY.md":
                     label = Label.DOCUMENTATION
                     break
