@@ -18,6 +18,21 @@ class Label:
     ENHANCEMENT = "Type: enhancement"
 
 
+class Missing:
+    TYPE_HINT = "type hint"
+    DOCTEST = "doctest"
+    RETURN_TYPE_HINT = "return type hint"
+    DESCRIPTIVE_NAME = "descriptive name"
+
+
+# Mapping of missing requirement to the appropriate label.
+# ``Missing.RETURN_TYPE_HINT`` and ``Missing.TYPE_HINT`` corresponds to the same label.
+REQUIREMENT_TO_LABEL = {
+    Missing.DOCTEST: Label.REQUIRE_TEST,
+    Missing.TYPE_HINT: Label.ANNOTATIONS,
+    Missing.DESCRIPTIVE_NAME: Label.DESCRIPTIVE_NAMES,
+}
+
 # If these labels are on a pull request, then the pull request is not ready to be
 # reviewed by a maintainer and thus, remove Label.AWAITING_REVIEW if present.
 PR_NOT_READY_LABELS = (

@@ -1,27 +1,15 @@
 import ast
-from operator import itemgetter
 from pathlib import Path, PurePath
 
 import pytest
 
 from algorithms_keeper.constants import Label
-from algorithms_keeper.parser import (
-    PullRequestFilesParser,
-    PullRequestReviewRecord,
-    ReviewComment,
-)
+from algorithms_keeper.parser import PullRequestFilesParser, PullRequestReviewRecord
 from algorithms_keeper.utils import File
 
 from .utils import user
 
 DATA_DIRPATH = Path.cwd() / "tests" / "data"
-
-FILE_EXPECTED = (
-    ("doctest.py", 4),
-    ("return_annotation.py", 3),
-    ("descriptive_name.py", 16),
-    ("annotation.py", 7),
-)
 
 PR = {"user": {"login": user}, "labels": [], "html_url": "", "url": ""}
 
@@ -39,16 +27,6 @@ def get_parser(filenames: str, status: str = "added") -> PullRequestFilesParser:
         name = name.strip()
         files.append(File(name, PurePath(name), "", status))
     return PullRequestFilesParser(files, pull_request=PR)
-
-
-def test_review_comment_asdict():
-    comment = ReviewComment("body", "test.py", 1)
-    assert comment.asdict == {
-        "body": "body",
-        "path": "test.py",
-        "line": 1,
-        "side": "RIGHT",
-    }
 
 
 @pytest.mark.parametrize(
@@ -134,7 +112,7 @@ def test_type_label(parser, expected):
     ),
 )
 def test_files_to_check(parser, ignore_modified, expected):
-    assert len(parser.files_to_check(ignore_modified)) == expected
+    assert len(list(parser.files_to_check(ignore_modified))) == expected
 
 
 def test_record_error():
@@ -147,18 +125,20 @@ def test_record_error():
         "return None"
     )
     parser = get_parser("invalid_syntax.py")
-    parser.parse(parser.pr_files[0], source)
+    for file in parser.files_to_check(True):
+        parser.parse(file, source)
     assert not parser.add_labels
     assert not parser.remove_labels
-    assert len(parser._pr_record.error) == 1
+    assert len(parser._pr_record._error) == 1
 
 
 def test_no_doctest_checking():
     parser = get_parser("contains_testnode.py")
-    parser.parse(parser.pr_files[0], get_source("contains_testnode.py"))
+    for file in parser.files_to_check(True):
+        parser.parse(file, get_source("contains_testnode.py"))
     assert not parser.add_labels
     assert not parser.remove_labels
-    assert not parser._pr_record.doctest
+    assert not parser._pr_record._comments
 
 
 @pytest.mark.parametrize(
@@ -170,57 +150,74 @@ def test_no_doctest_checking():
 )
 def test_lineno_exist(filename, expected):
     parser = get_parser(filename)
-    parser.parse(parser.pr_files[0], get_source(filename))
-    assert len(eval(f"parser._pr_record.{filename.split('.')[0]}")) == expected
+    for file in parser.files_to_check(True):
+        parser.parse(file, get_source(filename))
+    assert len(parser._pr_record._comments) == expected
+    assert len(parser.add_labels) == 1
+    assert not parser.remove_labels
 
 
 def test_lineno_exist_multiple_types():
     # Multiple errors on the same line should result in only one review comment.
     source = "def f(a):\n    return None"
     parser = get_parser("multiple_types.py")
-    parser.parse(parser.pr_files[0], source)
-    assert len(parser.collect_comments()) == 1
+    for file in parser.files_to_check(True):
+        parser.parse(file, source)
+    assert len(parser._pr_record._comments) == 1
+    assert len(parser.add_labels) == 3
+    assert not parser.remove_labels
 
 
 def test_same_lineno_multiple_source():
     source = "def f(a):\n    return None"
     parser = get_parser("first_file.py, second_file.py")
-    parser.parse(parser.pr_files[0], source)
-    parser.parse(parser.pr_files[1], source)
-    assert len(parser.collect_comments()) == 2
-
-
-@pytest.mark.parametrize("filename, expected", FILE_EXPECTED)
-def test_individual_files(monkeypatch, filename, expected):
-    # We will set this to ``False`` only for the tests.
-    monkeypatch.setattr(PullRequestReviewRecord, "_lineno_exist", lambda *args: False)
-    parser = get_parser(filename)
-    parser.parse(parser.pr_files[0], get_source(filename))
-    assert len(eval(f"parser._pr_record.{filename.split('.')[0]}")) == expected
-
-
-def test_all_files(monkeypatch):
-    # We will set this to ``False`` only for the tests.
-    monkeypatch.setattr(PullRequestReviewRecord, "_lineno_exist", lambda *args: False)
-    parser = get_parser(", ".join(map(itemgetter(0), FILE_EXPECTED)))
-    expected = 0
-    for index, file in enumerate(FILE_EXPECTED):
-        parser.parse(parser.pr_files[index], get_source(file[0]))
-        expected += file[1]
-    assert len(parser.collect_comments()) == expected
-    # Test add all labels.
+    for file in parser.files_to_check(True):
+        parser.parse(file, source)
+    assert len(parser._pr_record._comments) == 2
     assert len(parser.add_labels) == 3
     assert not parser.remove_labels
 
 
-def test_remove_all_labels():
-    all_labels = [Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES, Label.ANNOTATIONS]
-    # As there is a test file, there should not be a check for doctest. Now, all the
-    # labels exist and we will be using `doctest.py`, thus the parser should remove
-    # all the labels.
-    parser = get_parser("doctest.py, test_file.py")
-    # Inject all the labels in the pull request labels attribute.
-    parser.pr_labels = all_labels
-    parser.parse(parser.pr_files[0], get_source("doctest.py"))
-    assert len(parser.remove_labels) == 3
-    assert not parser.add_labels
+@pytest.mark.parametrize(
+    "filename, expected, labels, add_count, remove_count",
+    (
+        ("doctest.py", 4, (Label.REQUIRE_TEST,), 0, 0),
+        (
+            "return_annotation.py",
+            3,
+            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES),
+            1,
+            2,
+        ),
+        ("descriptive_name.py", 16, (), 1, 0),
+        (
+            "annotation.py",
+            7,
+            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES, Label.ANNOTATIONS),
+            0,
+            2,
+        ),
+        ("doctest.py, return_annotation.py", 7, (Label.ANNOTATIONS,), 1, 0),
+        # As there is a test file, there should not be a check for doctest. Now, all the
+        # labels exist and we will be using `doctest.py`, thus the parser should remove
+        # all the labels.
+        (
+            "doctest.py, test_file.py",
+            0,
+            (Label.REQUIRE_TEST, Label.DESCRIPTIVE_NAMES, Label.ANNOTATIONS),
+            0,
+            3,
+        ),
+    ),
+)
+def test_combinations(monkeypatch, filename, expected, labels, add_count, remove_count):
+    # We will set this to ``False`` only for the tests as we want to know whether the
+    # parser detected all the missing requirements.
+    monkeypatch.setattr(PullRequestReviewRecord, "_lineno_exist", lambda *args: False)
+    parser = get_parser(filename)
+    parser.pr_labels = labels
+    for file in parser.files_to_check(True):
+        parser.parse(file, get_source(file.name))
+    assert len(parser._pr_record._comments) == expected
+    assert len(parser.add_labels) == add_count
+    assert len(parser.remove_labels) == remove_count
