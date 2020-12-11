@@ -432,21 +432,19 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
     def visit(self, node: ast.AST) -> None:
         """Visit a node only if the `visit` function is defined."""
         method = "visit_" + node.__class__.__name__
-        try:
-            # There's no need to perform a ``generic_visit`` everytime a node function
-            # is not present.
-            visitor = getattr(self, method)
+        # There's no need to perform a ``generic_visit`` everytime a node function
+        # is not present.
+        visitor = getattr(self, method, None)
+        if visitor is not None:
             visitor(node)
-        except AttributeError:
-            pass
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._visit_AnyFunctionDef(node)
+        self._visit_anyfunction(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._visit_AnyFunctionDef(node)
+        self._visit_anyfunction(node)
 
-    def _visit_AnyFunctionDef(self, function: AnyFunctionT) -> None:
+    def _visit_anyfunction(self, function: AnyFunctionT) -> None:
         """Visit the sync/async function node.
 
         Rules:
@@ -464,9 +462,9 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
             self.record.add_descriptive_name(*nodedata)
         if function.name != "__init__" and not self._contains_doctest(function):
             self.record.add_doctest(*nodedata)
+        self.generic_visit(function.args)
         if function.returns is None:
             self.record.add_return_annotation(*nodedata)
-        self.generic_visit(function.args)
 
     def visit_arg(self, arg: ast.arg) -> None:
         """Visit the argument node. The argument can be positional-only, keyword-only or

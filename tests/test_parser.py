@@ -5,7 +5,11 @@ from pathlib import Path, PurePath
 import pytest
 
 from algorithms_keeper.constants import Label
-from algorithms_keeper.parser import PullRequestFilesParser, ReviewComment
+from algorithms_keeper.parser import (
+    PullRequestFilesParser,
+    PullRequestReviewRecord,
+    ReviewComment,
+)
 from algorithms_keeper.utils import File
 
 from .utils import user
@@ -37,7 +41,7 @@ def get_parser(filenames: str, status: str = "added") -> PullRequestFilesParser:
     return PullRequestFilesParser(files, pull_request=PR)
 
 
-def test_review_comment():
+def test_review_comment_asdict():
     comment = ReviewComment("body", "test.py", 1)
     assert comment.asdict == {
         "body": "body",
@@ -71,11 +75,11 @@ def test_contains_testfile(parser, expected):
             False,
         ),
         (
-            "def test_function():\n" "    pass",
+            "def test_function():\n    pass",
             True,
         ),
         (
-            "def random():\n" "    pass\n" "\n" "\n" "class TestClass:\n" "    pass",
+            "def random():\n    pass\n\n\nclass TestClass:\n    pass",
             True,
         ),
     ),
@@ -157,14 +161,47 @@ def test_no_doctest_checking():
     assert not parser._pr_record.doctest
 
 
-@pytest.mark.parametrize("filename, expected", FILE_EXPECTED)
-def test_individual_files(filename, expected):
+@pytest.mark.parametrize(
+    "filename, expected",
+    (
+        ("annotation.py", 5),
+        ("descriptive_name.py", 8),
+    ),
+)
+def test_lineno_exist(filename, expected):
     parser = get_parser(filename)
     parser.parse(parser.pr_files[0], get_source(filename))
     assert len(eval(f"parser._pr_record.{filename.split('.')[0]}")) == expected
 
 
-def test_all_files():
+def test_lineno_exist_multiple_types():
+    # Multiple errors on the same line should result in only one review comment.
+    source = "def f(a):\n    return None"
+    parser = get_parser("multiple_types.py")
+    parser.parse(parser.pr_files[0], source)
+    assert len(parser.collect_comments()) == 1
+
+
+def test_same_lineno_multiple_source():
+    source = "def f(a):\n    return None"
+    parser = get_parser("first_file.py, second_file.py")
+    parser.parse(parser.pr_files[0], source)
+    parser.parse(parser.pr_files[1], source)
+    assert len(parser.collect_comments()) == 2
+
+
+@pytest.mark.parametrize("filename, expected", FILE_EXPECTED)
+def test_individual_files(monkeypatch, filename, expected):
+    # We will set this to ``False`` only for the tests.
+    monkeypatch.setattr(PullRequestReviewRecord, "_lineno_exist", lambda *args: False)
+    parser = get_parser(filename)
+    parser.parse(parser.pr_files[0], get_source(filename))
+    assert len(eval(f"parser._pr_record.{filename.split('.')[0]}")) == expected
+
+
+def test_all_files(monkeypatch):
+    # We will set this to ``False`` only for the tests.
+    monkeypatch.setattr(PullRequestReviewRecord, "_lineno_exist", lambda *args: False)
     parser = get_parser(", ".join(map(itemgetter(0), FILE_EXPECTED)))
     expected = 0
     for index, file in enumerate(FILE_EXPECTED):

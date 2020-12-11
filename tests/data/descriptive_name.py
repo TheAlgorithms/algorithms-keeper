@@ -37,28 +37,28 @@ class ClassTest:
 
     def cls_all_args(self, a: int, b: str, c: bool) -> None:
         """All arguments require descriptive names
-        >>> cls_all_args(1, "a", True)
+        >>> self.cls_all_args(1, "a", True)
         None
         """
         return None
 
     def cls_some_args(self, num: int, s: str, b: bool) -> None:
         """Some arguments require descriptive names
-        >>> cls_some_args(1, "a", True)
+        >>> self.cls_some_args(1, "a", True)
         None
         """
         return None
 
     def cls_no_args(self, num: int, boolean: bool) -> None:
         """No arguments require descriptive names
-        >>> cls_no_args(1, True)
+        >>> self.cls_no_args(1, True)
         None
         """
         return None
 
     def c(self, a: int = 10) -> None:
         """Function and argument both require descriptive names
-        >>> c()
+        >>> self.c()
         None
         """
         return None
