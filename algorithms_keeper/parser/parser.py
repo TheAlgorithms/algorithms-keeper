@@ -143,26 +143,24 @@ class PullRequestFilesParser:
         - Optionally ignore files which were modified (Issue #11)
         - Files in the *scripts/* directory (Issue #11)
         """
-        try:
-            ignore = "modified" if ignore_modified else None
-            for file in self.pr_files:
-                filepath = file.path
-                if (
-                    file.status != ignore
-                    and filepath.suffix == ".py"
-                    and "scripts" not in filepath.parts
-                    and not filepath.name.startswith("__")
-                    and (
-                        not (
-                            filepath.name.startswith("test_")
-                            or filepath.name.endswith("_test.py")
-                        )
+        ignore = "modified" if ignore_modified else None
+        for file in self.pr_files:
+            filepath = file.path
+            if (
+                file.status != ignore
+                and filepath.suffix == ".py"
+                and "scripts" not in filepath.parts
+                and not filepath.name.startswith("__")
+                and (
+                    not (
+                        filepath.name.startswith("test_")
+                        or filepath.name.endswith("_test.py")
                     )
-                ):
-                    yield file
-        finally:
-            # Fill the labels **only** after all the files have been parsed.
-            self._pr_record.fill_labels(self.pr_labels)
+                )
+            ):
+                yield file
+        # Fill the labels **only** after all the files have been parsed.
+        self._pr_record.fill_labels(self.pr_labels)
 
     def _contains_testfile(self) -> bool:
         """Check whether any of the pull request files satisfy the naming convention
