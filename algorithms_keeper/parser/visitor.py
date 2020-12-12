@@ -1,5 +1,5 @@
 import ast
-from typing import Tuple, Union
+from typing import Set, Tuple, Union
 
 from algorithms_keeper.constants import Missing
 from algorithms_keeper.parser.record import PullRequestReviewRecord
@@ -7,6 +7,11 @@ from algorithms_keeper.utils import File
 
 DoctestNodeT = Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module]
 AnyFunctionT = Union[ast.FunctionDef, ast.AsyncFunctionDef]
+
+INIT: str = "__init__"
+
+# This assumes the program follows proper naming convention.
+IGNORE_ARGS: Set[str] = {"self", "cls"}
 
 
 class PullRequestFileNodeVisitor(ast.NodeVisitor):
@@ -65,7 +70,7 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         nodedata = self._nodedata(function)
         if len(function.name) == 1:
             self.record.add_comment(*nodedata, Missing.DESCRIPTIVE_NAME)
-        if function.name != "__init__" and not self._contains_doctest(function):
+        if function.name != INIT and not self._contains_doctest(function):
             self.record.add_comment(*nodedata, Missing.DOCTEST)
         self.generic_visit(function.args)
         if function.returns is None:
@@ -83,7 +88,7 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         nodedata = self._nodedata(arg)
         if len(arg.arg) == 1:
             self.record.add_comment(*nodedata, Missing.DESCRIPTIVE_NAME)
-        if arg.arg != "self" and arg.annotation is None:
+        if arg.arg not in IGNORE_ARGS and arg.annotation is None:
             self.record.add_comment(*nodedata, Missing.TYPE_HINT)
 
     def visit_ClassDef(self, klass: ast.ClassDef) -> None:

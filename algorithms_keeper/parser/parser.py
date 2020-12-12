@@ -23,6 +23,10 @@ class PullRequestFilesParser:
     function ``parse``.
     """
 
+    pr_author: str
+    pr_labels: List[str]
+    pr_html_url: str
+
     DOCS_EXTENSIONS: Tuple[str, ...] = (".md", ".rst")
 
     ACCEPTED_EXTENSIONS: Tuple[str, ...] = (

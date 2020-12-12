@@ -5,7 +5,7 @@ from algorithms_keeper.constants import Label, Missing
 
 # Mapping of missing requirement to the appropriate label.
 # ``Missing.RETURN_TYPE_HINT`` and ``Missing.TYPE_HINT`` corresponds to the same label.
-REQUIREMENT_TO_LABEL = {
+REQUIREMENT_TO_LABEL: Dict[str, str] = {
     Missing.DOCTEST: Label.REQUIRE_TEST,
     Missing.TYPE_HINT: Label.TYPE_HINT,
     Missing.DESCRIPTIVE_NAME: Label.DESCRIPTIVE_NAME,
