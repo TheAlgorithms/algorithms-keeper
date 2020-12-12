@@ -129,7 +129,7 @@ def test_record_error():
         parser.parse(file, source)
     assert not parser.add_labels
     assert not parser.remove_labels
-    assert len(parser._pr_record._error) == 1
+    assert len(parser._pr_record._comments) == 1
 
 
 def test_no_doctest_checking():

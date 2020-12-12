@@ -48,12 +48,9 @@ class PullRequestReviewRecord:
     # Store all the ``ReviewComment`` instances.
     _comments: List[ReviewComment] = field(default_factory=list)
 
-    # Store any of the error faced while parsing the source code.
-    _error: List[ReviewComment] = field(default_factory=list)
-
     # Missing requirements type in string. This is represented as ``set`` internally so
     # as to avoid duplication.
-    _requirement_registered: Set[str] = field(default_factory=set)
+    _registered_requirement: Set[str] = field(default_factory=set)
 
     def add_comment(
         self,
@@ -84,7 +81,7 @@ class PullRequestReviewRecord:
             )
             # Return type hint and type hint corresponds to the same label.
             missing_requirement = Missing.TYPE_HINT
-        self._requirement_registered.add(missing_requirement)
+        self._registered_requirement.add(missing_requirement)
         if self._lineno_exist(lineno, filepath, body):
             return None
         self._comments.append(ReviewComment(body, filepath, lineno))
@@ -99,7 +96,7 @@ class PullRequestReviewRecord:
             f"An error occured while parsing the file: `{filepath}`\n"
             f"```python\n{message}\n```"
         )
-        self._error.append(ReviewComment(body, filepath, lineno))
+        self._comments.append(ReviewComment(body, filepath, lineno))
 
     def fill_labels(self, current_labels: List[str]) -> None:
         """Fill the ``add_labels`` and ``remove_labels`` with the appropriate data.
@@ -109,7 +106,7 @@ class PullRequestReviewRecord:
         *current_labels* is a list of labels present on the pull request.
         """
         for requirement, label in REQUIREMENT_TO_LABEL.items():
-            if requirement in self._requirement_registered:
+            if requirement in self._registered_requirement:
                 if label not in current_labels and label not in self.add_labels:
                     self.add_labels.append(label)
             elif label in current_labels and label not in self.remove_labels:

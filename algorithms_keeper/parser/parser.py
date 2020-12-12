@@ -37,6 +37,7 @@ class PullRequestFilesParser:
         ".yml",
         ".cfg",
         # Data files
+        ".csv",
         ".json",
         ".txt",
         # Good old Python file
@@ -223,7 +224,4 @@ class PullRequestFilesParser:
             visitor = PullRequestFileNodeVisitor(
                 file, self._pr_record, self._skip_doctest
             )
-
-        # We will only visit the top level nodes, rest will be taken care by the
-        # node functions.
-        visitor.generic_visit(module)
+        visitor.visit(module)

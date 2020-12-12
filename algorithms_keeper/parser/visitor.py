@@ -42,11 +42,12 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
     def visit(self, node: ast.AST) -> None:
         """Visit a node only if the `visit` function is defined."""
         method = "visit_" + node.__class__.__name__
-        # There's no need to perform a ``generic_visit`` everytime a node function
-        # is not present.
-        visitor = getattr(self, method, None)
-        if visitor is not None:
-            visitor(node)
+        visit_func = getattr(self, method, None)
+        if visit_func is not None:
+            visit_func(node)
+
+    def visit_Module(self, node: ast.Module) -> None:
+        self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._visit_anyfunction(node)
@@ -103,8 +104,8 @@ class PullRequestFileNodeVisitor(ast.NodeVisitor):
         if len(klass.name) == 1:
             self.record.add_comment(*self._nodedata(klass), Missing.DESCRIPTIVE_NAME)
         temp = self.skip_doctest
-        if not self.skip_doctest and self._contains_doctest(klass):
-            self.skip_doctest = True
+        if not self.skip_doctest:
+            self.skip_doctest = self._contains_doctest(klass)
         # Make a visit to all the methods in a class after checking whether the class
         # contains doctest or not.
         self.generic_visit(klass)
