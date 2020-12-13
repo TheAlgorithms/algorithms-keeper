@@ -67,5 +67,8 @@ class ClassContainingDoctest:
     def value(self, val: int) -> None:
         self._value = val
 
+    def method(self) -> None:
+        return None
+
     async def cls_method(self) -> None:
         return None

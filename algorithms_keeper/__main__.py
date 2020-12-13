@@ -6,22 +6,13 @@ from typing import Any, MutableMapping
 from aiohttp import ClientSession
 from aiohttp.web import Application, Request, Response, run_app
 from cachetools import LRUCache
-from gidgethub import routing
 from gidgethub.sansio import Event
 from sentry_sdk import init as sentry_init
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
-from algorithms_keeper import check_runs, commands, installations, issues, pull_requests
 from algorithms_keeper.api import GitHubAPI
+from algorithms_keeper.event import main_router
 from algorithms_keeper.log import CustomAccessLogger, logger
-
-router = routing.Router(
-    check_runs.router,
-    commands.router,
-    installations.router,
-    issues.router,
-    pull_requests.router,
-)
 
 cache: MutableMapping[Any, Any] = LRUCache(maxsize=500)
 
@@ -54,7 +45,7 @@ async def main(request: Request) -> Response:
             )
             # Give GitHub some time to reach internal consistency.
             await async_sleep(1)
-            await router.dispatch(event, gh)
+            await main_router.dispatch(event, gh)
         if gh.rate_limit is not None:  # pragma: no cover
             logger.info(
                 "ratelimit=%(ratelimit)s time_remaining=%(time_remaining)s",

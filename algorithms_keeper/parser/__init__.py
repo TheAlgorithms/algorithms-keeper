@@ -1,9 +1,3 @@
-from algorithms_keeper.parser.parser import PullRequestFilesParser
-from algorithms_keeper.parser.record import PullRequestReviewRecord
-from algorithms_keeper.parser.visitor import PullRequestFileNodeVisitor
+from algorithms_keeper.parser.python_parser import PythonParser
 
-__all__ = [
-    "PullRequestFilesParser",
-    "PullRequestReviewRecord",
-    "PullRequestFileNodeVisitor",
-]
+__all__ = ["PythonParser"]

@@ -4,7 +4,7 @@ import pytest
 from gidgethub import sansio
 from pytest import MonkeyPatch
 
-from algorithms_keeper import pull_requests, utils
+from algorithms_keeper import utils
 from algorithms_keeper.constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
     EMPTY_PR_BODY_COMMENT,
@@ -12,6 +12,7 @@ from algorithms_keeper.constants import (
     MAX_PR_REACHED_COMMENT,
     Label,
 )
+from algorithms_keeper.event import pull_request
 
 from .test_parser import get_source
 from .utils import (
@@ -93,7 +94,7 @@ async def test_invalid_pr_opened(body, comment, draft):
     patch = {pr_url: None}
     delete = {reviewers_url: None}
     gh = MockGitHubAPI(post=post, patch=patch, delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     if draft:
         assert len(gh.post_url) == 2
     else:
@@ -140,7 +141,7 @@ async def test_pr_opened_synchronize_in_draft_mode(action):
         },
     }
     gh = MockGitHubAPI(getiter=getiter)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     if action == "opened":
         assert pr_user_search_url in gh.getiter_url
     else:
@@ -175,7 +176,7 @@ async def test_pr_opened_by_member():
     post = {labels_url: None}
     getiter = {files_url: []}  # for check_pr_files function
     gh = MockGitHubAPI(getiter=getiter, post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert files_url in gh.getiter_url
     assert labels_url in gh.post_url
     assert {"labels": [Label.REVIEW]} in gh.post_data
@@ -201,7 +202,7 @@ async def test_max_pr_reached():
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     # We don't want to fix the tests on a specific MAX_PR_PER_USER count.
-    items = [{"number": i} for i in range(1, pull_requests.MAX_PR_PER_USER + 2)]
+    items = [{"number": i} for i in range(1, pull_request.MAX_PR_PER_USER + 2)]
     getiter = {
         pr_user_search_url: {"total_count": len(items), "items": items},
         files_url: [],  # for check_pr_files function
@@ -210,7 +211,7 @@ async def test_max_pr_reached():
     patch = {pr_url: None}
     delete = {reviewers_url: None}
     gh = MockGitHubAPI(getiter=getiter, post=post, patch=patch, delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert pr_user_search_url in gh.getiter_url
     assert comments_url in gh.post_url
     assert labels_url in gh.post_url
@@ -225,7 +226,7 @@ async def test_max_pr_reached():
 
 @pytest.mark.asyncio
 async def test_max_pr_disabled(monkeypatch):
-    monkeypatch.setattr(pull_requests, "MAX_PR_PER_USER", 0)
+    monkeypatch.setattr(pull_request, "MAX_PR_PER_USER", 0)
     data = {
         "action": "opened",
         "pull_request": {
@@ -245,7 +246,7 @@ async def test_max_pr_disabled(monkeypatch):
     post = {labels_url: None}
     getiter = {files_url: []}
     gh = MockGitHubAPI(getiter=getiter, post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert files_url in gh.getiter_url
     # No changes as max pr checks are disabled
     assert labels_url in gh.post_url
@@ -286,7 +287,7 @@ async def test_for_extensionless_files():
     patch = {pr_url: None}
     delete = {reviewers_url: None}
     gh = MockGitHubAPI(getiter=getiter, post=post, patch=patch, delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert len(gh.getiter_url) == 2
     assert pr_user_search_url in gh.getiter_url
     assert files_url in gh.getiter_url
@@ -336,7 +337,7 @@ async def test_pr_with_no_python_files():
     }
     post = {labels_url: None}
     gh = MockGitHubAPI(getiter=getiter, post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert len(gh.getiter_url) == 1
     assert files_url in gh.getiter_url
     assert not gh.post_url
@@ -414,7 +415,7 @@ async def test_pr_with_test_file(action, getiter):
     post = {labels_url: None, review_url: None}
     delete = {f"{labels_url}/{remove_label}": None}
     gh = MockGitHubAPI(getiter=getiter, post=post, delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert pr_user_search_url in gh.getiter_url
@@ -479,7 +480,7 @@ async def test_pr_with_successful_tests(action, getiter):
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     post = {labels_url: None}
     gh = MockGitHubAPI(getiter=getiter, post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert gh.getiter_url == [pr_user_search_url, files_url]
@@ -571,7 +572,7 @@ async def test_pr_with_add_all_require_labels(action, getiter):
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     post = {labels_url: None, review_url: None}
     gh = MockGitHubAPI(getiter=getiter, post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     if data["action"] == "opened":
         assert len(gh.getiter_url) == 2
         assert pr_user_search_url in gh.getiter_url
@@ -625,7 +626,7 @@ async def test_pr_with_remove_all_require_labels():
     }
     delete = {test_label_url: None, names_label_url: None, annotation_label_url: None}
     gh = MockGitHubAPI(getiter=getiter, delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert len(gh.getiter_url) == 1
     assert files_url in gh.getiter_url
     # No labels are added
@@ -665,7 +666,7 @@ async def test_add_type_label_on_pr():
     }
     post = {labels_url: None}
     gh = MockGitHubAPI(getiter=getiter, post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert len(gh.getiter_url) == 1
     assert files_url in gh.getiter_url
     assert labels_url in gh.post_url
@@ -707,7 +708,7 @@ async def test_label_on_ready_for_review_pr():
     getiter = {files_url: []}
     post = {labels_url: None}
     gh = MockGitHubAPI(getitem=getitem, getiter=getiter, post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert len(gh.getitem_url) == 1
     assert check_run_url in gh.getitem_url
     assert len(gh.getiter_url) == 1
@@ -729,7 +730,7 @@ async def test_pr_review_by_non_member(state):
     }
     event = sansio.Event(data, event="pull_request_review", delivery_id="1")
     gh = MockGitHubAPI()
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert gh.post_url == []
     assert gh.post_data == []
     assert gh.delete_url == []
@@ -752,7 +753,7 @@ async def test_pr_review_changes_requested_no_label():
     event = sansio.Event(data, event="pull_request_review", delivery_id="1")
     post = {labels_url: None}
     gh = MockGitHubAPI(post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert labels_url in gh.post_url
     assert {"labels": [Label.CHANGE]} in gh.post_data
     assert gh.delete_url == []
@@ -775,7 +776,7 @@ async def test_pr_review_changes_requested_with_label():
     event = sansio.Event(data, event="pull_request_review", delivery_id="1")
     post = {labels_url: None}
     gh = MockGitHubAPI(post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert gh.post_url == []
     assert gh.post_data == []
     assert gh.delete_url == []
@@ -800,7 +801,7 @@ async def test_pr_review_changes_requested_with_review_label():
     post = {labels_url: None}
     delete = {f"{labels_url}/{remove_label}": None}
     gh = MockGitHubAPI(post=post, delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert labels_url in gh.post_url
     assert {"labels": [Label.CHANGE]} in gh.post_data
     assert f"{labels_url}/{remove_label}" in gh.delete_url
@@ -825,7 +826,7 @@ async def test_pr_approved_with_label(labels):
     event = sansio.Event(data, event="pull_request_review", delivery_id="1")
     delete = {f"{labels_url}/{remove_label}": None}
     gh = MockGitHubAPI(delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert f"{labels_url}/{remove_label}" in gh.delete_url
     assert gh.delete_data == []
     assert gh.post_url == []
@@ -855,7 +856,7 @@ async def test_pr_opened_with_no_errors_and_labeled():
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     # No label is added or removed.
     assert gh.post_url == []
     assert gh.post_data == []
@@ -877,7 +878,7 @@ async def test_pr_opened_with_errors_and_labeled():
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     delete = {f"{labels_url}/{remove_label}": None}
     gh = MockGitHubAPI(delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     # No labels were added.
     assert gh.post_url == []
     assert gh.post_data == []
@@ -898,7 +899,7 @@ async def test_pr_not_all_labels_removed():
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     # No label is added or removed.
     assert gh.post_url == []
     assert gh.post_data == []
@@ -919,7 +920,7 @@ async def test_pr_all_labels_removed():
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     post = {labels_url: None}
     gh = MockGitHubAPI(post=post)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     # No error labels so the REVIEW label should be added.
     assert labels_url in gh.post_url
     assert {"labels": [Label.REVIEW]} in gh.post_data
@@ -940,7 +941,7 @@ async def test_changes_requested_label_added_and_removed(labels):
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert gh.delete_url == []
     assert gh.delete_data == []
     assert gh.post_url == []
@@ -960,7 +961,7 @@ async def test_awaiting_review_label_removed():
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     # No label is added or removed.
     assert gh.post_url == []
     assert gh.post_data == []
@@ -981,7 +982,7 @@ async def test_no_label_in_draft_mode():
     }
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     gh = MockGitHubAPI()
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert gh.delete_url == []
     assert gh.delete_data == []
     assert gh.post_url == []
@@ -1006,7 +1007,7 @@ async def test_no_review_label_when_pr_not_ready():
     getiter = {files_url: []}
     delete = {f"{labels_url}/{remove_label}": None}
     gh = MockGitHubAPI(getiter=getiter, delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert gh.post_url == []
     assert gh.post_data == []
 
@@ -1030,7 +1031,7 @@ async def test_review_label_after_changes_made():
     post = {labels_url: None}
     getiter = {files_url: []}
     gh = MockGitHubAPI(post=post, delete=delete, getiter=getiter)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert f"{labels_url}/{remove_label}" in gh.delete_url
     assert gh.delete_data == []
     assert labels_url in gh.post_url
@@ -1051,7 +1052,7 @@ async def test_pr_closed():
     event = sansio.Event(data, event="pull_request", delivery_id="1")
     delete = {f"{labels_url}/{remove_label}": None}
     gh = MockGitHubAPI(delete=delete)
-    await pull_requests.router.dispatch(event, gh)
+    await pull_request.router.dispatch(event, gh)
     assert f"{labels_url}/{remove_label}" in gh.delete_url
     assert gh.delete_data == []
     assert gh.post_url == []

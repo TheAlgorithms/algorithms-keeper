@@ -1,5 +1,5 @@
 import ast
-from pathlib import Path, PurePath
+from pathlib import Path
 
 import pytest
 
@@ -25,12 +25,12 @@ def get_parser(filenames: str, status: str = "added") -> PullRequestFilesParser:
     files = []
     for name in filenames.split(","):
         name = name.strip()
-        files.append(File(name, PurePath(name), "", status))
+        files.append(File(name, Path(name), "", status))
     return PullRequestFilesParser(files, pull_request=PR)
 
 
 @pytest.mark.parametrize(
-    "parser, expected",
+    "parser_old, expected",
     (
         (get_parser("tests/test_file.py, data/no_error.py"), True),
         (get_parser("data/no_error.py, data/doctest.py"), False),
@@ -68,7 +68,7 @@ def test_contains_testnode(source, expected):
 
 
 @pytest.mark.parametrize(
-    "parser, expected",
+    "parser_old, expected",
     (
         (get_parser(".gitignore"), ""),
         (get_parser("test/.gitignore"), "test/.gitignore"),
@@ -85,7 +85,7 @@ def test_validate_extension(parser, expected):
 
 
 @pytest.mark.parametrize(
-    "parser, expected",
+    "parser_old, expected",
     (
         (get_parser("README.md"), Label.DOCUMENTATION),
         (get_parser("README.rst", "modified"), Label.DOCUMENTATION),
@@ -101,7 +101,7 @@ def test_type_label(parser, expected):
 
 
 @pytest.mark.parametrize(
-    "parser, ignore_modified, expected",
+    "parser_old, ignore_modified, expected",
     (
         (get_parser("test.txt, README.md, scripts/validate.py"), True, 0),
         (get_parser("project/sol1.py, project/__init__.py"), True, 1),
@@ -199,7 +199,7 @@ def test_same_lineno_multiple_source():
         ),
         ("doctest.py, return_annotation.py", 7, (Label.TYPE_HINT,), 1, 0),
         # As there is a test file, there should not be a check for doctest. Now, all the
-        # labels exist and we will be using `doctest.py`, thus the parser should remove
+        # labels exist and we will be using `doctest.py`, thus the parser_old should remove
         # all the labels.
         (
             "doctest.py, test_file.py",
@@ -212,7 +212,7 @@ def test_same_lineno_multiple_source():
 )
 def test_combinations(monkeypatch, filename, expected, labels, add_count, remove_count):
     # We will set this to ``False`` only for the tests as we want to know whether the
-    # parser detected all the missing requirements.
+    # parser_old detected all the missing requirements.
     monkeypatch.setattr(PullRequestReviewRecord, "_lineno_exist", lambda *args: False)
     parser = get_parser(filename)
     parser.pr_labels = labels

@@ -6,11 +6,11 @@ from gidgethub.sansio import Event
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import GREETING_COMMENT
 
-router = routing.Router()
+installation_router = routing.Router()
 
 
-@router.register("installation", action="created")
-@router.register("installation_repositories", action="added")
+@installation_router.register("installation", action="created")
+@installation_router.register("installation_repositories", action="added")
 async def repo_installation_added(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:

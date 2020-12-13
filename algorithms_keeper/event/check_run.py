@@ -8,10 +8,10 @@ from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import Label
 from algorithms_keeper.log import logger
 
-router = routing.Router()
+check_run_router = routing.Router()
 
 
-@router.register("check_run", action="completed")
+@check_run_router.register("check_run", action="completed")
 async def check_ci_status_and_label(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:

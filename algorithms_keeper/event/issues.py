@@ -8,10 +8,10 @@ from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import EMPTY_ISSUE_BODY_COMMENT, Label
 from algorithms_keeper.log import logger
 
-router = routing.Router()
+issues_router = routing.Router()
 
 
-@router.register("issues", action="opened")
+@issues_router.register("issues", action="opened")
 async def close_invalid_issue(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:

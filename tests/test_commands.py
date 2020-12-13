@@ -2,8 +2,9 @@ import pytest
 from gidgethub.sansio import Event
 from pytest import MonkeyPatch
 
-from algorithms_keeper import commands, utils
+from algorithms_keeper import utils
 from algorithms_keeper.constants import Label
+from algorithms_keeper.event import commands
 
 from .test_parser import get_source
 from .utils import (

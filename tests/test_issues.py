@@ -1,8 +1,8 @@
 import pytest
 from gidgethub import sansio
 
-from algorithms_keeper import issues
 from algorithms_keeper.constants import EMPTY_ISSUE_BODY_COMMENT, Label
+from algorithms_keeper.event import issues
 
 from .utils import (
     MockGitHubAPI,

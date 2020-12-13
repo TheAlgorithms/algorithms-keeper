@@ -1,14 +1,15 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Set
+from typing import Any, Collection, Dict, List, Optional, Set
 
-from algorithms_keeper.constants import Label, Missing
+from fixit.common.report import BaseLintRuleReport
 
-# Mapping of missing requirement to the appropriate label.
-# ``Missing.RETURN_TYPE_HINT`` and ``Missing.TYPE_HINT`` corresponds to the same label.
-REQUIREMENT_TO_LABEL: Dict[str, str] = {
-    Missing.DOCTEST: Label.REQUIRE_TEST,
-    Missing.TYPE_HINT: Label.TYPE_HINT,
-    Missing.DESCRIPTIVE_NAME: Label.DESCRIPTIVE_NAME,
+from algorithms_keeper.constants import Label
+
+# Mapping of rule to the appropriate label.
+RULE_TO_LABEL: Dict[str, str] = {
+    "RequireDescriptiveNameRule": Label.DESCRIPTIVE_NAME,
+    "RequireDoctestRule": Label.REQUIRE_TEST,
+    "RequireTypeHintRule": Label.TYPE_HINT,
 }
 
 
@@ -41,57 +42,44 @@ class PullRequestReviewRecord:
     interface to add and get the appropriate data.
     """
 
-    # Store all the labels to be added and removed.
-    add_labels: List[str] = field(default_factory=list)
-    remove_labels: List[str] = field(default_factory=list)
+    # Initialize the label attributes. These should be filled with the appropriate
+    # labels **only** after all the files have been linted.
+    labels_to_add: List[str] = field(default_factory=list)
+    labels_to_remove: List[str] = field(default_factory=list)
 
     # Store all the ``ReviewComment`` instances.
     _comments: List[ReviewComment] = field(default_factory=list)
 
-    # Missing requirements type in string. This is represented as ``set`` internally so
-    # as to avoid duplication.
-    _registered_requirement: Set[str] = field(default_factory=set)
+    # A set of rules which were violated during the runtime of the parser for the
+    # current pull request. This is being represented as ``set`` internally to avoid
+    # duplication.
+    _violated_rules: Set[str] = field(default_factory=set)
 
-    def add_comment(
-        self,
-        filepath: str,
-        lineno: int,
-        nodename: str,
-        nodetype: str,
-        missing_requirement: str,
+    def add_comments(
+        self, reports: Collection[BaseLintRuleReport], filepath: str
     ) -> None:
-        """Add a comment and register the *missing_requirement*.
+        """Add a comments from the reports.
 
         If the line on which the comment is to be posted already exists, then the
         *body* is simply added to the respective comment's body provided it is in the
         same file. This is done to avoid adding multiple comments on the same line.
-
-        :param filepath: Path from the repository root to the file
-        :param lineno: Line number in the file
-        :param nodename: Name of the class/function/parameter
-        :param nodetype: Type of nodename as in class/function/parameter
-        :param missing_requirement: Type of the requirement missing
-        ``algorithms_keeper.constants.Missing``
         """
-        body = f"Please provide {missing_requirement} for the {nodetype}: `{nodename}`"
-        if missing_requirement == Missing.RETURN_TYPE_HINT:
-            body += (
-                f". **If the {nodetype} does not return a value, please provide "
-                f"the type hint as:** `def function() -> None:`"
-            )
-            # Return type hint and type hint corresponds to the same label.
-            missing_requirement = Missing.TYPE_HINT
-        self._registered_requirement.add(missing_requirement)
-        if self._lineno_exist(lineno, filepath, body):
-            return None
-        self._comments.append(ReviewComment(body, filepath, lineno))
+        for report in reports:
+            line: int = report.line
+            message: str = report.message
+            self._violated_rules.add(report.code)
+            if self._lineno_exist(line, filepath, message):
+                continue
+            self._comments.append(ReviewComment(message, filepath, line))
 
-    def add_error(self, message: str, filepath: str, lineno: int) -> None:
-        """Add any exceptions faced while parsing the source code in the parser.
+    def add_error(self, message: str, filepath: str, lineno: Optional[int]) -> None:
+        """Add any exceptions faced while parsing the source code in the parser_old.
 
         The parameter *message* is the traceback text with limit=1, no need for the
         full traceback.
         """
+        if lineno is None:
+            lineno = 1
         body = (
             f"An error occured while parsing the file: `{filepath}`\n"
             f"```python\n{message}\n```"
@@ -105,12 +93,12 @@ class PullRequestReviewRecord:
 
         *current_labels* is a list of labels present on the pull request.
         """
-        for requirement, label in REQUIREMENT_TO_LABEL.items():
-            if requirement in self._registered_requirement:
-                if label not in current_labels and label not in self.add_labels:
-                    self.add_labels.append(label)
-            elif label in current_labels and label not in self.remove_labels:
-                self.remove_labels.append(label)
+        for rule, label in RULE_TO_LABEL.items():
+            if rule in self._violated_rules:
+                if label not in current_labels and label not in self.labels_to_add:
+                    self.labels_to_add.append(label)
+            elif label in current_labels and label not in self.labels_to_remove:
+                self.labels_to_remove.append(label)
 
     def collect_comments(self) -> List[Dict[str, Any]]:
         """Return all the review comments in the record instance.

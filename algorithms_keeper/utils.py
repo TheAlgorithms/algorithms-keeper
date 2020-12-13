@@ -15,7 +15,7 @@ that uses all the given functions.
 import urllib.parse
 from base64 import b64decode
 from dataclasses import dataclass
-from pathlib import PurePath
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from gidgethub import BadRequest
@@ -32,9 +32,9 @@ class File:
     # `basename` of the path.
     name: str
 
-    # A ``pathlib.PurePath`` object which represents the `name` in PathLike format which
+    # A ``pathlib.Path`` object which represents the `name` in PathLike format which
     # can be used to check extension and filename.
-    path: PurePath
+    path: Path
 
     # The `contents_url` value of the file object we get for all the pull request files.
     # This can be used to get the file content directly from GitHub instead of cloning
@@ -226,7 +226,7 @@ async def get_pr_files(gh: GitHubAPI, *, pull_request: Dict[str, Any]) -> List[F
             files.append(
                 File(
                     data["filename"],
-                    PurePath(data["filename"]),
+                    Path(data["filename"]),
                     data["contents_url"],
                     data["status"],
                 )
@@ -245,8 +245,8 @@ async def create_pr_review(
 ) -> None:
     """Submit a comment review for the given pull request.
 
-    `comments` is a list of ``parser.ReviewComment.asdict`` which represents the
-    pull request review comment.
+    `comments` is a list of ``parser.record.ReviewComment`` as dictionary which
+    represents the pull request review comment.
     """
     await gh.post(
         pull_request["url"] + "/reviews",

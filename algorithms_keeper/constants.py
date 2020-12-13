@@ -18,13 +18,6 @@ class Label:
     ENHANCEMENT = "Type: enhancement"
 
 
-class Missing:
-    TYPE_HINT = "type hint"
-    DOCTEST = "doctest"
-    RETURN_TYPE_HINT = "return type hint"
-    DESCRIPTIVE_NAME = "descriptive name"
-
-
 # All the comments made by the bot
 
 GREETING_COMMENT = """\

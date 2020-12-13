@@ -47,7 +47,7 @@ from algorithms_keeper.constants import (
     Label,
 )
 from algorithms_keeper.log import logger
-from algorithms_keeper.parser import PullRequestFilesParser
+from algorithms_keeper.parser import PythonParser
 
 # To disable this check, set the constant to 0.
 MAX_PR_PER_USER = 1
@@ -63,7 +63,7 @@ PR_NOT_READY_LABELS = (
     Label.INVALID,
 )
 
-router = routing.Router()
+pull_request_router = routing.Router()
 
 
 async def update_stage_label(
@@ -92,8 +92,8 @@ async def update_stage_label(
         )
 
 
-@router.register("pull_request", action="opened")
-@router.register("pull_request", action="ready_for_review")
+@pull_request_router.register("pull_request", action="opened")
+@pull_request_router.register("pull_request", action="ready_for_review")
 async def add_review_label_on_pr_opened(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
@@ -108,7 +108,7 @@ async def add_review_label_on_pr_opened(
         await update_stage_label(gh, pull_request=pull_request, next_label=Label.REVIEW)
 
 
-@router.register("pull_request", action="opened")
+@pull_request_router.register("pull_request", action="opened")
 async def close_invalid_or_additional_pr(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
@@ -174,9 +174,9 @@ async def close_invalid_or_additional_pr(
     await check_pr_files(event, gh, *args, **kwargs)
 
 
-@router.register("pull_request", action="reopened")
-@router.register("pull_request", action="ready_for_review")
-@router.register("pull_request", action="synchronize")
+@pull_request_router.register("pull_request", action="reopened")
+@pull_request_router.register("pull_request", action="ready_for_review")
+@pull_request_router.register("pull_request", action="synchronize")
 async def check_pr_files(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
@@ -203,7 +203,7 @@ async def check_pr_files(
 
     ignore_modified = kwargs.pop("ignore_modified", True)
     pr_files = await utils.get_pr_files(gh, pull_request=pull_request)
-    parser = PullRequestFilesParser(pr_files, pull_request=pull_request)
+    parser = PythonParser(pr_files, pull_request)
 
     # No need to perform these checks every time a commit is pushed.
     if event.data["action"] != "synchronize":
@@ -211,7 +211,7 @@ async def check_pr_files(
             await utils.close_pr_or_issue(
                 gh,
                 comment=INVALID_EXTENSION_COMMENT.format(
-                    user_login=parser.pr_author, files=invalid_files
+                    user_login=pull_request["user"]["login"], files=invalid_files
                 ),
                 pr_or_issue=pull_request,
                 label=Label.INVALID,
@@ -229,13 +229,13 @@ async def check_pr_files(
         code = await utils.get_file_content(gh, file=file)
         parser.parse(file, code)
 
-    if parser.add_labels:
+    if parser.labels_to_add:
         await utils.add_label_to_pr_or_issue(
-            gh, label=parser.add_labels, pr_or_issue=pull_request
+            gh, label=parser.labels_to_add, pr_or_issue=pull_request
         )
-    if parser.remove_labels:
+    if parser.labels_to_remove:
         await utils.remove_label_from_pr_or_issue(
-            gh, label=parser.remove_labels, pr_or_issue=pull_request
+            gh, label=parser.labels_to_remove, pr_or_issue=pull_request
         )
     # We can only post the review comments on lines included in the pull request diff.
     # If the bot tries to post on lines not in the diff, GitHub will complain. For now
@@ -245,7 +245,7 @@ async def check_pr_files(
         await utils.create_pr_review(gh, pull_request=pull_request, comments=comments)
 
 
-@router.register("pull_request", action="ready_for_review")
+@pull_request_router.register("pull_request", action="ready_for_review")
 async def check_ci_ready_for_review_pr(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
@@ -257,12 +257,12 @@ async def check_ci_ready_for_review_pr(
     removed if the checks are passing or failing. Thus, we need to manually check it
     with respect to the latest commit on head.
     """
-    from . import check_runs
+    from algorithms_keeper.event.check_run import check_ci_status_and_label
 
-    await check_runs.check_ci_status_and_label(event, gh, *args, **kwargs)
+    await check_ci_status_and_label(event, gh, *args, **kwargs)
 
 
-@router.register("pull_request_review", action="submitted")
+@pull_request_router.register("pull_request_review", action="submitted")
 async def update_pr_label_for_review(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
@@ -289,7 +289,7 @@ async def update_pr_label_for_review(
             await update_stage_label(gh, pull_request=pull_request)
 
 
-@router.register("pull_request", action="labeled")
+@pull_request_router.register("pull_request", action="labeled")
 async def remove_awaiting_review_label(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
@@ -308,7 +308,7 @@ async def remove_awaiting_review_label(
             )
 
 
-@router.register("pull_request", action="unlabeled")
+@pull_request_router.register("pull_request", action="unlabeled")
 async def add_awaiting_review_label(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
@@ -330,7 +330,7 @@ async def add_awaiting_review_label(
     await update_stage_label(gh, pull_request=pull_request, next_label=Label.REVIEW)
 
 
-@router.register("pull_request", action="synchronize")
+@pull_request_router.register("pull_request", action="synchronize")
 async def add_review_label_on_changes(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:
@@ -348,7 +348,7 @@ async def add_review_label_on_changes(
     await update_stage_label(gh, pull_request=pull_request, next_label=Label.REVIEW)
 
 
-@router.register("pull_request", action="closed")
+@pull_request_router.register("pull_request", action="closed")
 async def remove_awaiting_labels(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
 ) -> None:

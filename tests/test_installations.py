@@ -1,8 +1,8 @@
 import pytest
 from gidgethub import sansio
 
-from algorithms_keeper import installations
 from algorithms_keeper.constants import GREETING_COMMENT
+from algorithms_keeper.event import installation
 
 from .utils import MockGitHubAPI, issue_path, issue_url, number, repository, user
 
@@ -21,7 +21,7 @@ async def test_installation_created():
     post = {issue_path: {"url": issue_url}}
     patch = {issue_url: None}
     gh = MockGitHubAPI(post=post, patch=patch)
-    await installations.router.dispatch(event, gh)
+    await installation.router.dispatch(event, gh)
     assert issue_path in gh.post_url
     assert {
         "title": "Installation successful!",
@@ -43,7 +43,7 @@ async def test_installation_repositories_added():
     post = {issue_path: {"url": issue_url}}
     patch = {issue_url: None}
     gh = MockGitHubAPI(post=post, patch=patch)
-    await installations.router.dispatch(event, gh)
+    await installation.router.dispatch(event, gh)
     assert issue_path in gh.post_url
     assert {
         "title": "Installation successful!",

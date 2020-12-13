@@ -13,15 +13,15 @@ from gidgethub.sansio import Event
 
 from algorithms_keeper import utils
 from algorithms_keeper.api import GitHubAPI
+from algorithms_keeper.event.pull_request import check_pr_files
 from algorithms_keeper.log import logger
-from algorithms_keeper.pull_requests import check_pr_files
 
-router = routing.Router()
+commands_router = routing.Router()
 
 COMMAND_RE = re.compile(r"@algorithms-keeper\s+([a-z\-]+)", re.IGNORECASE)
 
 
-@router.register("issue_comment", action="created")
+@commands_router.register("issue_comment", action="created")
 async def main(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:
     """Main function to parse the issue comment body and call the respective command
     function if it matches.
