@@ -37,7 +37,7 @@ def get_parser(filenames: str, status: str = "added") -> PythonParser:
     ),
 )
 def test_contains_testfile(parser, expected):
-    assert len(parser.get_rules_from_config()) == expected
+    assert len(parser._rules) == expected
 
 
 @pytest.mark.parametrize(
