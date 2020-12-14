@@ -105,15 +105,6 @@ def test_record_error():
     assert len(parser._pr_record._comments) == 1
 
 
-def test_no_doctest_checking():
-    parser = get_parser("contains_testnode.py")
-    for file in parser.files_to_check(True):
-        parser.parse(file, get_source("contains_testnode.py"))
-    assert not parser.labels_to_add
-    assert not parser.labels_to_remove
-    assert not parser._pr_record._comments
-
-
 @pytest.mark.parametrize(
     "filename, expected",
     (
