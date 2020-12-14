@@ -78,7 +78,7 @@ class PullRequestReviewRecord:
         The parameter *message* is the traceback text with limit=1, no need for the
         full traceback.
         """
-        if lineno is None:
+        if lineno is None:  # pragma: no cover
             lineno = 1
         body = (
             f"An error occured while parsing the file: `{filepath}`\n"

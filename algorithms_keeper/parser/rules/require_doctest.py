@@ -160,7 +160,7 @@ class RequireDoctestRule(CstLintRule):
                 def spam():
                     pass
 
-            # Check that the `skip_doctest` attribute is reseted after leaving the class
+            # Check that `_skip_doctest` attribute is reseted after leaving the class
             def egg():
                 pass
             """
@@ -169,28 +169,22 @@ class RequireDoctestRule(CstLintRule):
 
     def __init__(self, context: CstContext) -> None:
         super().__init__(context)
-        self.skip_doctest: bool = False
+        self._skip_doctest: bool = False
         self.__temp: bool = False
 
     def visit_Module(self, node: cst.Module) -> None:
-        self.skip_doctest = (
-            True if self.contains_testnode(node) else self.contains_doctest(node)
-        )
+        self._skip_doctest = self._has_testnode(node) or self._has_doctest(node)
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
-        self.__temp = self.skip_doctest
-        self.skip_doctest = self.contains_doctest(node)
+        self.__temp = self._skip_doctest
+        self._skip_doctest = self._has_doctest(node)
 
     def leave_ClassDef(self, node: cst.ClassDef) -> None:
-        self.skip_doctest = self.__temp
+        self._skip_doctest = self.__temp
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
         nodename = node.name.value
-        if (
-            nodename != INIT
-            and not self.skip_doctest
-            and not self.contains_doctest(node)
-        ):
+        if nodename != INIT and not self._skip_doctest and not self._has_doctest(node):
             self.report(
                 node,
                 MISSING_DOCTEST.format(
@@ -198,8 +192,8 @@ class RequireDoctestRule(CstLintRule):
                 ),
             )
 
-    def contains_doctest(self, node: DoctestNodeT) -> bool:
-        if not self.skip_doctest:
+    def _has_doctest(self, node: DoctestNodeT) -> bool:
+        if not self._skip_doctest:
             docstring = node.get_docstring()
             if docstring is not None:
                 for line in docstring.splitlines():
@@ -208,7 +202,7 @@ class RequireDoctestRule(CstLintRule):
             return False
         return True
 
-    def contains_testnode(self, node: cst.Module) -> bool:
+    def _has_testnode(self, node: cst.Module) -> bool:
         scope: GlobalScope = self.get_metadata(ScopeProvider, node)
         for assignment in scope.assignments:
             if isinstance(assignment, Assignment):

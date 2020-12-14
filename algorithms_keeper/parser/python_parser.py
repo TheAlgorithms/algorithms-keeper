@@ -4,6 +4,7 @@ from typing import Any, Dict, Generator, List
 from fixit import LintConfig
 from fixit.common.utils import LintRuleCollectionT, import_distinct_rules_from_package
 from fixit.rule_lint_engine import lint_file
+from libcst import ParserSyntaxError
 
 from algorithms_keeper.log import logger as main_logger
 from algorithms_keeper.parser.files_parser import PythonFilesParser
@@ -13,25 +14,6 @@ from algorithms_keeper.utils import File
 RULES_DOTPATH: str = "algorithms_keeper.parser.rules"
 
 REQUIRE_DOCTEST_RULE: str = "RequireDoctestRule"
-
-CONFIG: LintConfig = LintConfig(packages=[RULES_DOTPATH])
-
-
-def get_rules_from_config() -> LintRuleCollectionT:
-    """Get rules from the packages specified in the lint config file, omitting
-    block-listed rules.
-
-    This function is taken directly from ``fixit.common.config.get_rules_from_config``
-    with the modification being the custom configuration.
-    """
-    lint_config = CONFIG
-    rules: LintRuleCollectionT = set()
-    for package in lint_config.packages:
-        rules_from_pkg = import_distinct_rules_from_package(
-            package, lint_config.block_list_rules
-        )
-        rules.update(rules_from_pkg)
-    return rules
 
 
 class PythonParser(PythonFilesParser):
@@ -58,14 +40,14 @@ class PythonParser(PythonFilesParser):
         super().__init__(pr_files, pull_request, logger)
         # If the pull request contains a test file as per the naming convention, there's
         # no need to run ``RequireDoctestRule``.
+        config = LintConfig(packages=[RULES_DOTPATH])
         if self._contains_testfile():
-            CONFIG.block_list_rules.append(REQUIRE_DOCTEST_RULE)
-
+            config.block_list_rules.append(REQUIRE_DOCTEST_RULE)
+        self._config = config
         self._pr_record = PullRequestReviewRecord()
-
         # Collection of rules are going to be static for a pull request, so let's
         # extract it out and store it. This should be set after the check for testfile.
-        self._rules = get_rules_from_config()
+        self._rules = self.get_rules_from_config()
 
     @property
     def labels_to_add(self) -> List[str]:
@@ -115,19 +97,43 @@ class PythonParser(PythonFilesParser):
                 source,
                 use_ignore_byte_markers=False,
                 use_ignore_comments=False,
-                config=CONFIG,
+                config=self._config,
                 rules=self._rules,
             )
             self._pr_record.add_comments(reports, file.name)
-        except SyntaxError as exc:
+        except (SyntaxError, ParserSyntaxError) as exc:
             import traceback
 
             msg: str = traceback.format_exc(limit=1)
-            self._pr_record.add_error(msg, file.name, exc.lineno)
+            # It seems that ``ParserSyntaxError`` is not a subclass of ``SyntaxError``,
+            # the same information is stored under a different attribute.
+            # Using ``try ... except AttributeError: ...`` makes ``mypy`` mad.
+            if isinstance(exc, SyntaxError):
+                lineno = exc.lineno
+            else:
+                lineno = exc.raw_line
+            self._pr_record.add_error(msg, file.name, lineno)
             self.logger.info(
                 "Invalid Python code for the file: [%(file)s] %(url)s",
                 {"file": file.name, "url": self.pr_html_url},
             )
+
+    def get_rules_from_config(self) -> LintRuleCollectionT:
+        """Get rules from the packages specified in the lint config file, omitting
+        block-listed rules.
+
+        This function is directly taken from
+        ``fixit.common.config.get_rules_from_config`` with the modification being the
+        custom configuration.
+        """
+        lint_config = self._config
+        rules: LintRuleCollectionT = set()
+        for package in lint_config.packages:
+            rules_from_pkg = import_distinct_rules_from_package(
+                package, lint_config.block_list_rules
+            )
+            rules.update(rules_from_pkg)
+        return rules
 
     def _contains_testfile(self) -> bool:
         """Check whether any of the pull request files satisfy the naming convention

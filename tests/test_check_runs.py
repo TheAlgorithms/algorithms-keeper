@@ -4,7 +4,7 @@ import pytest
 from gidgethub import sansio
 
 from algorithms_keeper.constants import Label
-from algorithms_keeper.event import check_run
+from algorithms_keeper.event.check_run import check_run_router
 
 from .utils import (
     MockGitHubAPI,
@@ -35,7 +35,7 @@ async def test_check_run_not_from_pr_commit():
         }
     }
     gh = MockGitHubAPI(getitem=getitem)
-    await check_run.router.dispatch(event, gh)
+    await check_run_router.dispatch(event, gh)
     assert len(gh.getitem_url) == 1
     assert search_url in gh.getitem_url
     assert gh.post_url == []  # does not add any label
@@ -68,7 +68,7 @@ async def test_check_run_completed_some_in_progress():
         },
     }
     gh = MockGitHubAPI(getitem=getitem)
-    await check_run.router.dispatch(event, gh)
+    await check_run_router.dispatch(event, gh)
     assert len(gh.getitem_url) == 2
     assert search_url in gh.getitem_url
     assert check_run_url in gh.getitem_url
@@ -102,7 +102,7 @@ async def test_check_run_completed_passing_no_label():
         },
     }
     gh = MockGitHubAPI(getitem=getitem)
-    await check_run.router.dispatch(event, gh)
+    await check_run_router.dispatch(event, gh)
     assert len(gh.getitem_url) == 2
     assert search_url in gh.getitem_url
     assert check_run_url in gh.getitem_url
@@ -143,7 +143,7 @@ async def test_check_run_completed_passing_with_label():
     }
     delete = {remove_labels_url: None}
     gh = MockGitHubAPI(getitem=getitem, delete=delete)
-    await check_run.router.dispatch(event, gh)
+    await check_run_router.dispatch(event, gh)
     assert len(gh.getitem_url) == 2
     assert search_url in gh.getitem_url
     assert check_run_url in gh.getitem_url
@@ -183,7 +183,7 @@ async def test_check_run_completed_failing_no_label():
     }
     post = {labels_url: None}
     gh = MockGitHubAPI(getitem=getitem, post=post)
-    await check_run.router.dispatch(event, gh)
+    await check_run_router.dispatch(event, gh)
     assert len(gh.getitem_url) == 2
     assert search_url in gh.getitem_url
     assert check_run_url in gh.getitem_url
@@ -217,7 +217,7 @@ async def test_check_run_completed_failing_with_label():
         },
     }
     gh = MockGitHubAPI(getitem=getitem)
-    await check_run.router.dispatch(event, gh)
+    await check_run_router.dispatch(event, gh)
     assert len(gh.getitem_url) == 2
     assert search_url in gh.getitem_url
     assert check_run_url in gh.getitem_url

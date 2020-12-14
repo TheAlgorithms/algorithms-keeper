@@ -1,10 +1,10 @@
-import ast
 from pathlib import Path
 
 import pytest
 
 from algorithms_keeper.constants import Label
-from algorithms_keeper.parser import PullRequestFilesParser, PullRequestReviewRecord
+from algorithms_keeper.parser import PythonParser
+from algorithms_keeper.parser.record import PullRequestReviewRecord
 from algorithms_keeper.utils import File
 
 from .utils import user
@@ -15,60 +15,33 @@ PR = {"user": {"login": user}, "labels": [], "html_url": "", "url": ""}
 
 
 # Don't mix this up with `utils.get_file_content`
-def get_source(filename: str) -> str:
+def get_source(filename: str) -> bytes:
     with open(DATA_DIRPATH / filename) as file:
         file_content = file.read()
-    return file_content
+    return file_content.encode("utf-8")
 
 
-def get_parser(filenames: str, status: str = "added") -> PullRequestFilesParser:
+def get_parser(filenames: str, status: str = "added") -> PythonParser:
     files = []
     for name in filenames.split(","):
         name = name.strip()
         files.append(File(name, Path(name), "", status))
-    return PullRequestFilesParser(files, pull_request=PR)
+    return PythonParser(files, pull_request=PR)
 
 
 @pytest.mark.parametrize(
-    "parser_old, expected",
+    "parser, expected",
     (
-        (get_parser("tests/test_file.py, data/no_error.py"), True),
-        (get_parser("data/no_error.py, data/doctest.py"), False),
+        (get_parser("tests/test_file.py, data/no_error.py"), 2),
+        (get_parser("data/no_error.py, data/doctest.py"), 3),
     ),
 )
 def test_contains_testfile(parser, expected):
-    assert parser._skip_doctest is expected
+    assert len(parser.get_rules_from_config()) == expected
 
 
 @pytest.mark.parametrize(
-    "source, expected",
-    (
-        (
-            "def no_test_node():\n"
-            "    pass\n"
-            "\n"
-            "\n"
-            "class NoTestNode:\n"
-            "    pass",
-            False,
-        ),
-        (
-            "def test_function():\n    pass",
-            True,
-        ),
-        (
-            "def random():\n    pass\n\n\nclass TestClass:\n    pass",
-            True,
-        ),
-    ),
-)
-def test_contains_testnode(source, expected):
-    mod = ast.parse(source)
-    assert PullRequestFilesParser._contains_testnode(mod) is expected
-
-
-@pytest.mark.parametrize(
-    "parser_old, expected",
+    "parser, expected",
     (
         (get_parser(".gitignore"), ""),
         (get_parser("test/.gitignore"), "test/.gitignore"),
@@ -85,7 +58,7 @@ def test_validate_extension(parser, expected):
 
 
 @pytest.mark.parametrize(
-    "parser_old, expected",
+    "parser, expected",
     (
         (get_parser("README.md"), Label.DOCUMENTATION),
         (get_parser("README.rst", "modified"), Label.DOCUMENTATION),
@@ -93,7 +66,7 @@ def test_validate_extension(parser, expected):
         (get_parser("test.py", "modified"), Label.ENHANCEMENT),
         # DIRECTORY.md gets updated automatically in every PR.
         (get_parser("sol1.py, DIRECTORY.md"), ""),
-        (get_parser("test.py"), ""),
+        (get_parser("test_file.py"), ""),
     ),
 )
 def test_type_label(parser, expected):
@@ -101,7 +74,7 @@ def test_type_label(parser, expected):
 
 
 @pytest.mark.parametrize(
-    "parser_old, ignore_modified, expected",
+    "parser, ignore_modified, expected",
     (
         (get_parser("test.txt, README.md, scripts/validate.py"), True, 0),
         (get_parser("project/sol1.py, project/__init__.py"), True, 1),
@@ -126,9 +99,9 @@ def test_record_error():
     )
     parser = get_parser("invalid_syntax.py")
     for file in parser.files_to_check(True):
-        parser.parse(file, source)
-    assert not parser.add_labels
-    assert not parser.remove_labels
+        parser.parse(file, source.encode("utf-8"))
+    assert not parser.labels_to_add
+    assert not parser.labels_to_remove
     assert len(parser._pr_record._comments) == 1
 
 
@@ -136,8 +109,8 @@ def test_no_doctest_checking():
     parser = get_parser("contains_testnode.py")
     for file in parser.files_to_check(True):
         parser.parse(file, get_source("contains_testnode.py"))
-    assert not parser.add_labels
-    assert not parser.remove_labels
+    assert not parser.labels_to_add
+    assert not parser.labels_to_remove
     assert not parser._pr_record._comments
 
 
@@ -153,8 +126,8 @@ def test_lineno_exist(filename, expected):
     for file in parser.files_to_check(True):
         parser.parse(file, get_source(filename))
     assert len(parser._pr_record._comments) == expected
-    assert len(parser.add_labels) == 1
-    assert not parser.remove_labels
+    assert len(parser.labels_to_add) == 1
+    assert not parser.labels_to_remove
 
 
 def test_lineno_exist_multiple_types():
@@ -162,20 +135,20 @@ def test_lineno_exist_multiple_types():
     source = "def f(a):\n    return None"
     parser = get_parser("multiple_types.py")
     for file in parser.files_to_check(True):
-        parser.parse(file, source)
+        parser.parse(file, source.encode("utf-8"))
     assert len(parser._pr_record._comments) == 1
-    assert len(parser.add_labels) == 3
-    assert not parser.remove_labels
+    assert len(parser.labels_to_add) == 3
+    assert not parser.labels_to_remove
 
 
 def test_same_lineno_multiple_source():
     source = "def f(a):\n    return None"
     parser = get_parser("first_file.py, second_file.py")
     for file in parser.files_to_check(True):
-        parser.parse(file, source)
+        parser.parse(file, source.encode("utf-8"))
     assert len(parser._pr_record._comments) == 2
-    assert len(parser.add_labels) == 3
-    assert not parser.remove_labels
+    assert len(parser.labels_to_add) == 3
+    assert not parser.labels_to_remove
 
 
 @pytest.mark.parametrize(
@@ -199,7 +172,7 @@ def test_same_lineno_multiple_source():
         ),
         ("doctest.py, return_annotation.py", 7, (Label.TYPE_HINT,), 1, 0),
         # As there is a test file, there should not be a check for doctest. Now, all the
-        # labels exist and we will be using `doctest.py`, thus the parser_old should remove
+        # labels exist and we will be using `doctest.py`, thus the parser should remove
         # all the labels.
         (
             "doctest.py, test_file.py",
@@ -219,5 +192,5 @@ def test_combinations(monkeypatch, filename, expected, labels, add_count, remove
     for file in parser.files_to_check(True):
         parser.parse(file, get_source(file.name))
     assert len(parser._pr_record._comments) == expected
-    assert len(parser.add_labels) == add_count
-    assert len(parser.remove_labels) == remove_count
+    assert len(parser.labels_to_add) == add_count
+    assert len(parser.labels_to_remove) == remove_count

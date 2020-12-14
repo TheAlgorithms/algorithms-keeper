@@ -13,7 +13,7 @@ class BaseFilesParser:
     """A base class for all the pull request files.
 
     This class should be subclassed to fill the appropriate data for the two constants:
-    ``DOCS_EXTENSIONS`` and ``ACCEPTED_EXTENSION`` as per the language repository.
+    ``DOCS_EXTENSIONS`` and ``ACCEPTED_EXTENSIONS`` as per the language repository.
     """
 
     pr: Dict[str, Any]
@@ -45,9 +45,9 @@ class BaseFilesParser:
         A file is considered invalid if:
 
         - It is extensionless and is not a dotfile. NOTE: Files present only in the
-          root directory will be checked for `isdotfile`.
-        - File extension is not accepted in the repository.
-          See: `constants.ACCEPTED_EXTENSION`
+          root directory will be checked for dotfile.
+        - File extension is not accepted in the repository, defined in the
+          `ACCEPTED_EXTENSIONS` constant.
 
         NOTE: Extensionless files will be considered valid only if it is present in
         the ".github" directory. Eg: ".github/CODEOWNERS"
@@ -78,7 +78,7 @@ class BaseFilesParser:
         label for it. Returns an empty string if the type is not programmed or the label
         already exists on the pull request.
 
-        **documentation**: Contains a file with an extension from ``_DOCS_EXTENSIONS``
+        **documentation**: Contains a file with an extension from ``DOCS_EXTENSIONS``
 
         **enhancement**: Some/all files were *modified*
 
@@ -88,7 +88,7 @@ class BaseFilesParser:
         label = ""
         for file in self.pr_files:
             if file.path.suffix in self.DOCS_EXTENSIONS:
-                if file.path.name != IGNORE_FILES_FOR_DOCUMENTATION:
+                if file.path.name not in IGNORE_FILES_FOR_DOCUMENTATION:
                     label = Label.DOCUMENTATION
                     break
             elif file.status == "modified":

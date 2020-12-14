@@ -2,7 +2,7 @@ import pytest
 from gidgethub import sansio
 
 from algorithms_keeper.constants import EMPTY_ISSUE_BODY_COMMENT, Label
-from algorithms_keeper.event import issues
+from algorithms_keeper.event.issues import issues_router
 
 from .utils import (
     MockGitHubAPI,
@@ -35,7 +35,7 @@ async def test_empty_issue_body():
     post = {comments_url: {}, labels_url: {}}
     patch = {issue_url: {}}
     gh = MockGitHubAPI(post=post, patch=patch)
-    await issues.router.dispatch(event, gh)
+    await issues_router.dispatch(event, gh)
     assert gh.getitem_url == []
     assert gh.getiter_url == []
     assert len(gh.post_url) == 2
@@ -67,7 +67,7 @@ async def test_non_empty_issue_body():
     post = {comments_url: {}, labels_url: {}}
     patch = {issue_url: {}}
     gh = MockGitHubAPI(post=post, patch=patch)
-    await issues.router.dispatch(event, gh)
+    await issues_router.dispatch(event, gh)
     assert gh.getitem_url == []
     assert gh.getiter_url == []
     assert gh.post_url == []

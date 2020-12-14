@@ -4,7 +4,7 @@ from pytest import MonkeyPatch
 
 from algorithms_keeper import utils
 from algorithms_keeper.constants import Label
-from algorithms_keeper.event import commands
+from algorithms_keeper.event.commands import COMMAND_RE, commands_router
 
 from .test_parser import get_source
 from .utils import (
@@ -53,7 +53,7 @@ def patch_module(monkeypatch=MonkeyPatch()):
     ),
 )
 def test_command_regex_no_match(text):
-    assert commands.COMMAND_RE.search(text) is None
+    assert COMMAND_RE.search(text) is None
 
 
 @pytest.mark.parametrize(
@@ -69,7 +69,7 @@ def test_command_regex_no_match(text):
     ),
 )
 def test_command_regex_match(text, group):
-    assert commands.COMMAND_RE.search(text).group(1) == group
+    assert COMMAND_RE.search(text).group(1) == group
 
 
 @pytest.mark.asyncio
@@ -77,7 +77,7 @@ async def test_comment_by_non_member():
     data = {"action": "created", "comment": {"author_association": "NONE"}}
     event = Event(data, event="issue_comment", delivery_id="1")
     gh = MockGitHubAPI()
-    await commands.router.dispatch(event, gh)
+    await commands_router.dispatch(event, gh)
     assert not gh.post_url
     assert not gh.getitem_url
     assert not gh.delete_url
@@ -97,7 +97,7 @@ async def test_comment_on_issue():
     event = Event(data, event="issue_comment", delivery_id="1")
     post = {reactions_url: None}
     gh = MockGitHubAPI(post=post)
-    await commands.router.dispatch(event, gh)
+    await commands_router.dispatch(event, gh)
     assert len(gh.post_url) == 1
     assert reactions_url in gh.post_url
     assert {"content": "-1"} in gh.post_data
@@ -116,7 +116,7 @@ async def test_random_command():
     }
     event = Event(data, event="issue_comment", delivery_id="1")
     gh = MockGitHubAPI()
-    await commands.router.dispatch(event, gh)
+    await commands_router.dispatch(event, gh)
     assert not gh.post_url
     assert not gh.getitem_url
     assert not gh.getiter_url
@@ -147,7 +147,7 @@ async def test_review_command():
     }
     getiter = {files_url: []}
     gh = MockGitHubAPI(post=post, getitem=getitem, getiter=getiter)
-    await commands.router.dispatch(event, gh)
+    await commands_router.dispatch(event, gh)
     assert len(gh.post_url) == 1
     assert reactions_url in gh.post_url
     assert {"content": "+1"} in gh.post_data
@@ -188,7 +188,7 @@ async def test_review_all_command():
         ]
     }
     gh = MockGitHubAPI(post=post, getitem=getitem, getiter=getiter)
-    await commands.router.dispatch(event, gh)
+    await commands_router.dispatch(event, gh)
     assert len(gh.post_url) == 3  # Two labels, one reaction
     assert reactions_url in gh.post_url
     assert labels_url in gh.post_url
