@@ -1,7 +1,7 @@
 import textwrap
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Type, Union
+from typing import List, Optional, Type, Union
 
 import pytest
 from fixit import CstLintRule
@@ -33,6 +33,7 @@ def _dedent(src: str) -> str:
 
 def _gen_all_test_cases(rules: LintRuleCollectionT) -> List[GeneratedTestCase]:
     """Generate all the test cases for the provided rules."""
+    cases: Optional[List[Union[ValidTestCase, InvalidTestCase]]]
     all_cases: List[GeneratedTestCase] = []
     for rule in rules:
         if not issubclass(rule, CstLintRule):
