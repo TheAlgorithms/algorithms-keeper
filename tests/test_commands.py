@@ -1,6 +1,6 @@
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 from gidgethub.sansio import Event
+from pytest import MonkeyPatch
 
 from algorithms_keeper import commands, utils
 from algorithms_keeper.constants import Label

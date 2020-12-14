@@ -1,8 +1,8 @@
 import urllib.parse
 
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 from gidgethub import sansio
+from pytest import MonkeyPatch
 
 from algorithms_keeper import pull_requests, utils
 from algorithms_keeper.constants import (
