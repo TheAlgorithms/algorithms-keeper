@@ -87,8 +87,7 @@ async def test_get_check_runs_for_commit():
     [{"issue_url": issue_url}, {"labels_url": labels_url}],
 )
 async def test_add_label_to_pr_or_issue(pr_or_issue):
-    post = {labels_url: None}
-    gh = MockGitHubAPI(post=post)
+    gh = MockGitHubAPI()
     await utils.add_label_to_pr_or_issue(
         gh, label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
     )
@@ -99,8 +98,7 @@ async def test_add_label_to_pr_or_issue(pr_or_issue):
 @pytest.mark.asyncio
 async def test_add_multiple_labels():
     pr_or_issue = {"number": number, "issue_url": issue_url}
-    post = {labels_url: None}
-    gh = MockGitHubAPI(post=post)
+    gh = MockGitHubAPI()
     await utils.add_label_to_pr_or_issue(
         gh, label=[Label.TYPE_HINT, Label.REVIEW], pr_or_issue=pr_or_issue
     )
@@ -115,8 +113,7 @@ async def test_add_multiple_labels():
 )
 async def test_remove_label_from_pr_or_issue(pr_or_issue):
     parse_label = urllib.parse.quote(Label.FAILED_TEST)
-    delete = {labels_url + f"/{parse_label}": None}
-    gh = MockGitHubAPI(delete=delete)
+    gh = MockGitHubAPI()
     await utils.remove_label_from_pr_or_issue(
         gh, label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
     )
@@ -128,11 +125,7 @@ async def test_remove_multiple_labels():
     parse_label1 = urllib.parse.quote(Label.TYPE_HINT)
     parse_label2 = urllib.parse.quote(Label.REVIEW)
     pr_or_issue = {"issue_url": issue_url}
-    delete = {
-        f"{labels_url}/{parse_label1}": None,
-        f"{labels_url}/{parse_label2}": None,
-    }
-    gh = MockGitHubAPI(delete=delete)
+    gh = MockGitHubAPI()
     await utils.remove_label_from_pr_or_issue(
         gh, label=[Label.TYPE_HINT, Label.REVIEW], pr_or_issue=pr_or_issue
     )
@@ -160,8 +153,7 @@ async def test_get_user_open_pr_numbers():
 async def test_add_comment_to_pr_or_issue():
     # PR and issue both have `comments_url` key.
     pr_or_issue = {"number": number, "comments_url": comments_url}
-    post = {comments_url: None}
-    gh = MockGitHubAPI(post=post)
+    gh = MockGitHubAPI()
     await utils.add_comment_to_pr_or_issue(gh, comment=comment, pr_or_issue=pr_or_issue)
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -174,9 +166,7 @@ async def test_close_pr_no_reviewers():
         "comments_url": comments_url,
         "requested_reviewers": [],
     }
-    post = {comments_url: None}
-    patch = {pr_url: None}
-    gh = MockGitHubAPI(post=post, patch=patch)
+    gh = MockGitHubAPI()
     await utils.close_pr_or_issue(gh, comment=comment, pr_or_issue=pull_request)
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -193,10 +183,7 @@ async def test_close_pr_with_reviewers():
         "comments_url": comments_url,
         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
     }
-    post = {comments_url: None}
-    patch = {pr_url: None}
-    delete = {reviewers_url: None}
-    gh = MockGitHubAPI(post=post, patch=patch, delete=delete)
+    gh = MockGitHubAPI()
     await utils.close_pr_or_issue(gh, comment=comment, pr_or_issue=pull_request)
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -210,9 +197,7 @@ async def test_close_pr_with_reviewers():
 async def test_close_issue():
     # Issues don't have `requested_reviewers` field.
     issue = {"url": issue_url, "comments_url": comments_url}
-    post = {comments_url: None}
-    patch = {issue_url: None}
-    gh = MockGitHubAPI(post=post, patch=patch)
+    gh = MockGitHubAPI()
     await utils.close_pr_or_issue(gh, comment=comment, pr_or_issue=issue)
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -230,9 +215,7 @@ async def test_close_pr_or_issue_with_label():
         "issue_url": issue_url,
         "requested_reviewers": [],
     }
-    post = {comments_url: None, labels_url: None}
-    patch = {pr_url: None}
-    gh = MockGitHubAPI(post=post, patch=patch)
+    gh = MockGitHubAPI()
     await utils.close_pr_or_issue(
         gh, comment=comment, pr_or_issue=pull_request, label="invalid"
     )
@@ -311,9 +294,8 @@ async def test_get_file_content():
 
 @pytest.mark.asyncio
 async def test_create_pr_review():
-    post = {review_url: None}
     pull_request = {"url": pr_url, "head": {"sha": sha}}
-    gh = MockGitHubAPI(post=post)
+    gh = MockGitHubAPI()
     await utils.create_pr_review(
         gh, pull_request=pull_request, comments=[{"body": "test"}]
     )
@@ -323,9 +305,8 @@ async def test_create_pr_review():
 
 @pytest.mark.asyncio
 async def test_add_reaction():
-    post = {reactions_url: None}
     comment = {"url": comment_url}
-    gh = MockGitHubAPI(post=post)
+    gh = MockGitHubAPI()
     await utils.add_reaction(gh, reaction="+1", comment=comment)
     assert reactions_url in gh.post_url
     assert {"content": "+1"} in gh.post_data

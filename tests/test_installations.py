@@ -19,8 +19,7 @@ async def test_installation_created():
     }
     event = sansio.Event(data, event="installation", delivery_id="1")
     post = {issue_path: {"url": issue_url}}
-    patch = {issue_url: None}
-    gh = MockGitHubAPI(post=post, patch=patch)
+    gh = MockGitHubAPI(post=post)
     await installation_router.dispatch(event, gh)
     assert issue_path in gh.post_url
     assert {
@@ -41,8 +40,7 @@ async def test_installation_repositories_added():
     }
     event = sansio.Event(data, event="installation_repositories", delivery_id="1")
     post = {issue_path: {"url": issue_url}}
-    patch = {issue_url: None}
-    gh = MockGitHubAPI(post=post, patch=patch)
+    gh = MockGitHubAPI(post=post)
     await installation_router.dispatch(event, gh)
     assert issue_path in gh.post_url
     assert {

@@ -32,9 +32,7 @@ async def test_empty_issue_body():
         "installation": {"id": number},
     }
     event = sansio.Event(data, event="issues", delivery_id="1")
-    post = {comments_url: {}, labels_url: {}}
-    patch = {issue_url: {}}
-    gh = MockGitHubAPI(post=post, patch=patch)
+    gh = MockGitHubAPI()
     await issues_router.dispatch(event, gh)
     assert gh.getitem_url == []
     assert gh.getiter_url == []
@@ -64,9 +62,7 @@ async def test_non_empty_issue_body():
         "installation": {"id": number},
     }
     event = sansio.Event(data, event="issues", delivery_id="1")
-    post = {comments_url: {}, labels_url: {}}
-    patch = {issue_url: {}}
-    gh = MockGitHubAPI(post=post, patch=patch)
+    gh = MockGitHubAPI()
     await issues_router.dispatch(event, gh)
     assert gh.getitem_url == []
     assert gh.getiter_url == []

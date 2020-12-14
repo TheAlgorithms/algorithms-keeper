@@ -141,8 +141,7 @@ async def test_check_run_completed_passing_with_label():
             ],
         },
     }
-    delete = {remove_labels_url: None}
-    gh = MockGitHubAPI(getitem=getitem, delete=delete)
+    gh = MockGitHubAPI(getitem=getitem)
     await check_run_router.dispatch(event, gh)
     assert len(gh.getitem_url) == 2
     assert search_url in gh.getitem_url
@@ -181,8 +180,7 @@ async def test_check_run_completed_failing_no_label():
             ],
         },
     }
-    post = {labels_url: None}
-    gh = MockGitHubAPI(getitem=getitem, post=post)
+    gh = MockGitHubAPI(getitem=getitem)
     await check_run_router.dispatch(event, gh)
     assert len(gh.getitem_url) == 2
     assert search_url in gh.getitem_url

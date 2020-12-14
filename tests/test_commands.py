@@ -95,8 +95,7 @@ async def test_comment_on_issue():
         "issue": {},
     }
     event = Event(data, event="issue_comment", delivery_id="1")
-    post = {reactions_url: None}
-    gh = MockGitHubAPI(post=post)
+    gh = MockGitHubAPI()
     await commands_router.dispatch(event, gh)
     assert len(gh.post_url) == 1
     assert reactions_url in gh.post_url
@@ -135,7 +134,6 @@ async def test_review_command():
         "issue": {"pull_request": {"url": pr_url}},
     }
     event = Event(data, event="issue_comment", delivery_id="1")
-    post = {reactions_url: None}
     getitem = {
         pr_url: {
             "url": pr_url,
@@ -146,7 +144,7 @@ async def test_review_command():
         },
     }
     getiter = {files_url: []}
-    gh = MockGitHubAPI(post=post, getitem=getitem, getiter=getiter)
+    gh = MockGitHubAPI(getitem=getitem, getiter=getiter)
     await commands_router.dispatch(event, gh)
     assert len(gh.post_url) == 1
     assert reactions_url in gh.post_url
@@ -170,7 +168,6 @@ async def test_review_all_command():
         "issue": {"pull_request": {"url": pr_url}},
     }
     event = Event(data, event="issue_comment", delivery_id="1")
-    post = {reactions_url: None, labels_url: None, review_url: None}
     getitem = {
         pr_url: {
             "url": pr_url,
@@ -187,7 +184,7 @@ async def test_review_all_command():
             {"filename": "doctest.py", "contents_url": "", "status": "modified"},
         ]
     }
-    gh = MockGitHubAPI(post=post, getitem=getitem, getiter=getiter)
+    gh = MockGitHubAPI(getitem=getitem, getiter=getiter)
     await commands_router.dispatch(event, gh)
     assert len(gh.post_url) == 3  # Two labels, one reaction
     assert reactions_url in gh.post_url
