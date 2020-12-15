@@ -1,224 +1,228 @@
 import urllib.parse
 
 import pytest
-from gidgethub import sansio
+from gidgethub.sansio import Event
 
 from algorithms_keeper.constants import Label
 from algorithms_keeper.event.check_run import check_run_router
 
 from .utils import (
+    ExpectedData,
     MockGitHubAPI,
     check_run_url,
     labels_url,
-    number,
+    parametrize_id,
     repository,
     search_url,
     sha,
 )
 
+QUOTED_FAILED_TEST_LABEL = urllib.parse.quote(Label.FAILED_TEST)
 
+
+# Reminder: ``Event.delivery_id`` is used as a short description for the respective
+# test case and as a way to id the specific test case in the parametrized group.
 @pytest.mark.asyncio
-async def test_check_run_not_from_pr_commit():
-    data = {
-        "action": "completed",
-        "check_run": {
-            "head_sha": sha,
-        },
-        "repository": {"full_name": repository},
-        "installation": {"id": number},
-    }
-    event = sansio.Event(data, event="check_run", delivery_id="2")
-    getitem = {
-        search_url: {
-            "total_count": 0,
-            "items": [],
-        }
-    }
-    gh = MockGitHubAPI(getitem=getitem)
-    await check_run_router.dispatch(event, gh)
-    assert len(gh.getitem_url) == 1
-    assert search_url in gh.getitem_url
-    assert gh.post_url == []  # does not add any label
-    assert gh.post_data == []
-    assert gh.delete_url == []  # does not delete any label
-
-
-@pytest.mark.asyncio
-async def test_check_run_completed_some_in_progress():
-    data = {
-        "action": "completed",
-        "check_run": {
-            "head_sha": sha,
-        },
-        "repository": {"full_name": repository},
-        "installation": {"id": number},
-    }
-    event = sansio.Event(data, event="check_run", delivery_id="3")
-    getitem = {
-        search_url: {
-            "total_count": 1,
-            "items": [{"labels": [{"name": Label.REVIEW}]}],
-        },
-        check_run_url: {
-            "total_count": 2,
-            "check_runs": [
-                {"status": "completed", "conclusion": "cancelled"},
-                {"status": "in_progress", "conclusion": None},
-            ],
-        },
-    }
-    gh = MockGitHubAPI(getitem=getitem)
-    await check_run_router.dispatch(event, gh)
-    assert len(gh.getitem_url) == 2
-    assert search_url in gh.getitem_url
-    assert check_run_url in gh.getitem_url
-    assert gh.post_data == []
-    assert gh.post_url == []  # does not add any label
-    assert gh.delete_url == []  # does not delete any label
-
-
-@pytest.mark.asyncio
-async def test_check_run_completed_passing_no_label():
-    data = {
-        "action": "completed",
-        "check_run": {
-            "head_sha": sha,
-        },
-        "repository": {"full_name": repository},
-        "installation": {"id": number},
-    }
-    event = sansio.Event(data, event="check_run", delivery_id="4")
-    getitem = {
-        search_url: {
-            "total_count": 1,
-            "items": [{"labels": [{"name": Label.REVIEW}]}],
-        },
-        check_run_url: {
-            "total_count": 2,
-            "check_runs": [
-                {"status": "completed", "conclusion": "success"},
-                {"status": "completed", "conclusion": "skipped"},
-            ],
-        },
-    }
-    gh = MockGitHubAPI(getitem=getitem)
-    await check_run_router.dispatch(event, gh)
-    assert len(gh.getitem_url) == 2
-    assert search_url in gh.getitem_url
-    assert check_run_url in gh.getitem_url
-    assert gh.post_data == []
-    assert gh.post_url == []  # does not add any label
-    assert gh.delete_url == []  # does not delete any label
-
-
-@pytest.mark.asyncio
-async def test_check_run_completed_passing_with_label():
-    remove_labels_url = f"{labels_url}/{urllib.parse.quote(Label.FAILED_TEST)}"
-    data = {
-        "action": "completed",
-        "check_run": {
-            "head_sha": sha,
-        },
-        "repository": {"full_name": repository},
-        "installation": {"id": number},
-    }
-    event = sansio.Event(data, event="check_run", delivery_id="5")
-    getitem = {
-        search_url: {
-            "total_count": 1,
-            "items": [
-                {
-                    "labels": [{"name": Label.FAILED_TEST}],
-                    "labels_url": labels_url,
+@pytest.mark.parametrize(
+    "event, gh, expected",
+    (
+        # Check run completed from a commit which does not belong to a pull request.
+        (
+            Event(
+                data={
+                    "action": "completed",
+                    "check_run": {
+                        "head_sha": sha,
+                    },
+                    "repository": {"full_name": repository},
+                },
+                event="check_run",
+                delivery_id="commit_not_from_pr",
+            ),
+            MockGitHubAPI(
+                getitem={
+                    search_url: {
+                        "total_count": 0,
+                        "items": [],
+                    }
                 }
-            ],
-        },
-        check_run_url: {
-            "total_count": 2,
-            "check_runs": [
-                {"status": "completed", "conclusion": "action_required"},
-                {"status": "completed", "conclusion": "success"},
-            ],
-        },
-    }
-    gh = MockGitHubAPI(getitem=getitem)
-    await check_run_router.dispatch(event, gh)
-    assert len(gh.getitem_url) == 2
-    assert search_url in gh.getitem_url
-    assert check_run_url in gh.getitem_url
-    assert gh.post_url == []
-    assert gh.post_data == []  # does not add any label
-    assert remove_labels_url in gh.delete_url
-
-
-@pytest.mark.asyncio
-async def test_check_run_completed_failing_no_label():
-    data = {
-        "action": "completed",
-        "check_run": {
-            "head_sha": sha,
-        },
-        "repository": {"full_name": repository},
-        "installation": {"id": number},
-    }
-    event = sansio.Event(data, event="check_run", delivery_id="6")
-    getitem = {
-        search_url: {
-            "total_count": 1,
-            "items": [
-                {
-                    "labels": [{"name": Label.REVIEW}],
-                    "labels_url": labels_url,
+            ),
+            ExpectedData(getitem_url=[search_url]),
+        ),
+        # Check run completed but some of the other checks are in progress.
+        (
+            Event(
+                data={
+                    "action": "completed",
+                    "check_run": {
+                        "head_sha": sha,
+                    },
+                    "repository": {"full_name": repository},
+                },
+                event="check_run",
+                delivery_id="completed_some_in_progress",
+            ),
+            MockGitHubAPI(
+                getitem={
+                    search_url: {
+                        "total_count": 1,
+                        "items": [{"labels": [{"name": Label.REVIEW}]}],
+                    },
+                    check_run_url: {
+                        "total_count": 2,
+                        "check_runs": [
+                            {"status": "completed", "conclusion": "cancelled"},
+                            {"status": "in_progress", "conclusion": None},
+                        ],
+                    },
                 }
-            ],
-        },
-        check_run_url: {
-            "total_count": 2,
-            "check_runs": [
-                {"status": "completed", "conclusion": "success"},
-                {"status": "completed", "conclusion": "failure"},
-            ],
-        },
-    }
-    gh = MockGitHubAPI(getitem=getitem)
+            ),
+            ExpectedData(getitem_url=[search_url, check_run_url]),
+        ),
+        # Check run completed and it's a success, there are no ``FAILED_TEST`` label on
+        # the pull request, so no action taken.
+        (
+            Event(
+                data={
+                    "action": "completed",
+                    "check_run": {
+                        "head_sha": sha,
+                    },
+                    "repository": {"full_name": repository},
+                },
+                event="check_run",
+                delivery_id="completed_passing_no_label",
+            ),
+            MockGitHubAPI(
+                getitem={
+                    search_url: {
+                        "total_count": 1,
+                        "items": [{"labels": [{"name": Label.REVIEW}]}],
+                    },
+                    check_run_url: {
+                        "total_count": 2,
+                        "check_runs": [
+                            {"status": "completed", "conclusion": "success"},
+                            {"status": "completed", "conclusion": "skipped"},
+                        ],
+                    },
+                }
+            ),
+            ExpectedData(getitem_url=[search_url, check_run_url]),
+        ),
+        # Check run completed and it's a success, there is the ``FAILED_TEST`` label on
+        # the pull request, so remove it.
+        (
+            Event(
+                data={
+                    "action": "completed",
+                    "check_run": {
+                        "head_sha": sha,
+                    },
+                    "repository": {"full_name": repository},
+                },
+                event="check_run",
+                delivery_id="completed_passing_with_label",
+            ),
+            MockGitHubAPI(
+                getitem={
+                    search_url: {
+                        "total_count": 1,
+                        "items": [
+                            {
+                                "labels": [{"name": Label.FAILED_TEST}],
+                                "labels_url": labels_url,
+                            }
+                        ],
+                    },
+                    check_run_url: {
+                        "total_count": 2,
+                        "check_runs": [
+                            {"status": "completed", "conclusion": "action_required"},
+                            {"status": "completed", "conclusion": "success"},
+                        ],
+                    },
+                }
+            ),
+            ExpectedData(
+                getitem_url=[search_url, check_run_url],
+                delete_url=[f"{labels_url}/{QUOTED_FAILED_TEST_LABEL}"],
+            ),
+        ),
+        # Check run completed and it's a failure, there is no ``FAILED_TEST`` label on
+        # the pull request, so add it.
+        (
+            Event(
+                data={
+                    "action": "completed",
+                    "check_run": {
+                        "head_sha": sha,
+                    },
+                    "repository": {"full_name": repository},
+                },
+                event="check_run",
+                delivery_id="completed_failing_no_label",
+            ),
+            MockGitHubAPI(
+                getitem={
+                    search_url: {
+                        "total_count": 1,
+                        "items": [
+                            {
+                                "labels": [{"name": Label.REVIEW}],
+                                "labels_url": labels_url,
+                            }
+                        ],
+                    },
+                    check_run_url: {
+                        "total_count": 2,
+                        "check_runs": [
+                            {"status": "completed", "conclusion": "success"},
+                            {"status": "completed", "conclusion": "failure"},
+                        ],
+                    },
+                }
+            ),
+            ExpectedData(
+                getitem_url=[search_url, check_run_url],
+                post_url=[labels_url],
+                post_data=[{"labels": [Label.FAILED_TEST]}],
+            ),
+        ),
+        # Check run complated and it's a failure, there is ``FAILED_TEST`` label on
+        # the pull request, so don't do anything.
+        (
+            Event(
+                data={
+                    "action": "completed",
+                    "check_run": {
+                        "head_sha": sha,
+                    },
+                    "repository": {"full_name": repository},
+                },
+                event="check_run",
+                delivery_id="completed_failing_with_label",
+            ),
+            MockGitHubAPI(
+                getitem={
+                    search_url: {
+                        "total_count": 1,
+                        "items": [{"labels": [{"name": Label.FAILED_TEST}]}],
+                    },
+                    check_run_url: {
+                        "total_count": 2,
+                        "check_runs": [
+                            {"status": "completed", "conclusion": "timed_out"},
+                            {"status": "completed", "conclusion": "success"},
+                        ],
+                    },
+                }
+            ),
+            ExpectedData(getitem_url=[search_url, check_run_url]),
+        ),
+    ),
+    ids=parametrize_id,
+)
+async def test_check_run(event, gh, expected):
     await check_run_router.dispatch(event, gh)
-    assert len(gh.getitem_url) == 2
-    assert search_url in gh.getitem_url
-    assert check_run_url in gh.getitem_url
-    assert gh.delete_url == []  # does not delete any label
-    assert labels_url in gh.post_url
-    assert {"labels": [Label.FAILED_TEST]} in gh.post_data
-
-
-@pytest.mark.asyncio
-async def test_check_run_completed_failing_with_label():
-    data = {
-        "action": "completed",
-        "check_run": {
-            "head_sha": sha,
-        },
-        "repository": {"full_name": repository},
-        "installation": {"id": number},
-    }
-    event = sansio.Event(data, event="check_run", delivery_id="7")
-    getitem = {
-        search_url: {
-            "total_count": 1,
-            "items": [{"labels": [{"name": Label.FAILED_TEST}]}],
-        },
-        check_run_url: {
-            "total_count": 2,
-            "check_runs": [
-                {"status": "completed", "conclusion": "timed_out"},
-                {"status": "completed", "conclusion": "success"},
-            ],
-        },
-    }
-    gh = MockGitHubAPI(getitem=getitem)
-    await check_run_router.dispatch(event, gh)
-    assert len(gh.getitem_url) == 2
-    assert search_url in gh.getitem_url
-    assert check_run_url in gh.getitem_url
-    assert gh.post_data == []  # does not add any label
-    assert gh.post_url == []
-    assert gh.delete_url == []  # does not delete any label
+    assert gh == expected

@@ -1,51 +1,82 @@
 import pytest
-from gidgethub import sansio
+from gidgethub.sansio import Event
 
 from algorithms_keeper.constants import GREETING_COMMENT
 from algorithms_keeper.event.installation import installation_router
 
-from .utils import MockGitHubAPI, issue_path, issue_url, number, repository, user
+from .utils import (
+    ExpectedData,
+    MockGitHubAPI,
+    issue_path,
+    issue_url,
+    number,
+    parametrize_id,
+    repository,
+    user,
+)
 
-GREETING_COMMENT = GREETING_COMMENT.format(login=user)
+FILLED_GREETING_COMMENT: str = GREETING_COMMENT.format(login=user)
 
 
+# Reminder: ``Event.delivery_id`` is used as a short description for the respective
+# test case and as a way to id the specific test case in the parametrized group.
 @pytest.mark.asyncio
-async def test_installation_created():
-    data = {
-        "action": "created",
-        "installation": {"id": number},
-        "repositories": [{"full_name": repository}],
-        "sender": {"login": user},
-    }
-    event = sansio.Event(data, event="installation", delivery_id="1")
-    post = {issue_path: {"url": issue_url}}
-    gh = MockGitHubAPI(post=post)
+@pytest.mark.parametrize(
+    "event, gh, expected",
+    (
+        # Installation was created on a repository.
+        (
+            Event(
+                data={
+                    "action": "created",
+                    "installation": {"id": number},
+                    "repositories": [{"full_name": repository}],
+                    "sender": {"login": user},
+                },
+                event="installation",
+                delivery_id="installation_created",
+            ),
+            MockGitHubAPI(post={issue_path: {"url": issue_url}}),
+            ExpectedData(
+                post_url=[issue_path],
+                post_data=[
+                    {
+                        "title": "Installation successful!",
+                        "body": FILLED_GREETING_COMMENT,
+                    }
+                ],
+                patch_url=[issue_url],
+                patch_data=[{"state": "closed"}],
+            ),
+        ),
+        # Installation was added on a repository.
+        (
+            Event(
+                data={
+                    "action": "added",
+                    "installation": {"id": number},
+                    "repositories_added": [{"full_name": repository}],
+                    "sender": {"login": user},
+                },
+                event="installation_repositories",
+                delivery_id="installation_added",
+            ),
+            MockGitHubAPI(post={issue_path: {"url": issue_url}}),
+            ExpectedData(
+                post_url=[issue_path],
+                post_data=[
+                    {
+                        "title": "Installation successful!",
+                        "body": FILLED_GREETING_COMMENT,
+                    }
+                ],
+                patch_url=[issue_url],
+                patch_data=[{"state": "closed"}],
+            ),
+        ),
+    ),
+    ids=parametrize_id,
+)
+async def test_installations(event, gh, expected):
     await installation_router.dispatch(event, gh)
-    assert issue_path in gh.post_url
-    assert {
-        "title": "Installation successful!",
-        "body": GREETING_COMMENT,
-    } in gh.post_data
-    assert issue_url in gh.patch_url
-    assert {"state": "closed"} in gh.patch_data
-
-
-@pytest.mark.asyncio
-async def test_installation_repositories_added():
-    data = {
-        "action": "added",
-        "installation": {"id": number},
-        "repositories_added": [{"full_name": repository}],
-        "sender": {"login": user},
-    }
-    event = sansio.Event(data, event="installation_repositories", delivery_id="1")
-    post = {issue_path: {"url": issue_url}}
-    gh = MockGitHubAPI(post=post)
-    await installation_router.dispatch(event, gh)
-    assert issue_path in gh.post_url
-    assert {
-        "title": "Installation successful!",
-        "body": GREETING_COMMENT,
-    } in gh.post_data
-    assert issue_url in gh.patch_url
-    assert {"state": "closed"} in gh.patch_data
+    assert gh == expected

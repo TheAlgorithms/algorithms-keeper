@@ -11,7 +11,7 @@ from fixit.rule_lint_engine import lint_file
 from algorithms_keeper.parser.python_parser import get_rules_from_config
 
 
-@dataclass(frozen=True)
+@dataclass(repr=False, eq=False, frozen=True)
 class GeneratedTestCase:
     rule: Type[CstLintRule]
     test_case: Union[ValidTestCase, InvalidTestCase]

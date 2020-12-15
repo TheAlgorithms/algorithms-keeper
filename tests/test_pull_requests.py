@@ -36,8 +36,8 @@ from .utils import (
 )
 
 # Comment constants
-EMPTY_BODY_COMMENT = EMPTY_PR_BODY_COMMENT.format(user_login=user)
-CHECKBOX_NOT_TICKED_COMMENT = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=user)
+FILLED_EMPTY_PR_BODY_COMMENT = EMPTY_PR_BODY_COMMENT.format(user_login=user)
+FILLED_CHECKBOX_NOT_TICKED_COMMENT = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=user)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -65,11 +65,11 @@ def patch_module(monkeypatch=MonkeyPatch()):
     "body, comment, draft",
     (
         # Empty body, non-draft PR
-        ("", EMPTY_BODY_COMMENT, False),
+        ("", FILLED_EMPTY_PR_BODY_COMMENT, False),
         # Checklist empty, non-draft PR
-        (CHECKBOX_NOT_TICKED, CHECKBOX_NOT_TICKED_COMMENT, False),
+        (CHECKBOX_NOT_TICKED, FILLED_CHECKBOX_NOT_TICKED_COMMENT, False),
         # Empty body, draft PR
-        ("", EMPTY_BODY_COMMENT, True),
+        ("", FILLED_EMPTY_PR_BODY_COMMENT, True),
     ),
 )
 async def test_invalid_pr_opened(body, comment, draft):

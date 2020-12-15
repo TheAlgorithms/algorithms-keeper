@@ -4,7 +4,11 @@ from gidgethub import apps, sansio
 
 from algorithms_keeper import api
 
-from .utils import mock_return, number, token
+from .utils import number, token
+
+
+async def mock_return(*args, **kwargs):
+    return {"token": token}
 
 
 @pytest.fixture
@@ -51,7 +55,6 @@ async def test_access_token(github_api, monkeypatch):
     monkeypatch.delattr(apps, "get_installation_access_token")
     cached_token = await github_api.access_token
     assert cached_token == token
-    monkeypatch.undo()
 
 
 @pytest.mark.asyncio
