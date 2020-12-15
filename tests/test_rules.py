@@ -1,7 +1,6 @@
 import textwrap
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Tuple, Type, Union
 
 import pytest
 from fixit import CstLintRule
@@ -10,13 +9,16 @@ from fixit.rule_lint_engine import lint_file
 
 from algorithms_keeper.parser.python_parser import get_rules_from_config
 
+GenTestCaseType = Tuple[Type[CstLintRule], Union[ValidTestCase, InvalidTestCase], str]
 
-@dataclass(repr=False, eq=False, frozen=True)
-class GeneratedTestCase:
-    rule: Type[CstLintRule]
-    test_case: Union[ValidTestCase, InvalidTestCase]
-    # This will be used to identify individual tests in the parameterized group.
-    test_case_id: str
+
+def _parametrized_id(obj: object) -> str:
+    if isinstance(obj, type):
+        return obj.__name__
+    elif isinstance(obj, str):
+        return obj
+    else:
+        return ""
 
 
 def _dedent(src: str) -> str:
@@ -31,32 +33,30 @@ def _dedent(src: str) -> str:
     return textwrap.dedent(src)
 
 
-def _gen_all_test_cases(rules: LintRuleCollectionT) -> List[GeneratedTestCase]:
+def _gen_all_test_cases(rules: LintRuleCollectionT) -> List[GenTestCaseType]:
     """Generate all the test cases for the provided rules."""
     cases: Optional[List[Union[ValidTestCase, InvalidTestCase]]]
-    all_cases: List[GeneratedTestCase] = []
+    all_cases: List[GenTestCaseType] = []
     for rule in rules:
         if not issubclass(rule, CstLintRule):
             continue
         for test_type in {"VALID", "INVALID"}:
             if cases := getattr(rule, test_type, None):
                 for index, test_case in enumerate(cases):
-                    all_cases.append(
-                        GeneratedTestCase(
-                            rule=rule,
-                            test_case=test_case,
-                            test_case_id=f"{test_type}_{index}",
-                        )
-                    )
+                    all_cases.append((rule, test_case, f"{test_type}_{index}"))
     return all_cases
 
 
 @pytest.mark.parametrize(
-    "generated_test",
+    "rule, test_case, test_case_id",
     _gen_all_test_cases(get_rules_from_config()),
-    ids=lambda data: f"{data.rule.__name__}_{data.test_case_id}",
+    ids=_parametrized_id,
 )
-def test_rules(generated_test: GeneratedTestCase) -> None:
+def test_rules(
+    rule: Type[CstLintRule],
+    test_case: Union[ValidTestCase, InvalidTestCase],
+    test_case_id: str,
+) -> None:
     """Test all the rules with the generated test cases.
 
     All the test cases comes directly from the `VALID` and `INVALID` attributes for the
@@ -71,8 +71,6 @@ def test_rules(generated_test: GeneratedTestCase) -> None:
     been converted to using ``pytest`` and removed the fixture feature. This might be
     added if there's any need for that in the future.
     """
-    rule = generated_test.rule
-    test_case = generated_test.test_case
     reports = lint_file(
         Path(test_case.filename),
         _dedent(test_case.code).encode("utf-8"),

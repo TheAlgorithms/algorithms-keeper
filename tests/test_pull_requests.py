@@ -1,3 +1,4 @@
+from typing import Any, Generator
 from urllib.parse import quote
 
 import pytest
@@ -61,8 +62,10 @@ MAX_PR_TEST_ITEMS = [{"number": i} for i in range(1, MAX_PR_TEST_NUMBER + 2)]
 
 
 @pytest.fixture(scope="module", autouse=True)
-def patch_module(monkeypatch=MonkeyPatch()):
-    async def mock_get_file_content(*args, **kwargs):
+def patch_module(
+    monkeypatch: MonkeyPatch = MonkeyPatch(),
+) -> Generator[MonkeyPatch, None, None]:
+    async def mock_get_file_content(*args: Any, **kwargs: Any) -> bytes:
         filename = kwargs["file"].name
         if filename in {
             "doctest.py",
@@ -73,7 +76,7 @@ def patch_module(monkeypatch=MonkeyPatch()):
         }:
             return get_source(filename)
         else:
-            return ""
+            return b""
 
     monkeypatch.setattr(utils, "get_file_content", mock_get_file_content)
     yield monkeypatch
@@ -165,7 +168,9 @@ def patch_module(monkeypatch=MonkeyPatch()):
     ),
     ids=parametrize_id,
 )
-async def test_max_pr_by_user(monkeypatch, event, gh, expected):
+async def test_max_pr_by_user(
+    monkeypatch: MonkeyPatch, event: Event, gh: MockGitHubAPI, expected: ExpectedData
+) -> None:
     # There are only two possible cases for the ``MAX_PR_BY_USER`` constant:
     # - The value is some arbitrary positive number greater than 0.
     # - The value is 0, which signals to disable the check.
@@ -940,6 +945,8 @@ async def test_max_pr_by_user(monkeypatch, event, gh, expected):
     ),
     ids=parametrize_id,
 )
-async def test_pull_request(event, gh, expected):
+async def test_pull_request(
+    event: Event, gh: MockGitHubAPI, expected: ExpectedData
+) -> None:
     await pull_request_router.dispatch(event, gh)
     assert gh == expected

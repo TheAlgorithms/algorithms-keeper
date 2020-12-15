@@ -76,6 +76,6 @@ FILLED_EMPTY_ISSUE_BODY_COMMENT = EMPTY_ISSUE_BODY_COMMENT.format(user_login=use
     ),
     ids=parametrize_id,
 )
-async def test_issues(event, gh, expected):
+async def test_issues(event: Event, gh: MockGitHubAPI, expected: ExpectedData) -> None:
     await issues_router.dispatch(event, gh)
     assert gh == expected

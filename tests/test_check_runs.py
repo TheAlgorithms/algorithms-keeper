@@ -1,4 +1,4 @@
-import urllib.parse
+from urllib.parse import quote
 
 import pytest
 from gidgethub.sansio import Event
@@ -16,8 +16,6 @@ from .utils import (
     search_url,
     sha,
 )
-
-QUOTED_FAILED_TEST_LABEL = urllib.parse.quote(Label.FAILED_TEST)
 
 
 # Reminder: ``Event.delivery_id`` is used as a short description for the respective
@@ -146,7 +144,7 @@ QUOTED_FAILED_TEST_LABEL = urllib.parse.quote(Label.FAILED_TEST)
             ),
             ExpectedData(
                 getitem_url=[search_url, check_run_url],
-                delete_url=[f"{labels_url}/{QUOTED_FAILED_TEST_LABEL}"],
+                delete_url=[f"{labels_url}/{quote(Label.FAILED_TEST)}"],
             ),
         ),
         # Check run completed and it's a failure, there is no ``FAILED_TEST`` label on
@@ -223,6 +221,8 @@ QUOTED_FAILED_TEST_LABEL = urllib.parse.quote(Label.FAILED_TEST)
     ),
     ids=parametrize_id,
 )
-async def test_check_run(event, gh, expected):
+async def test_check_run(
+    event: Event, gh: MockGitHubAPI, expected: ExpectedData
+) -> None:
     await check_run_router.dispatch(event, gh)
     assert gh == expected

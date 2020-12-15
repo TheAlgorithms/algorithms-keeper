@@ -5,7 +5,7 @@ from algorithms_keeper import __main__ as main
 from .utils import number
 
 
-async def test_ping(aiohttp_client):
+async def test_ping(aiohttp_client):  # type: ignore
     app = web.Application()
     app.router.add_post("/", main.main)
     client = await aiohttp_client(app)
@@ -15,7 +15,7 @@ async def test_ping(aiohttp_client):
     assert response.status == 200
 
 
-async def test_failure(aiohttp_client):
+async def test_failure(aiohttp_client):  # type: ignore
     # Even in the face of an exception, the server should not crash.
     app = web.Application()
     app.router.add_post("/", main.main)
@@ -25,7 +25,7 @@ async def test_failure(aiohttp_client):
     assert response.status == 500
 
 
-async def test_success(aiohttp_client):
+async def test_success(aiohttp_client):  # type: ignore
     app = web.Application()
     app.router.add_post("/", main.main)
     client = await aiohttp_client(app)

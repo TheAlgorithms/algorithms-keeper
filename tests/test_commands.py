@@ -1,3 +1,5 @@
+from typing import Any, Generator
+
 import pytest
 from gidgethub.sansio import Event
 from pytest import MonkeyPatch
@@ -24,8 +26,10 @@ from .utils import (
 
 
 @pytest.fixture(scope="module", autouse=True)
-def patch_module(monkeypatch=MonkeyPatch()):
-    async def mock_get_file_content(*args, **kwargs):
+def patch_module(
+    monkeypatch: MonkeyPatch = MonkeyPatch(),
+) -> Generator[MonkeyPatch, None, None]:
+    async def mock_get_file_content(*args: Any, **kwargs: Any) -> bytes:
         filename = kwargs["file"].name
         if filename in {
             "doctest.py",
@@ -36,7 +40,7 @@ def patch_module(monkeypatch=MonkeyPatch()):
         }:
             return get_source(filename)
         else:
-            return ""
+            return b""
 
     monkeypatch.setattr(utils, "get_file_content", mock_get_file_content)
     yield monkeypatch
@@ -53,7 +57,7 @@ def patch_module(monkeypatch=MonkeyPatch()):
         "@algorithms_keeper test-all",
     ),
 )
-def test_command_regex_no_match(text):
+def test_command_regex_no_match(text: str) -> None:
     assert COMMAND_RE.search(text) is None
 
 
@@ -69,8 +73,10 @@ def test_command_regex_no_match(text):
         ("@algorithms-keeper     random-test   ", "random-test"),
     ),
 )
-def test_command_regex_match(text, group):
-    assert COMMAND_RE.search(text).group(1) == group
+def test_command_regex_match(text: str, group: str) -> None:
+    match = COMMAND_RE.search(text)
+    assert match is not None
+    assert match.group(1) == group
 
 
 # Reminder: ``Event.delivery_id`` is used as a short description for the respective
@@ -221,6 +227,6 @@ def test_command_regex_match(text, group):
     ),
     ids=parametrize_id,
 )
-async def test_command(event, gh, expected):
+async def test_command(event: Event, gh: MockGitHubAPI, expected: ExpectedData) -> None:
     await commands_router.dispatch(event, gh)
     assert gh == expected

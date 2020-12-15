@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import aiohttp
 import pytest
 from gidgethub import apps, sansio
@@ -7,7 +9,7 @@ from algorithms_keeper import api
 from .utils import number, token
 
 
-async def mock_return(*args, **kwargs):
+async def mock_return(*args: Any, **kwargs: Any) -> Dict[str, str]:
     return {"token": token}
 
 
@@ -22,7 +24,7 @@ async def github_api():
 
 
 @pytest.mark.asyncio
-async def test_initialization():
+async def test_initialization() -> None:
     async with aiohttp.ClientSession() as session:
         github_api = api.GitHubAPI(number, session, "algorithms-keeper")
     # First layer is initialized
@@ -36,7 +38,7 @@ async def test_initialization():
 
 
 @pytest.mark.asyncio
-async def test_read_only_property(github_api):
+async def test_read_only_property(github_api) -> None:
     with pytest.raises(AttributeError):
         github_api.headers = "something"
     with pytest.raises(AttributeError):
@@ -44,7 +46,7 @@ async def test_read_only_property(github_api):
 
 
 @pytest.mark.asyncio
-async def test_access_token(github_api, monkeypatch):
+async def test_access_token(github_api, monkeypatch) -> None:
     monkeypatch.setattr(apps, "get_installation_access_token", mock_return)
     monkeypatch.setenv("GITHUB_APP_ID", "")
     monkeypatch.setenv("GITHUB_PRIVATE_KEY", "")
@@ -58,7 +60,7 @@ async def test_access_token(github_api, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_headers_and_log(github_api):
+async def test_headers_and_log(github_api) -> None:
     assert github_api.headers is None
     request_headers = sansio.create_headers("algorithms-keeper")
     resp = await github_api._request(

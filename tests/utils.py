@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, fields
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from gidgethub.sansio import Event
 
@@ -26,6 +26,35 @@ class ExpectedData:
 
 
 class MockGitHubAPI:
+    """Mocked GitHubAPI object.
+
+    Arguments:
+
+    - ``getitem``: dictionary mapping ``{url: result}``, or None
+    - ``getiter``: dictionary mapping ``{url: result}``, or None
+    - ``post``: dictionary mapping ``{url: result}``, or None
+
+    The actual results are stored in the attributes:
+
+    - ``getitem_url``: list of urls called with getitem
+    - ``getiter_url``: list of urls called with getiter
+    - ``post_url``: list of urls called with post
+    - ``post_data``: list of the data input for each post
+    - ``patch_url``: list of urls called with patch
+    - ``patch_data``: list of the data input for each patch
+    - ``delete_url``: list of urls called with delete
+    - ``delete_data``: list of the data input for each delete
+
+    **NOTE:**
+
+    - ``delete_data`` attribute will only be populated with the data if there is any.
+      Delete request do not send any data most of the times, so by appending the data
+      all the time, the list will be filled with ``None`` objects.
+    - Currently, there are only three requests whose response data is required by
+      the caller, which are the three ``__init__`` parameters. In the future,
+      others will have to be added if there is a need.
+    """
+
     def __init__(
         self,
         *,
@@ -60,7 +89,7 @@ class MockGitHubAPI:
                 "instantiating the object but got 'None' instead."
             )
 
-    async def getiter(self, url: str, **kwargs: Any) -> Any:
+    async def getiter(self, url: str, **kwargs: Any) -> AsyncGenerator[Any, None]:
         self.getiter_url.append(url)
         getiter_return = self._getiter_return
         if getiter_return is not None:
@@ -130,6 +159,7 @@ class MockGitHubAPI:
         return True
 
 
+# ---------------------- Common data used throughout the tests ----------------------
 # Meta information
 token = "12345"
 number = 1

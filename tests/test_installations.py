@@ -15,7 +15,7 @@ from .utils import (
     user,
 )
 
-FILLED_GREETING_COMMENT: str = GREETING_COMMENT.format(login=user)
+FILLED_GREETING_COMMENT = GREETING_COMMENT.format(login=user)
 
 
 # Reminder: ``Event.delivery_id`` is used as a short description for the respective
@@ -77,6 +77,8 @@ FILLED_GREETING_COMMENT: str = GREETING_COMMENT.format(login=user)
     ),
     ids=parametrize_id,
 )
-async def test_installations(event, gh, expected):
+async def test_installations(
+    event: Event, gh: MockGitHubAPI, expected: ExpectedData
+) -> None:
     await installation_router.dispatch(event, gh)
     assert gh == expected
