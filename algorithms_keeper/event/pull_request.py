@@ -5,30 +5,18 @@ Copy and paste to http://www.webgraphviz.com/ to look at the stages of a pull re
 digraph "PR stages" {
   /*
   Box represents labels
-  Require labels include
-  - `require tests`
-  - `require type hints`
-  - `require descriptive names`
   */
   "New PR" [color=yellow]
   "Awaiting review" [shape=box, color=green]
   "Awaiting changes" [shape=box, color=blue]
-  "Require labels" [shape=box, color=orange]
-  "Tests are failing" [shape=box, color=red]
   "Approved" [color=yellow]
 
-  "New PR" -> "Awaiting review" [label="PR opened\nAssume PR is perfect", color=green]
+  "New PR" -> "Awaiting review" [label="PR opened", color=green]
   "Awaiting review" -> "Awaiting changes" [label="Review requests changes", color=red]
   "Awaiting changes" -> "Awaiting review" [label="Author made changes", color=orange]
 
   "Awaiting review" -> "Approved" [label="Review approves", color=green]
   "Awaiting changes" -> "Approved" [label="Review approves", color=green]
-
-  "Awaiting review" -> "Tests are failing" [label="Tests failed", color=red]
-  "Tests are failing" -> "Awaiting review" [label="Tests passed", color=green]
-
-  "Awaiting review" -> "Require labels" [label="Requirements not satisfied", color=red]
-  "Require labels" -> "Awaiting review" [label="Requirements satisfied", color=green]
 }
 """
 import re
@@ -53,16 +41,6 @@ from algorithms_keeper.parser import PythonParser
 MAX_PR_PER_USER = 1
 STAGE_PREFIX = "awaiting"
 
-# If these labels are on a pull request, then the pull request is not ready to be
-# reviewed by a maintainer and thus, remove Label.REVIEW if present.
-PR_NOT_READY_LABELS = (
-    Label.FAILED_TEST,
-    Label.REQUIRE_TEST,
-    Label.DESCRIPTIVE_NAME,
-    Label.TYPE_HINT,
-    Label.INVALID,
-)
-
 pull_request_router = routing.Router()
 
 
@@ -75,16 +53,17 @@ async def update_stage_label(
     1. Remove any of the stage labels, if present.
     2. Add the next stage label given in the `next_label` argument.
 
-    If the next_label argument is not provided, then only the first step is performed.
+    If `next_label` argument is not provided, then only the first step is performed.
     """
     for label in pull_request["labels"]:
         # The bot should be smart enough to figure out that if the next_label
         # already exist, then there's no need to change the pull request stage.
-        if label["name"] == next_label:
+        label_name = label["name"]
+        if label_name == next_label:
             return None
-        elif STAGE_PREFIX in label["name"]:
+        elif STAGE_PREFIX in label_name:
             await utils.remove_label_from_pr_or_issue(
-                gh, label=label["name"], pr_or_issue=pull_request
+                gh, label=label_name, pr_or_issue=pull_request
             )
     if next_label is not None:
         await utils.add_label_to_pr_or_issue(
@@ -289,47 +268,6 @@ async def update_pr_label_for_review(
             await update_stage_label(gh, pull_request=pull_request)
 
 
-@pull_request_router.register("pull_request", action="labeled")
-async def remove_awaiting_review_label(
-    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
-) -> None:
-    """Remove the awaiting reviews label if any of the `require_` or `failed_test`
-    labels were added to the pull request.
-
-    This assumes that the label was added when the pull request was opened to cover
-    the case where the bot detected no errors in the pull request, thus no `require_`
-    or `failed_test` labels were added.
-    """
-    pull_request = event.data["pull_request"]
-    if event.data["label"]["name"] in PR_NOT_READY_LABELS:
-        if any(label["name"] == Label.REVIEW for label in pull_request["labels"]):
-            await utils.remove_label_from_pr_or_issue(
-                gh, label=Label.REVIEW, pr_or_issue=pull_request
-            )
-
-
-@pull_request_router.register("pull_request", action="unlabeled")
-async def add_awaiting_review_label(
-    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
-) -> None:
-    """Add the awaiting reviews label when none of the `require_` or `failed_test`
-    labels exists on the given pull request.
-
-    To know whether the pull request has already been reviewed, we will check whether
-    `Label.CHANGE` exist or not.
-    """
-    pull_request = event.data["pull_request"]
-
-    # These labels are removed only when a PR is reviewed/approved, so we don't want
-    # to add the `awaiting_review` label back again. (Issue #10)
-    if STAGE_PREFIX in event.data["label"]["name"]:
-        return None
-    for pr_label in pull_request["labels"]:
-        if pr_label["name"] in PR_NOT_READY_LABELS:
-            return None
-    await update_stage_label(gh, pull_request=pull_request, next_label=Label.REVIEW)
-
-
 @pull_request_router.register("pull_request", action="synchronize")
 async def add_review_label_on_changes(
     event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
@@ -342,9 +280,6 @@ async def add_review_label_on_changes(
     pull_request = event.data["pull_request"]
     if pull_request["draft"]:
         return None
-    for label in pull_request["labels"]:
-        if label["name"] in PR_NOT_READY_LABELS:
-            return None
     await update_stage_label(gh, pull_request=pull_request, next_label=Label.REVIEW)
 
 

@@ -454,7 +454,7 @@ async def test_max_pr_by_user(
                         "url": pr_url,
                         "body": CHECKBOX_TICKED,
                         # This got added when the pull request was opened.
-                        "labels": [{"name": Label.TYPE_HINT}],
+                        "labels": [{"name": Label.REVIEW}, {"name": Label.TYPE_HINT}],
                         "head": {"sha": sha},
                         "user": {"login": user},
                         "author_association": "NONE",
@@ -739,133 +739,6 @@ async def test_max_pr_by_user(
             MockGitHubAPI(),
             ExpectedData(delete_url=[f"{labels_url}/{quote(Label.CHANGE)}"]),
         ),
-        # Review label added with no require or failed_test labels present.
-        (
-            Event(
-                data={
-                    "action": "labeled",
-                    "pull_request": {
-                        "labels": [{"name": Label.REVIEW}],
-                        "issue_url": issue_url,
-                    },
-                    "label": {"name": Label.REVIEW},
-                },
-                event="pull_request",
-                delivery_id="labeled_review_with_no_errors",
-            ),
-            MockGitHubAPI(),
-            ExpectedData(),
-        ),
-        # Require label was added while the review label present on the pull request,
-        # so remove the review label.
-        (
-            Event(
-                data={
-                    "action": "labeled",
-                    "pull_request": {
-                        "labels": [
-                            {"name": Label.REVIEW},
-                            {"name": Label.REQUIRE_TEST},
-                        ],
-                        "issue_url": issue_url,
-                    },
-                    "label": {"name": Label.REQUIRE_TEST},
-                },
-                event="pull_request",
-                delivery_id="require_label_added_with_review",
-            ),
-            MockGitHubAPI(),
-            ExpectedData(delete_url=[f"{labels_url}/{quote(Label.REVIEW)}"]),
-        ),
-        # A require label was removed but there are still some present on the pull
-        # request, so does not take any action.
-        (
-            Event(
-                data={
-                    "action": "unlabeled",
-                    "pull_request": {
-                        "labels": [{"name": Label.REQUIRE_TEST}],
-                        "issue_url": issue_url,
-                    },
-                    "label": {"name": Label.TYPE_HINT},
-                },
-                event="pull_request",
-                delivery_id="not_all_require_labels_removed",
-            ),
-            MockGitHubAPI(),
-            ExpectedData(),
-        ),
-        # All the require labels were removed, so add back the review label.
-        (
-            Event(
-                data={
-                    "action": "unlabeled",
-                    "pull_request": {
-                        "labels": [{"name": "good first issue"}],  # Random label.
-                        "issue_url": issue_url,
-                    },
-                    "label": {"name": Label.TYPE_HINT},
-                },
-                event="pull_request",
-                delivery_id="all_require_labels_removed",
-            ),
-            MockGitHubAPI(),
-            ExpectedData(
-                post_url=[labels_url],
-                post_data=[{"labels": [Label.REVIEW]}],
-            ),
-        ),
-        # Change label was added, so do nothing.
-        (
-            Event(
-                data={
-                    "action": "labeled",
-                    "pull_request": {
-                        "labels": [{"name": Label.CHANGE}],
-                        "issue_url": issue_url,
-                    },
-                    "label": {"name": Label.CHANGE},
-                },
-                event="pull_request",
-                delivery_id="change_label_added",
-            ),
-            MockGitHubAPI(),
-            ExpectedData(),
-        ),
-        # Change label was removed, so do nothing.
-        (
-            Event(
-                data={
-                    "action": "unlabeled",
-                    "pull_request": {
-                        "labels": [],
-                        "issue_url": issue_url,
-                    },
-                    "label": {"name": Label.CHANGE},
-                },
-                event="pull_request",
-                delivery_id="change_label_removed",
-            ),
-            MockGitHubAPI(),
-            ExpectedData(),
-        ),
-        # Review label was removed, so do nothing.
-        (
-            Event(
-                data={
-                    "action": "unlabeled",
-                    "pull_request": {
-                        "labels": [],
-                        "issue_url": issue_url,
-                    },
-                    "label": {"name": Label.REVIEW},
-                },
-                event="pull_request",
-                delivery_id="review_label_removed",
-            ),
-            MockGitHubAPI(),
-            ExpectedData(),
-        ),
         # No labels to add and remove while in draft mode.
         (
             Event(
@@ -884,48 +757,30 @@ async def test_max_pr_by_user(
             MockGitHubAPI(),
             ExpectedData(),
         ),
-        # (
-        #     Event(
-        #         data={
-        #             "action": "synchronize",
-        #             "pull_request": {
-        #                 "url": pr_url,
-        #                 "html_url": html_pr_url,
-        #                 "user": {"login": user},
-        #                 "issue_url": issue_url,
-        #                 "labels": [{"name": Label.TYPE_HINT}],
-        #                 "draft": False,
-        #             },
-        #         },
-        #         event="pull_request",
-        #         delivery_id="no_review_label_when_pr_not_ready"
-        #     ),
-        #     MockGitHubAPI(),
-        #     ExpectedData()
-        # ),
-        # (
-        #     Event(
-        #         data={
-        #             "action": "synchronize",
-        #             "pull_request": {
-        #                 "url": pr_url,
-        #                 "html_url": html_pr_url,
-        #                 "user": {"login": user},
-        #                 "issue_url": issue_url,
-        #                 "labels": [{"name": Label.CHANGE}],
-        #                 "draft": False,
-        #             },
-        #         },
-        #         event="pull_request",
-        #         delivery_id="review_label_after_changes_made"
-        #     ),
-        #     MockGitHubAPI(),
-        #     ExpectedData(
-        #         post_url=[labels_url],
-        #         post_data=[{"labels": [Label.REVIEW]}],
-        #         delete_url=[f"{labels_url}/{quote(Label.CHANGE)}"],
-        #     )
-        # ),
+        (
+            Event(
+                data={
+                    "action": "synchronize",
+                    "pull_request": {
+                        "url": pr_url,
+                        "html_url": html_pr_url,
+                        "user": {"login": user},
+                        "issue_url": issue_url,
+                        "labels": [{"name": Label.CHANGE}],
+                        "draft": False,
+                    },
+                },
+                event="pull_request",
+                delivery_id="review_label_after_changes_made",
+            ),
+            MockGitHubAPI(getiter={files_url: []}),
+            ExpectedData(
+                getiter_url=[files_url],
+                post_url=[labels_url],
+                post_data=[{"labels": [Label.REVIEW]}],
+                delete_url=[f"{labels_url}/{quote(Label.CHANGE)}"],
+            ),
+        ),
         (
             Event(
                 data={
