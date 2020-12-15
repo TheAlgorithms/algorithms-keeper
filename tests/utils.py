@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field, fields
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
-from gidgethub import aiohttp
 from gidgethub.sansio import Event
 
 
@@ -26,7 +25,7 @@ class ExpectedData:
     delete_data: List[Dict[str, Any]] = field(default_factory=list)
 
 
-class TestGitHubAPI:
+class MockGitHubAPI:
     def __init__(
         self,
         *,
@@ -78,6 +77,11 @@ class TestGitHubAPI:
 
     async def post(self, url: str, *, data: Any, **kwargs: Any) -> Any:
         self.post_url.append(url)
+        if url == review_url:
+            # Comments are arbitrary data, body is a constant and quite long.
+            # This is done just for convenience.
+            data.pop("body")
+            data.pop("comments")
         self.post_data.append(data)
         # XXX Only used for installation. Is it really necessary?
         post_return = self._post_return
@@ -124,9 +128,6 @@ class TestGitHubAPI:
                     f"Expected value: {expected_value}"
                 )
         return True
-
-
-MockGitHubAPI = cast(aiohttp.GitHubAPI, TestGitHubAPI)
 
 
 # Meta information
