@@ -15,10 +15,9 @@ Open an issue with the message greeting the user who either installed the app or
 
 ### Add or remove label(s) to pull requests
 - To indicate that some of the tests are failing for this pull request if it is not present and remove it when all the tests are passing. It does nothing if the tests are already passing. ***NOTE: This check will be skipped if the pull request is in draft mode.***
-- To indicate that the pull request is ready to be reviewed by a maintainer which means all the checks are passing and all the requirements have been satisfied.
-- To indicate the user that a maintainer has requested some changes to their submission.
+- To indicate the stage the pull request is currently at. This is a cycle of two labels which indicates the two stages: The pull request requires a review/re-review or a maintainer has requested changes for the pull request.
 
-The pull request label stages can be best described in a [graphviz](http://www.webgraphviz.com/) diagram whose code is in the [pull requests module](https://github.com/dhruvmanila/algorithms-keeper/blob/master/algorithms_keeper/pull_requests.py).
+The pull request stages can be best described in a [graphviz](http://www.webgraphviz.com/) diagram whose code is in the [pull requests module](https://github.com/dhruvmanila/algorithms-keeper/blob/master/algorithms_keeper/pull_requests.py).
 
 ### Close invalid pull requests
 A pull request is considered invalid if:
