@@ -58,19 +58,17 @@ class PullRequestReviewRecord:
     def add_comments(
         self, reports: Collection[BaseLintRuleReport], filepath: str
     ) -> None:
-        """Add a comments from the reports.
+        """Construct and add comments from the reports.
 
         If the line on which the comment is to be posted already exists, then the
         *body* is simply added to the respective comment's body provided it is in the
         same file. This is done to avoid adding multiple comments on the same line.
         """
         for report in reports:
-            line: int = report.line
-            message: str = report.message
             self._violated_rules.add(report.code)
-            if self._lineno_exist(line, filepath, message):
+            if self._lineno_exist(report.message, filepath, report.line):
                 continue
-            self._comments.append(ReviewComment(message, filepath, line))
+            self._comments.append(ReviewComment(report.message, filepath, report.line))
 
     def add_error(self, message: str, filepath: str, lineno: Optional[int]) -> None:
         """Add any exceptions faced while parsing the source code in the parser_old.
@@ -107,7 +105,7 @@ class PullRequestReviewRecord:
         """
         return [asdict(comment) for comment in self._comments]
 
-    def _lineno_exist(self, lineno: int, filepath: str, body: str) -> bool:
+    def _lineno_exist(self, body: str, filepath: str, lineno: int) -> bool:
         """Determine whether any review comment is registered for the given *lineno*
         for the given *filepath*.
 

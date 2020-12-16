@@ -7,8 +7,6 @@ from fixit import ValidTestCase as Valid
 
 MESSAGE: str = "Please provide descriptive name for the {nodetype}: `{nodename}`"
 
-RequireRuleNodeT = Union[cst.ClassDef, cst.FunctionDef, cst.Param]
-
 
 class RequireDescriptiveNameRule(CstLintRule):
 
@@ -69,15 +67,17 @@ class RequireDescriptiveNameRule(CstLintRule):
     ]
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
-        self.validate_name_length(node, "class")
+        self._validate_name_length(node, "class")
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
-        self.validate_name_length(node, "function")
+        self._validate_name_length(node, "function")
 
     def visit_Param(self, node: cst.Param) -> None:
-        self.validate_name_length(node, "parameter")
+        self._validate_name_length(node, "parameter")
 
-    def validate_name_length(self, node: RequireRuleNodeT, nodetype: str) -> None:
+    def _validate_name_length(
+        self, node: Union[cst.ClassDef, cst.FunctionDef, cst.Param], nodetype: str
+    ) -> None:
         nodename = node.name.value
         if len(nodename) == 1:
             self.report(

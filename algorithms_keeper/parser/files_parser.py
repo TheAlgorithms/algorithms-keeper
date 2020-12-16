@@ -6,17 +6,20 @@ from algorithms_keeper.log import logger as main_logger
 from algorithms_keeper.utils import File
 
 # These files are updated automatically by a GitHub action in almost every pull request.
-IGNORE_FILES_FOR_DOCUMENTATION: Set[str] = {"DIRECTORY.md"}
+IGNORE_FILES_FOR_TYPELABEL: Set[str] = {"DIRECTORY.md"}
 
 
 class BaseFilesParser:
-    """A base class for all the pull request files.
+    """A base parser for all the pull request files.
 
     This class should be subclassed to fill the appropriate data for the two constants:
     ``DOCS_EXTENSIONS`` and ``ACCEPTED_EXTENSIONS`` as per the language repository.
     """
 
     pr: Dict[str, Any]
+    pr_files: List[File]
+    pr_labels: List[str]
+    pr_html_url: str
     logger: Logger
 
     DOCS_EXTENSIONS: Tuple[str, ...] = ()
@@ -88,7 +91,7 @@ class BaseFilesParser:
         label = ""
         for file in self.pr_files:
             if file.path.suffix in self.DOCS_EXTENSIONS:
-                if file.path.name not in IGNORE_FILES_FOR_DOCUMENTATION:
+                if file.path.name not in IGNORE_FILES_FOR_TYPELABEL:
                     label = Label.DOCUMENTATION
                     break
             elif file.status == "modified":

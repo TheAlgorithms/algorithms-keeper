@@ -1,12 +1,10 @@
 from typing import Union
 
 import libcst as cst
+import libcst.matchers as m
 from fixit import CstContext, CstLintRule
 from fixit import InvalidTestCase as Invalid
 from fixit import ValidTestCase as Valid
-from libcst.metadata.scope_provider import Assignment, GlobalScope, ScopeProvider
-
-DoctestNodeT = Union[cst.Module, cst.ClassDef, cst.FunctionDef]
 
 MISSING_DOCTEST: str = (
     "As there is no test file in this pull request nor any test function or class in "
@@ -18,9 +16,8 @@ INIT: str = "__init__"
 
 class RequireDoctestRule(CstLintRule):
 
-    METADATA_DEPENDENCIES = (ScopeProvider,)
-
     VALID = [
+        # Module-level docstring contains doctest.
         Valid(
             """
             '''
@@ -39,6 +36,7 @@ class RequireDoctestRule(CstLintRule):
                 pass
             """
         ),
+        # Module contains a test function.
         Valid(
             """
             def foo():
@@ -59,6 +57,30 @@ class RequireDoctestRule(CstLintRule):
                 pass
             """
         ),
+        # Module contains multiple test function.
+        Valid(
+            """
+            def foo():
+                pass
+
+            def bar():
+                pass
+
+            def test_foo():
+                pass
+
+            def test_bar():
+                pass
+
+            class Baz:
+                def baz(self):
+                    pass
+
+            def spam():
+                pass
+            """
+        ),
+        # Module contains a test class.
         Valid(
             """
             def foo():
@@ -80,6 +102,8 @@ class RequireDoctestRule(CstLintRule):
                 pass
             """
         ),
+        # Class level docstring contains doctest, so skip doctest checking only
+        # for that class.
         Valid(
             """
             def foo():
@@ -106,6 +130,7 @@ class RequireDoctestRule(CstLintRule):
                 pass
             """
         ),
+        # No doctest required for the ``__init__`` function.
         Valid(
             """
             def spam():
@@ -135,16 +160,24 @@ class RequireDoctestRule(CstLintRule):
                 pass
             """
         ),
+        # Only the ``__init__`` function does not require doctest.
         Invalid(
             """
-            class Bar:
+            def foo():
+                '''
+                >>> foo()
+                '''
+                pass
+
+            class Spam:
                 def __init__(self):
                     pass
 
-                def bar(self):
+                def spam(self):
                     pass
             """
         ),
+        # Check that `_skip_doctest` attribute is reseted after leaving the class.
         Invalid(
             """
             def bar():
@@ -160,7 +193,6 @@ class RequireDoctestRule(CstLintRule):
                 def spam():
                     pass
 
-            # Check that `_skip_doctest` attribute is reseted after leaving the class
             def egg():
                 pass
             """
@@ -184,7 +216,7 @@ class RequireDoctestRule(CstLintRule):
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
         nodename = node.name.value
-        if nodename != INIT and not self._skip_doctest and not self._has_doctest(node):
+        if nodename != INIT and not self._has_doctest(node):
             self.report(
                 node,
                 MISSING_DOCTEST.format(
@@ -192,7 +224,9 @@ class RequireDoctestRule(CstLintRule):
                 ),
             )
 
-    def _has_doctest(self, node: DoctestNodeT) -> bool:
+    def _has_doctest(
+        self, node: Union[cst.Module, cst.ClassDef, cst.FunctionDef]
+    ) -> bool:
         if not self._skip_doctest:
             docstring = node.get_docstring()
             if docstring is not None:
@@ -202,17 +236,40 @@ class RequireDoctestRule(CstLintRule):
             return False
         return True
 
-    def _has_testnode(self, node: cst.Module) -> bool:
-        scope: GlobalScope = self.get_metadata(ScopeProvider, node)
-        for assignment in scope.assignments:
-            if isinstance(assignment, Assignment):
-                assigned_node = assignment.node
-                if (
-                    isinstance(assigned_node, cst.FunctionDef)
-                    and assigned_node.name.value.startswith("test_")
-                ) or (
-                    isinstance(assigned_node, cst.ClassDef)
-                    and assigned_node.name.value.startswith("Test")
-                ):
-                    return True
+    @staticmethod
+    def _has_testnode(node: cst.Module) -> bool:
+        if m.matches(
+            node,
+            m.Module(
+                body=[
+                    # Sequence wildcard matchers matches LibCAST nodes in a row in a
+                    # sequence. It does not implicitly match on partial sequences. So,
+                    # when matching against a sequence we will need to provide a
+                    # complete pattern. This often means using helpers such as
+                    # ``ZeroOrMore()`` as the first and last element of the sequence.
+                    m.ZeroOrMore(),
+                    m.AtLeastN(
+                        n=1,
+                        matcher=m.OneOf(
+                            m.FunctionDef(
+                                name=m.Name(
+                                    value=m.MatchIfTrue(
+                                        lambda value: value.startswith("test_")
+                                    )
+                                )
+                            ),
+                            m.ClassDef(
+                                name=m.Name(
+                                    value=m.MatchIfTrue(
+                                        lambda value: value.startswith("Test")
+                                    )
+                                )
+                            ),
+                        ),
+                    ),
+                    m.ZeroOrMore(),
+                ]
+            ),
+        ):
+            return True
         return False

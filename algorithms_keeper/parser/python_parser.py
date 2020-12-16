@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Any, Dict, Generator, List
+from typing import Any, Dict, Generator, List, Optional
 
 from fixit import LintConfig
 from fixit.common.utils import LintRuleCollectionT, import_distinct_rules_from_package
@@ -9,7 +9,7 @@ from libcst import ParserSyntaxError
 from algorithms_keeper.log import logger as main_logger
 from algorithms_keeper.parser.files_parser import PythonFilesParser
 from algorithms_keeper.parser.record import PullRequestReviewRecord
-from algorithms_keeper.parser.rules.require_doctest import RequireDoctestRule
+from algorithms_keeper.parser.rules import RequireDoctestRule
 from algorithms_keeper.utils import File
 
 RULES_DOTPATH: str = "algorithms_keeper.parser.rules"
@@ -57,7 +57,7 @@ class PythonParser(PythonFilesParser):
         super().__init__(pr_files, pull_request, logger)
         self._pr_record = PullRequestReviewRecord()
         # Collection of rules are going to be static for a pull request, so let's
-        # extract it out and store it. This should be set after the check for testfile.
+        # extract it out and store it.
         self._rules = get_rules_from_config()
         # If the pull request contains a test file as per the naming convention, there's
         # no need to run ``RequireDoctestRule``.
@@ -78,6 +78,10 @@ class PythonParser(PythonFilesParser):
     def files_to_check(self, ignore_modified: bool) -> Generator[File, None, None]:
         """Generate all the ``File`` which should be checked.
 
+        The caller of this function should use a loop to generate and parse the files
+        one at a time. This way the labels will be filled only after all the files
+        have been parsed.
+
         Ignores:
 
         - Python test files
@@ -85,7 +89,7 @@ class PythonParser(PythonFilesParser):
         - Optionally ignore files which were modified (Issue #11)
         - Files in the *scripts/* directory (Issue #11)
         """
-        ignore = "modified" if ignore_modified else None
+        ignore: Optional[str] = "modified" if ignore_modified else None
         for file in self.pr_files:
             filepath = file.path
             if (
