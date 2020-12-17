@@ -1,7 +1,8 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any, Collection, Dict, List, Optional, Set
+from typing import Any, Collection, Dict, List, Set, Union
 
 from fixit.common.report import BaseLintRuleReport
+from libcst import ParserSyntaxError
 
 from algorithms_keeper.constants import Label
 
@@ -70,14 +71,20 @@ class PullRequestReviewRecord:
                 continue
             self._comments.append(ReviewComment(report.message, filepath, report.line))
 
-    def add_error(self, message: str, filepath: str, lineno: Optional[int]) -> None:
-        """Add any exceptions faced while parsing the source code in the parser_old.
+    def add_error(
+        self, exc: Union[SyntaxError, ParserSyntaxError], filepath: str
+    ) -> None:
+        """Add any exception faced while parsing the source code."""
+        import traceback
 
-        The parameter *message* is the traceback text with limit=1, no need for the
-        full traceback.
-        """
-        if lineno is None:  # pragma: no cover
-            lineno = 1
+        message: str = traceback.format_exc(limit=1)
+        # It seems that ``ParserSyntaxError`` is not a subclass of ``SyntaxError``,
+        # the same information is stored under a different attribute. There is no
+        # filename information in ``ParserSyntaxError``, thus the parameter `filepath`.
+        if isinstance(exc, SyntaxError):  # pragma: no cover
+            lineno = exc.lineno or 1
+        else:
+            lineno = exc.raw_line
         body = (
             f"An error occured while parsing the file: `{filepath}`\n"
             f"```python\n{message}\n```"

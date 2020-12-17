@@ -211,7 +211,7 @@ class RequireDoctestRule(CstLintRule):
         self.__temp = self._skip_doctest
         self._skip_doctest = self._has_doctest(node)
 
-    def leave_ClassDef(self, node: cst.ClassDef) -> None:
+    def leave_ClassDef(self, original_node: cst.ClassDef) -> None:
         self._skip_doctest = self.__temp
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:

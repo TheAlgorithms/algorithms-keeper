@@ -121,17 +121,7 @@ class PythonParser(PythonFilesParser):
             )
             self._pr_record.add_comments(reports, file.name)
         except (SyntaxError, ParserSyntaxError) as exc:
-            import traceback
-
-            msg: str = traceback.format_exc(limit=1)
-            # It seems that ``ParserSyntaxError`` is not a subclass of ``SyntaxError``,
-            # the same information is stored under a different attribute.
-            # Using ``try ... except AttributeError: ...`` makes ``mypy`` mad.
-            if isinstance(exc, SyntaxError):  # pragma: no cover
-                lineno = exc.lineno
-            else:
-                lineno = exc.raw_line
-            self._pr_record.add_error(msg, file.name, lineno)
+            self._pr_record.add_error(exc, file.name)
             self.logger.info(
                 "Invalid Python code for the file: [%(file)s] %(url)s",
                 {"file": file.name, "url": self.pr_html_url},
