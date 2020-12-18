@@ -1,7 +1,7 @@
 from typing import Set
 
 import libcst as cst
-from fixit import CstLintRule
+from fixit import CstContext, CstLintRule
 from fixit import InvalidTestCase as Invalid
 from fixit import ValidTestCase as Valid
 
@@ -52,6 +52,17 @@ class RequireTypeHintRule(CstLintRule):
                     pass
             """
         ),
+        # Annotating lambda parameters is not possible
+        Valid(
+            """
+            lambda ignore: ignore
+            """
+        ),
+        Valid(
+            """
+            lambda closure: lambda inside: closure + inside
+            """
+        ),
     ]
 
     INVALID = [
@@ -88,13 +99,34 @@ class RequireTypeHintRule(CstLintRule):
                     pass
             """
         ),
+        Invalid(
+            """
+            def spam() -> None:
+                foo = lambda bar: str(bar)
+
+                def wrapper(call) -> None:
+                    pass
+                return wrapper(foo)
+            """
+        ),
     ]
+
+    def __init__(self, context: CstContext) -> None:
+        super().__init__(context)
+        self._lambda_count: int = 0
+
+    def visit_Lambda(self, node: cst.Lambda) -> None:
+        self._lambda_count += 1
+
+    def leave_Lambda(self, original_node: cst.Lambda) -> None:
+        self._lambda_count -= 1
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
         if node.returns is None:
             self.report(node, MISSING_RETURN_TYPE_HINT.format(nodename=node.name.value))
 
     def visit_Param(self, node: cst.Param) -> None:
-        nodename = node.name.value
-        if node.annotation is None and nodename not in IGNORE_PARAM:
-            self.report(node, MISSING_TYPE_HINT.format(nodename=nodename))
+        if self._lambda_count == 0:
+            nodename = node.name.value
+            if node.annotation is None and nodename not in IGNORE_PARAM:
+                self.report(node, MISSING_TYPE_HINT.format(nodename=nodename))
