@@ -1,5 +1,5 @@
+import asyncio
 import os
-from asyncio import sleep as async_sleep
 from datetime import datetime, timezone
 from typing import Any, MutableMapping
 
@@ -44,7 +44,7 @@ async def main(request: Request) -> Response:
                 cache=cache,
             )
             # Give GitHub some time to reach internal consistency.
-            await async_sleep(1)
+            await asyncio.sleep(1)
             await main_router.dispatch(event, gh)
         if gh.rate_limit is not None:  # pragma: no cover
             logger.info(

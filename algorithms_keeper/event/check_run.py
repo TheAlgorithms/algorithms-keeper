@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 from gidgethub import routing
 from gidgethub.sansio import Event
@@ -51,10 +51,10 @@ async def check_ci_status_and_label(
         gh, sha=commit_sha, repository=repository
     )
 
-    all_check_run_status = [
+    all_check_run_status: List[str] = [
         check_run["status"] for check_run in check_runs["check_runs"]
     ]
-    all_check_run_conclusion = [
+    all_check_run_conclusion: List[str] = [
         check_run["conclusion"] for check_run in check_runs["check_runs"]
     ]
 
@@ -62,17 +62,17 @@ async def check_ci_status_and_label(
         "in_progress" not in all_check_run_status
         and "queued" not in all_check_run_status
     ):  # wait until all check runs are completed
-        pr_labels = [label["name"] for label in pr_for_commit["labels"]]
+        current_labels: List[str] = [label["name"] for label in pr_for_commit["labels"]]
         if any(
-            element in [None, "failure", "timed_out"]
-            for element in all_check_run_conclusion
+            conclusion in [None, "failure", "timed_out"]
+            for conclusion in all_check_run_conclusion
         ):  # Add the failure label only if it doesn't exist
-            if Label.FAILED_TEST not in pr_labels:
+            if Label.FAILED_TEST not in current_labels:
                 await utils.add_label_to_pr_or_issue(
                     gh, label=Label.FAILED_TEST, pr_or_issue=pr_for_commit
                 )
         # Check run is successful so if the label exist, remove it
-        elif Label.FAILED_TEST in pr_labels:
+        elif Label.FAILED_TEST in current_labels:
             await utils.remove_label_from_pr_or_issue(
                 gh, label=Label.FAILED_TEST, pr_or_issue=pr_for_commit
             )

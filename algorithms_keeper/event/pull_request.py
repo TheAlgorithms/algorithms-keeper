@@ -19,8 +19,9 @@ digraph "PR stages" {
   "Awaiting changes" -> "Approved" [label="Review approves", color=green]
 }
 """
+import asyncio
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from gidgethub import routing
 from gidgethub.sansio import Event
@@ -40,6 +41,7 @@ from algorithms_keeper.parser import PythonParser
 # To disable this check, set the constant to 0.
 MAX_PR_PER_USER = 1
 STAGE_PREFIX = "awaiting"
+MAX_RETRIES = 5
 
 pull_request_router = routing.Router()
 
@@ -50,6 +52,7 @@ async def update_stage_label(
     """Update the stage label of the given pull request.
 
     This is a two steps process with one being optional:
+
     1. Remove any of the stage labels, if present.
     2. Add the next stage label given in the `next_label` argument.
 
@@ -293,5 +296,46 @@ async def remove_awaiting_labels(
     - If the pull request is invalid and got closed.
     """
     pull_request = event.data["pull_request"]
-    if pull_request["merged"]:
+    if pull_request["merged"] or any(
+        label["name"] == Label.INVALID for label in pull_request["labels"]
+    ):
         await update_stage_label(gh, pull_request=pull_request)
+
+
+@pull_request_router.register("pull_request", action="opened")
+@pull_request_router.register("pull_request", action="reopened")
+@pull_request_router.register("pull_request", action="synchronize")
+async def check_merge_status(
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
+) -> None:
+    """Check the mergeability for the pull request.
+
+    Add/remove the appropriate label to indicate the pull request contains merge
+    conflicts.
+    """
+    pull_request = event.data["pull_request"]
+
+    for retry_interval in range(MAX_RETRIES):
+        mergeable: Optional[bool] = pull_request["mergeable"]
+        if mergeable is None:
+            # We will use the iter value we get as our sleep period between the polls.
+            # In the webhook payload, the mergeable status will always be ``None``, so
+            # in the first try the interval will be 0, thus requesting the pull request
+            # without wasting any time and starting the background check on GitHub.
+            # https://developer.github.com/v3/git/#checking-mergeability-of-pull-requests
+            await asyncio.sleep(retry_interval)
+            pull_request = await utils.update_pr(gh, pull_request=pull_request)
+        else:
+            current_labels: List[str] = [
+                label["name"] for label in pull_request["labels"]
+            ]
+            if not mergeable:
+                if Label.MERGE_CONFLICT not in current_labels:
+                    await utils.add_label_to_pr_or_issue(
+                        gh, label=Label.MERGE_CONFLICT, pr_or_issue=pull_request
+                    )
+            elif Label.MERGE_CONFLICT in current_labels:
+                await utils.remove_label_from_pr_or_issue(
+                    gh, label=Label.MERGE_CONFLICT, pr_or_issue=pull_request
+                )
+            break

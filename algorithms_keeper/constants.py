@@ -13,6 +13,7 @@ class Label:
     TYPE_HINT = "Require: Type hints"
     CHANGE = "Status: awaiting changes"
     REVIEW = "Status: awaiting reviews"
+    MERGE_CONFLICT = "Status: Merge conflicts"
     FAILED_TEST = "Status: Tests are failing"
     DOCUMENTATION = "Type: documentation"
     ENHANCEMENT = "Type: enhancement"

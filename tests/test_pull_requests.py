@@ -105,6 +105,7 @@ def patch_module(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -152,6 +153,7 @@ def patch_module(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -208,6 +210,7 @@ async def test_max_pr_by_user(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -246,6 +249,7 @@ async def test_max_pr_by_user(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -284,6 +288,7 @@ async def test_max_pr_by_user(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": True,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -321,6 +326,7 @@ async def test_max_pr_by_user(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -368,6 +374,7 @@ async def test_max_pr_by_user(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": True,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -402,6 +409,7 @@ async def test_max_pr_by_user(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": True,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -429,6 +437,7 @@ async def test_max_pr_by_user(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -462,6 +471,7 @@ async def test_max_pr_by_user(
                         "issue_url": issue_url,
                         "html_url": html_pr_url,
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -508,6 +518,7 @@ async def test_max_pr_by_user(
                         "issue_url": issue_url,
                         "html_url": html_pr_url,
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -550,6 +561,7 @@ async def test_max_pr_by_user(
                         "html_url": html_pr_url,
                         "requested_reviewers": [{"login": "test1"}, {"login": "test2"}],
                         "draft": False,
+                        "mergeable": True,
                     },
                     "repository": {"full_name": repository},
                 },
@@ -749,6 +761,7 @@ async def test_max_pr_by_user(
                         "issue_url": issue_url,
                         "labels": [{"name": Label.CHANGE}],
                         "draft": True,
+                        "mergeable": True,
                     },
                 },
                 event="pull_request",
@@ -757,6 +770,7 @@ async def test_max_pr_by_user(
             MockGitHubAPI(),
             ExpectedData(),
         ),
+        # Add the review label after the author made the necessary changes.
         (
             Event(
                 data={
@@ -768,6 +782,7 @@ async def test_max_pr_by_user(
                         "issue_url": issue_url,
                         "labels": [{"name": Label.CHANGE}],
                         "draft": False,
+                        "mergeable": True,
                     },
                 },
                 event="pull_request",
@@ -781,6 +796,7 @@ async def test_max_pr_by_user(
                 delete_url=[f"{labels_url}/{quote(Label.CHANGE)}"],
             ),
         ),
+        # Remove all the awaiting labels after the pull request is merged, if any.
         (
             Event(
                 data={
@@ -796,6 +812,158 @@ async def test_max_pr_by_user(
             ),
             MockGitHubAPI(),
             ExpectedData(delete_url=[f"{labels_url}/{quote(Label.REVIEW)}"]),
+        ),
+        # Remove all the awaiting labels after the pull request is closed and not merged
+        # as it was considered to be invalid.
+        (
+            Event(
+                data={
+                    "action": "closed",
+                    "pull_request": {
+                        "merged": False,
+                        "issue_url": issue_url,
+                        "labels": [{"name": Label.REVIEW}, {"name": Label.INVALID}],
+                    },
+                },
+                event="pull_request",
+                delivery_id="remove_labels_on_invalid_pr_closed",
+            ),
+            MockGitHubAPI(),
+            ExpectedData(delete_url=[f"{labels_url}/{quote(Label.REVIEW)}"]),
+        ),
+        # Check whether the poll is being made if the mergeable value is ``None``.
+        (
+            Event(
+                data={
+                    "action": "synchronize",
+                    "pull_request": {
+                        "url": pr_url,
+                        "html_url": html_pr_url,
+                        "user": {"login": user},
+                        "issue_url": issue_url,
+                        "labels": [{"name": Label.REVIEW}],
+                        "draft": False,
+                        "mergeable": None,
+                    },
+                },
+                event="pull_request",
+                delivery_id="mergeable_value_is_none",
+            ),
+            MockGitHubAPI(
+                getiter={files_url: []},
+                getitem={
+                    pr_url: {
+                        "url": pr_url,
+                        "labels": [],
+                        "mergeable": True,
+                    }
+                },
+            ),
+            ExpectedData(
+                getiter_url=[files_url],
+                getitem_url=[pr_url],
+            ),
+        ),
+        # The pull request has no merge conflicts and the label does not exist, so do
+        # not take any action.
+        (
+            Event(
+                data={
+                    "action": "synchronize",
+                    "pull_request": {
+                        "url": pr_url,
+                        "html_url": html_pr_url,
+                        "user": {"login": user},
+                        "issue_url": issue_url,
+                        "labels": [{"name": Label.REVIEW}],
+                        "draft": False,
+                        "mergeable": True,
+                    },
+                },
+                event="pull_request",
+                delivery_id="mergeable_value_is_true_no_label",
+            ),
+            MockGitHubAPI(getiter={files_url: []}),
+            ExpectedData(getiter_url=[files_url]),
+        ),
+        # The pull request has no merge conflicts and the label exist, so remove the
+        # label.
+        (
+            Event(
+                data={
+                    "action": "synchronize",
+                    "pull_request": {
+                        "url": pr_url,
+                        "html_url": html_pr_url,
+                        "user": {"login": user},
+                        "issue_url": issue_url,
+                        "labels": [
+                            {"name": Label.REVIEW},
+                            {"name": Label.MERGE_CONFLICT},
+                        ],
+                        "draft": False,
+                        "mergeable": True,
+                    },
+                },
+                event="pull_request",
+                delivery_id="mergeable_value_is_true_with_label",
+            ),
+            MockGitHubAPI(getiter={files_url: []}),
+            ExpectedData(
+                getiter_url=[files_url],
+                delete_url=[f"{labels_url}/{quote(Label.MERGE_CONFLICT)}"],
+            ),
+        ),
+        # The pull request contains merge conflicts and the label does not exist, so
+        # add the label.
+        (
+            Event(
+                data={
+                    "action": "synchronize",
+                    "pull_request": {
+                        "url": pr_url,
+                        "html_url": html_pr_url,
+                        "user": {"login": user},
+                        "issue_url": issue_url,
+                        "labels": [{"name": Label.REVIEW}],
+                        "draft": False,
+                        "mergeable": False,
+                    },
+                },
+                event="pull_request",
+                delivery_id="mergeable_value_is_false_no_label",
+            ),
+            MockGitHubAPI(getiter={files_url: []}),
+            ExpectedData(
+                getiter_url=[files_url],
+                post_url=[labels_url],
+                post_data=[{"labels": [Label.MERGE_CONFLICT]}],
+            ),
+        ),
+        # The pull request contains merge conflicts and the label exists as well, so
+        # do not take any action.
+        (
+            Event(
+                data={
+                    "action": "synchronize",
+                    "pull_request": {
+                        "url": pr_url,
+                        "html_url": html_pr_url,
+                        "user": {"login": user},
+                        "issue_url": issue_url,
+                        "labels": [
+                            {"name": Label.REVIEW},
+                            {"name": Label.MERGE_CONFLICT},
+                        ],
+                        "draft": False,
+                        "mergeable": False,
+                    },
+                },
+                event="pull_request",
+                delivery_id="mergeable_value_is_false_with_label",
+            ),
+            MockGitHubAPI(getiter={files_url: []}),
+            ExpectedData(getiter_url=[files_url]),
         ),
     ),
     ids=parametrize_id,
