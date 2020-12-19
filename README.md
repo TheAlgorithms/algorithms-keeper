@@ -14,8 +14,9 @@ A bot for [TheAlgorithms/Python](https://www.github.com/TheAlgorithms/Python) re
 Open an issue with the message greeting the user who either installed the app or added a new repository to the installed app and then close the issue.
 
 ### Add or remove label(s) to pull requests
-- To indicate that some of the tests are failing for this pull request if it is not present and remove it when all the tests are passing. It does nothing if the tests are already passing. ***NOTE: This check will be skipped if the pull request is in draft mode.***
-- To indicate the stage the pull request is currently at. This is a cycle of two labels which indicates the two stages: The pull request requires a review/re-review or a maintainer has requested changes for the pull request.
+- To indicate that some tests are failing for this pull request if it is not present and remove it when all the tests are passing. It does nothing if the tests are already passing. ***NOTE: This check will be skipped if the pull request is in draft mode.***
+- To indicate the stage the pull request is currently at. This is a cycle of two labels which indicates the two stages: The pull request requires a review/re-review, or a maintainer has requested changes for the pull request.
+- To indicate whether the pull request contains merge conflicts or not.
 
 The pull request stages can be best described in a [graphviz](http://www.webgraphviz.com/) diagram whose code is in the [pull requests module](https://github.com/dhruvmanila/algorithms-keeper/blob/master/algorithms_keeper/pull_requests.py).
 
@@ -28,7 +29,7 @@ A pull request is considered invalid if:
 ***NOTE: These checks will be skipped for any member or owner of the organization and also for the pull request which is in draft mode.***
 
 ### Close additional pull requests by user
-A user will be allowed a fix number of pull requests at a time which will be indicated by the `MAX_PR_BY_USER` constant. This is done so as to avoid spam pull requests. This can be disabled by updating the constant value to 0: `MAX_PR_BY_USER = 0`.
+A user will be allowed a fix number of pull requests at a time which will be indicated by the `MAX_PR_BY_USER` constant. This is done to avoid spam pull requests. This can be disabled by updating the constant value to 0: `MAX_PR_BY_USER = 0`.
 
 ***NOTE: These checks will be skipped for any member or owner of the organization and also for the pull request which is in draft mode.***
 
@@ -38,7 +39,7 @@ All the Python files will be checked for tests [`doctest`/`unittest`/`pytest`], 
 ***NOTE: These checks will be skipped if the pull request is in draft mode and if the pull request is invalid.***
 
 ### Commands
-Some of the actions of the bot can be triggered using commands:
+Some actions of the bot can be triggered using commands:
 - `@algorithms-keeper review` to trigger the checks for only added pull request files.
 - `@algorithms-keeper review-all` to trigger the checks for all the pull request files, including the modified files. As we cannot post review comments on lines not part of the diff, this command only modify the labels accordingly.
 
