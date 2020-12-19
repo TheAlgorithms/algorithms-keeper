@@ -280,6 +280,6 @@ async def get_pr_for_issue(gh: GitHubAPI, *, issue: Dict[str, Any]) -> Any:
     )
 
 
-async def update_pr(gh: GitHubAPI, *, pull_request: Dict[str, Any]) -> Dict[str, Any]:
+async def update_pr(gh: GitHubAPI, *, pull_request: Dict[str, Any]) -> Any:
     """Get the updated pull request object for the given pull request."""
     return await gh.getitem(pull_request["url"], oauth_token=await gh.access_token)

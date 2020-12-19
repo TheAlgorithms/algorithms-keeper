@@ -9,8 +9,8 @@ MISSING_TYPE_HINT: str = "Please provide type hint for the parameter: `{nodename
 
 MISSING_RETURN_TYPE_HINT: str = (
     "Please provide return type hint for the function: `{nodename}`. "
-    "**If the function does not return a value, please provide "
-    "the type hint as:** `def function() -> None:`"
+    + "**If the function does not return a value, please provide "
+    + "the type hint as:** `def function() -> None:`"
 )
 
 IGNORE_PARAM: Set[str] = {"self", "cls"}
@@ -113,20 +113,20 @@ class RequireTypeHintRule(CstLintRule):
 
     def __init__(self, context: CstContext) -> None:
         super().__init__(context)
-        self._lambda_count: int = 0
+        self._lambda_counter: int = 0
 
     def visit_Lambda(self, node: cst.Lambda) -> None:
-        self._lambda_count += 1
+        self._lambda_counter += 1
 
     def leave_Lambda(self, original_node: cst.Lambda) -> None:
-        self._lambda_count -= 1
+        self._lambda_counter -= 1
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
         if node.returns is None:
             self.report(node, MISSING_RETURN_TYPE_HINT.format(nodename=node.name.value))
 
     def visit_Param(self, node: cst.Param) -> None:
-        if self._lambda_count == 0:
+        if self._lambda_counter == 0:
             nodename = node.name.value
             if node.annotation is None and nodename not in IGNORE_PARAM:
                 self.report(node, MISSING_TYPE_HINT.format(nodename=nodename))

@@ -8,7 +8,7 @@ from fixit import ValidTestCase as Valid
 
 MISSING_DOCTEST: str = (
     "As there is no test file in this pull request nor any test function or class in "
-    "the file `{filepath}`, please provide doctest for the function `{nodename}`"
+    + "the file `{filepath}`, please provide doctest for the function `{nodename}`"
 )
 
 INIT: str = "__init__"
@@ -202,17 +202,17 @@ class RequireDoctestRule(CstLintRule):
     def __init__(self, context: CstContext) -> None:
         super().__init__(context)
         self._skip_doctest: bool = False
-        self.__temp: bool = False
+        self._temporary: bool = False
 
     def visit_Module(self, node: cst.Module) -> None:
         self._skip_doctest = self._has_testnode(node) or self._has_doctest(node)
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
-        self.__temp = self._skip_doctest
+        self._temporary = self._skip_doctest
         self._skip_doctest = self._has_doctest(node)
 
     def leave_ClassDef(self, original_node: cst.ClassDef) -> None:
-        self._skip_doctest = self.__temp
+        self._skip_doctest = self._temporary
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
         nodename = node.name.value
@@ -238,7 +238,7 @@ class RequireDoctestRule(CstLintRule):
 
     @staticmethod
     def _has_testnode(node: cst.Module) -> bool:
-        if m.matches(
+        return m.matches(
             node,
             m.Module(
                 body=[
@@ -270,6 +270,4 @@ class RequireDoctestRule(CstLintRule):
                     m.ZeroOrMore(),
                 ]
             ),
-        ):
-            return True
-        return False
+        )
