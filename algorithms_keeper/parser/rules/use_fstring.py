@@ -11,8 +11,8 @@ class UseFstringRule(CstLintRule):
         "As mentioned in the [Contributing Guidelines]"
         + "(https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md), "
         + "please do not use printf style formatting or `str.format()`. "
-        + "Use f-string instead to be more readable and efficient. "
-        + "See https://www.python.org/dev/peps/pep-0498/"
+        + "Use [f-string](https://realpython.com/python-f-strings/) instead to be "
+        + "more readable and efficient."
     )
 
     VALID = [

@@ -102,6 +102,8 @@ PR_REVIEW_BODY = """\
 - [Project Euler solution guidelines]\
 (https://github.com/TheAlgorithms/Python/blob/master/project_euler/README.md)
 ### Python:
+- [Formatted string literals (f-strings)]\
+(https://docs.python.org/3/tutorial/inputoutput.html#tut-f-strings)
 - [Type hints](https://docs.python.org/3/library/typing.html)
 - [`doctest`](https://docs.python.org/3/library/doctest.html)
 - [`unittest`](https://docs.python.org/3/library/unittest.html)
