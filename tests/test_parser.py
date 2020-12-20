@@ -5,11 +5,13 @@ import pytest
 from pytest import MonkeyPatch
 
 from algorithms_keeper.constants import Label
-from algorithms_keeper.parser import PythonParser
+from algorithms_keeper.parser import PythonParser, rules
 from algorithms_keeper.parser.record import PullRequestReviewRecord
 from algorithms_keeper.utils import File
 
 from .utils import user
+
+TOTAL_RULES_COUNT: int = len(rules.__all__)
 
 DATA_DIRPATH = Path.cwd() / "tests" / "data"
 
@@ -35,9 +37,9 @@ def get_parser(filenames: str, status: str = "added") -> PythonParser:
     "parser, expected",
     (
         # Non-python files having preffix `test_` should not be considered.
-        (get_parser("test_data.txt, sol1.py"), 4),
-        (get_parser("tests/test_file.py, data/no_error.py"), 3),
-        (get_parser("data/no_error.py, data/doctest.py"), 4),
+        (get_parser("test_data.txt, sol1.py"), TOTAL_RULES_COUNT),
+        (get_parser("tests/test_file.py, data/no_error.py"), TOTAL_RULES_COUNT - 1),
+        (get_parser("data/no_error.py, data/doctest.py"), TOTAL_RULES_COUNT),
     ),
 )
 def test_contains_testfile(parser: PythonParser, expected: int) -> None:

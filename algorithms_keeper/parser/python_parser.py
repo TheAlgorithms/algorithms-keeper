@@ -1,8 +1,11 @@
+import importlib
+import inspect
 from logging import Logger
+from types import ModuleType
 from typing import Any, Dict, Generator, List, Optional
 
-from fixit import LintConfig
-from fixit.common.utils import LintRuleCollectionT, import_distinct_rules_from_package
+from fixit import CstLintRule, LintConfig
+from fixit.common.utils import LintRuleCollectionT
 from fixit.rule_lint_engine import lint_file
 from libcst import ParserSyntaxError
 
@@ -21,16 +24,24 @@ def get_rules_from_config(config: LintConfig = DEFAULT_CONFIG) -> LintRuleCollec
     """Get rules from the packages specified in the lint config file, omitting
     block-listed rules.
 
-    This function is directly taken from
-    ``fixit.common.config.get_rules_from_config`` with the modification being the
-    custom parameter which defaults to ``DEFAULT_CONFIG``.
+    Custom rules should be imported in the ``__init__`` file  of the rules package
+    along with all the rules used from ``fixit``. Also, make sure all the rule classes
+    have the suffix `Rule`.
     """
     rules: LintRuleCollectionT = set()
+    block_list_rules: List[str] = config.block_list_rules
     for package in config.packages:
-        rules_from_pkg = import_distinct_rules_from_package(
-            package, config.block_list_rules
-        )
-        rules.update(rules_from_pkg)
+        pkg: ModuleType = importlib.import_module(package)
+        for name in dir(pkg):
+            if name.endswith("Rule"):
+                obj = getattr(pkg, name)
+                if (
+                    obj is not CstLintRule
+                    and issubclass(obj, CstLintRule)
+                    and not inspect.isabstract(obj)
+                    and name not in block_list_rules
+                ):
+                    rules.add(obj)
     return rules
 
 

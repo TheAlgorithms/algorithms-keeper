@@ -7,9 +7,23 @@ from fixit import CstLintRule
 from fixit.common.utils import InvalidTestCase, LintRuleCollectionT, ValidTestCase
 from fixit.rule_lint_engine import lint_file
 
-from algorithms_keeper.parser.python_parser import get_rules_from_config
+from algorithms_keeper.parser.rules import (
+    RequireDescriptiveNameRule,
+    RequireDoctestRule,
+    RequireTypeHintRule,
+    UseFstringRule,
+)
 
 GenTestCaseType = Tuple[Type[CstLintRule], Union[ValidTestCase, InvalidTestCase], str]
+
+# ``get_rules_from_config`` will generate all the rules including the ones directly
+# from the ``fixit`` package. We only care about testing our custom rules.
+CUSTOM_RULES: LintRuleCollectionT = {
+    RequireDoctestRule,
+    RequireDescriptiveNameRule,
+    RequireTypeHintRule,
+    UseFstringRule,
+}
 
 
 def _parametrized_id(obj: object) -> str:
@@ -49,7 +63,7 @@ def _gen_all_test_cases(rules: LintRuleCollectionT) -> List[GenTestCaseType]:
 
 @pytest.mark.parametrize(
     "rule, test_case, test_case_id",
-    _gen_all_test_cases(get_rules_from_config()),
+    _gen_all_test_cases(CUSTOM_RULES),
     ids=_parametrized_id,
 )
 def test_rules(
