@@ -35,9 +35,9 @@ def get_parser(filenames: str, status: str = "added") -> PythonParser:
     "parser, expected",
     (
         # Non-python files having preffix `test_` should not be considered.
-        (get_parser("test_data.txt, sol1.py"), 3),
-        (get_parser("tests/test_file.py, data/no_error.py"), 2),
-        (get_parser("data/no_error.py, data/doctest.py"), 3),
+        (get_parser("test_data.txt, sol1.py"), 4),
+        (get_parser("tests/test_file.py, data/no_error.py"), 3),
+        (get_parser("data/no_error.py, data/doctest.py"), 4),
     ),
 )
 def test_contains_testfile(parser: PythonParser, expected: int) -> None:
