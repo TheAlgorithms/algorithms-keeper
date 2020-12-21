@@ -45,16 +45,16 @@ class PullRequestReviewRecord:
 
     # Initialize the label attributes. These should be filled with the appropriate
     # labels **only** after all the files have been linted.
-    labels_to_add: List[str] = field(default_factory=list)
-    labels_to_remove: List[str] = field(default_factory=list)
+    labels_to_add: List[str] = field(default_factory=list, init=False)
+    labels_to_remove: List[str] = field(default_factory=list, init=False)
 
     # Store all the ``ReviewComment`` instances.
-    _comments: List[ReviewComment] = field(default_factory=list)
+    _comments: List[ReviewComment] = field(default_factory=list, init=False, repr=False)
 
     # A set of rules which were violated during the runtime of the parser for the
     # current pull request. This is being represented as ``set`` internally to avoid
     # duplication.
-    _violated_rules: Set[str] = field(default_factory=set)
+    _violated_rules: Set[str] = field(default_factory=set, init=False, repr=False)
 
     def add_comments(
         self, reports: Collection[BaseLintRuleReport], filepath: str

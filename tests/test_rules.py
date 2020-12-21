@@ -8,6 +8,7 @@ from fixit.common.utils import InvalidTestCase, LintRuleCollectionT, ValidTestCa
 from fixit.rule_lint_engine import lint_file
 
 from algorithms_keeper.parser.rules import (
+    NamingConventionRule,
     RequireDescriptiveNameRule,
     RequireDoctestRule,
     RequireTypeHintRule,
@@ -19,6 +20,7 @@ GenTestCaseType = Tuple[Type[CstLintRule], Union[ValidTestCase, InvalidTestCase]
 # ``get_rules_from_config`` will generate all the rules including the ones directly
 # from the ``fixit`` package. We only care about testing our custom rules.
 CUSTOM_RULES: LintRuleCollectionT = {
+    NamingConventionRule,
     RequireDoctestRule,
     RequireDescriptiveNameRule,
     RequireTypeHintRule,
@@ -93,30 +95,63 @@ def test_rules(
     )
 
     if isinstance(test_case, ValidTestCase):
-        assert len(reports) == 0
+        assert len(reports) == 0, (
+            'Expected zero reports for this "valid" test case. Instead, found:\n'
+            + "\n".join(str(e) for e in reports),
+        )
     else:
-        assert 0 < len(reports) <= 1
+        assert len(reports) > 0, (
+            'Expected a report for this "invalid" test case but `self.report` was '
+            + "not called:\n"
+            + test_case.code,
+        )
+        assert len(reports) <= 1, (
+            'Expected one report from this "invalid" test case. Found multiple:\n'
+            + "\n".join(str(e) for e in reports),
+        )
 
         report = reports[0]  # type: ignore
 
         if test_case.line is not None:
-            assert test_case.line == report.line
+            assert (
+                test_case.line == report.line
+            ), f"Expected line: {test_case.line} but found line: {report.line}"
         if test_case.column is not None:
-            assert test_case.column == report.column
+            assert (
+                test_case.column == report.column
+            ), f"Expected column: {test_case.column} but found column: {report.column}"
 
         kind = test_case.kind if test_case.kind is not None else rule.__name__
-        assert kind == report.code
+        assert (
+            kind == report.code
+        ), f"Expected:\n    {test_case.expected_str}\nBut found:\n    {report}"
 
         if test_case.expected_message is not None:
-            assert test_case.expected_message == report.message
+            assert test_case.expected_message == report.message, (
+                f"Expected message:\n    {test_case.expected_message}\n"
+                + f"But got:\n    {report.message}"
+            )
 
         patch = report.patch
         expected_replacement = test_case.expected_replacement
 
         if patch is None:
-            assert expected_replacement is None
-        else:
-            assert expected_replacement is not None
-            expected_replacement = _dedent(expected_replacement)
-            patched_code = patch.apply(_dedent(test_case.code))
-            assert patched_code == expected_replacement
+            assert expected_replacement is None, (
+                "The rule for this test case has no auto-fix, but expected source was "
+                + "specified."
+            )
+            return
+
+        assert expected_replacement is not None, (
+            "The rule for this test case has an auto-fix, but no expected source was "
+            + "specified."
+        )
+
+        expected_replacement = _dedent(expected_replacement)
+        patched_code = patch.apply(_dedent(test_case.code))
+
+        assert patched_code == expected_replacement, (
+            "Auto-fix did not produce expected result.\n"
+            + f"Expected:\n{expected_replacement}\n"
+            + f"But found:\n{patched_code}"
+        )
