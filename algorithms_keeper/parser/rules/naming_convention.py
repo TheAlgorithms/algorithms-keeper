@@ -35,6 +35,7 @@ class NamingConventionRule(CstLintRule):
         Valid("hello = 'world'"),
         Valid("snake_case = 'assign'"),
         Valid("for iteration in range(5): pass"),
+        Valid("class _PrivateClass: pass"),
         Valid("class SomeClass: pass"),
         Valid("class One: pass"),
         Valid("def oneword(): pass"),
@@ -48,6 +49,8 @@ class NamingConventionRule(CstLintRule):
         Invalid("Hello = 'world'"),
         Invalid("ranDom_UpPercAse = 'testing'"),
         Invalid("for RandomCaps in range(5): pass"),
+        Invalid("class _Invalid_PrivateClass: pass"),
+        Invalid("class _invalidPrivateClass: pass"),
         Invalid("class lowerPascalCase: pass"),
         Invalid("class all_lower_case: pass"),
         Invalid("def oneWordInvalid(): pass"),
@@ -59,8 +62,13 @@ class NamingConventionRule(CstLintRule):
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
         nodename = node.name.value
-        if nodename[0].islower() or "_" in nodename:
-            self.report(node, INVALID_CAMEL_CASE_NAME.format(nodename=nodename))
+        for index, letter in enumerate(nodename):
+            if letter == "_":
+                continue
+            # First non-underscore letter
+            elif letter.islower() or "_" in nodename[index:]:
+                self.report(node, INVALID_CAMEL_CASE_NAME.format(nodename=nodename))
+            break
 
     def visit_AnnAssign(self, node: cst.AnnAssign) -> None:
         # The assignment target is optional, as it is possible to annotate an
