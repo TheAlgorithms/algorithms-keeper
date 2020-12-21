@@ -10,18 +10,17 @@ INVALID_CAMEL_CASE_NAME: str = (
     "Class names should follow the [`CamelCase`]"
     + "(https://en.wikipedia.org/wiki/Camel_case) naming convention. "
     + "Please update the name of the class `{nodename}` accordingly. "
-    + "Examples: `Oneword`, `MultipleWords`, etc."
 )
 
 INVALID_SNAKE_CASE_NAME: str = (
     "Variable and function names should follow the [`snake_case`]"
     + "(https://en.wikipedia.org/wiki/Snake_case) naming convention. "
     + "Please update the name of the {nodetype} `{nodename}` accordingly. "
-    + "Examples: `oneword`, `multiple_words_seperated_by_underscore`, etc."
 )
 
 
 def _any_uppercase_letter(name: str) -> bool:
+    """Check whether the given *name* contains any uppercase letter in it."""
     for letter in name:
         if letter.isupper():
             return True
@@ -55,6 +54,7 @@ class NamingConventionRule(CstLintRule):
         Invalid("def Pascal_Case(): pass"),
         Invalid("valid = another_valid = Invalid = 5"),
         Invalid("(waLRus := 'operator')"),
+        Invalid("def func(invalidParam, valid_param): pass"),
     ]
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
@@ -63,6 +63,8 @@ class NamingConventionRule(CstLintRule):
             self.report(node, INVALID_CAMEL_CASE_NAME.format(nodename=nodename))
 
     def visit_AnnAssign(self, node: cst.AnnAssign) -> None:
+        # The assignment target is optional, as it is possible to annotate an
+        # expression without assigning to it: ``var: int``
         if node.value is not None:
             self._validate_snake_case_name(node, "variable")
 
@@ -78,17 +80,40 @@ class NamingConventionRule(CstLintRule):
     def visit_NamedExpr(self, node: cst.NamedExpr) -> None:
         self._validate_snake_case_name(node, "variable")
 
+    def visit_Param(self, node: cst.Param) -> None:
+        self._validate_snake_case_name(node, "parameter")
+
     def _validate_snake_case_name(
         self,
         node: Union[
-            cst.AnnAssign, cst.AssignTarget, cst.For, cst.FunctionDef, cst.NamedExpr
+            cst.AnnAssign,
+            cst.AssignTarget,
+            cst.For,
+            cst.FunctionDef,
+            cst.NamedExpr,
+            cst.Param,
         ],
         nodetype: str,
     ) -> None:
+        """Validate that the provided node conforms to the *snake_case* naming
+        convention. The validation will be done for the following nodes:
+
+        - ``cst.AnnAssign`` (Annotated assignment), which means an assignment which is
+          type annotated like so ``var: int = 5``, to check the name of the variable.
+        - ``cst.AssignTarget``, the target for the assignment, which is the left side
+          part of the assignment expression. This can be a simple *Name* node or a
+          sequence type node like *List* or *Tuple* in case of multiple assignments.
+        - ``cst.For``, to check the target name of the iterator in the for statement.
+        - ``cst.FunctionDef`` to check the name of the function.
+        - ``cst.NamedExpr`` to check the assigned name in the expression. Also known
+          as the walrus operator, this expression allows you to make an assignment
+          inside an expression like so ``var := 10``.
+        - ``cst.Param`` to check the name of the function parameters.
+        """
         namekey: str = "nodename"
         extracted = m.extract(
             node,
-            m.FunctionDef(
+            m.TypeOf(m.FunctionDef, m.Param)(
                 name=m.Name(
                     value=m.SaveMatchedNode(
                         m.MatchIfTrue(_any_uppercase_letter), namekey

@@ -208,6 +208,11 @@ class RequireDoctestRule(CstLintRule):
         self._skip_doctest = self._has_testnode(node) or self._has_doctest(node)
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
+        # Temporary storage of the ``skip_doctest`` value only during the class visit.
+        # If the class-level docstring contains doctest, then the checks should only be
+        # skipped for all its methods and not for other functions/class in the module.
+        # After leaving the class, ``skip_doctest`` should be resetted to whatever the
+        # value was before.
         self._temporary = self._skip_doctest
         self._skip_doctest = self._has_doctest(node)
 
@@ -227,6 +232,13 @@ class RequireDoctestRule(CstLintRule):
     def _has_doctest(
         self, node: Union[cst.Module, cst.ClassDef, cst.FunctionDef]
     ) -> bool:
+        """Check whether the given node contains doctests.
+
+        If the ``_skip_doctest`` attribute is ``True``, the function will by default
+        return ``True``, otherwise it will extract the docstring and look for doctest
+        patterns (>>> ) in it. If there is no docstring for the node, this will mean
+        the absence of doctest.
+        """
         if not self._skip_doctest:
             docstring = node.get_docstring()
             if docstring is not None:

@@ -52,7 +52,6 @@ class RequireTypeHintRule(CstLintRule):
                     pass
             """
         ),
-        # Annotating lambda parameters is not possible
         Valid(
             """
             lambda ignore: ignore
@@ -126,6 +125,7 @@ class RequireTypeHintRule(CstLintRule):
             self.report(node, MISSING_RETURN_TYPE_HINT.format(nodename=node.name.value))
 
     def visit_Param(self, node: cst.Param) -> None:
+        # Annotating parameters in ``lambda`` is not possible.
         if self._lambda_counter == 0:
             nodename = node.name.value
             if node.annotation is None and nodename not in IGNORE_PARAM:
