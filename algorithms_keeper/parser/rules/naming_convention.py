@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Sequence, Union
+from typing import Union
 
 import libcst as cst
 import libcst.matchers as m
@@ -6,17 +6,17 @@ from fixit import CstLintRule
 from fixit import InvalidTestCase as Invalid
 from fixit import ValidTestCase as Valid
 
-CAMEL_CASE: str = (
+INVALID_CAMEL_CASE_NAME: str = (
     "Class names should follow the [`CamelCase`]"
     + "(https://en.wikipedia.org/wiki/Camel_case) naming convention. "
-    + "Please update the name `{nodename}` accordingly. "
+    + "Please update the name of the class `{nodename}` accordingly. "
     + "Examples: `Oneword`, `MultipleWords`, etc."
 )
 
-SNAKE_CASE: str = (
+INVALID_SNAKE_CASE_NAME: str = (
     "Variable and function names should follow the [`snake_case`]"
     + "(https://en.wikipedia.org/wiki/Snake_case) naming convention. "
-    + "Please update the name `{nodename}` accordingly. "
+    + "Please update the name of the {nodetype} `{nodename}` accordingly. "
     + "Examples: `oneword`, `multiple_words_seperated_by_underscore`, etc."
 )
 
@@ -31,6 +31,8 @@ def _any_uppercase_letter(name: str) -> bool:
 class NamingConventionRule(CstLintRule):
 
     VALID = [
+        Valid("type_hint: str"),
+        Valid("type_hint_var: int = 5"),
         Valid("hello = 'world'"),
         Valid("snake_case = 'assign'"),
         Valid("for iteration in range(5): pass"),
@@ -43,6 +45,7 @@ class NamingConventionRule(CstLintRule):
     ]
 
     INVALID = [
+        Invalid("type_Hint_Var: int = 5"),
         Invalid("Hello = 'world'"),
         Invalid("ranDom_UpPercAse = 'testing'"),
         Invalid("for RandomCaps in range(5): pass"),
@@ -57,43 +60,38 @@ class NamingConventionRule(CstLintRule):
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
         nodename = node.name.value
         if nodename[0].islower() or "_" in nodename:
-            self.report(node, CAMEL_CASE.format(nodename=nodename))
+            self.report(node, INVALID_CAMEL_CASE_NAME.format(nodename=nodename))
 
     def visit_AnnAssign(self, node: cst.AnnAssign) -> None:
-        if (
-            node.value is not None
-            and (extracted := self._extract_invalid_node(node)) is not None
-        ):
-            self.report(node, SNAKE_CASE.format(nodename=extracted["nodename"]))
+        if node.value is not None:
+            self._validate_snake_case_name(node, "variable")
 
     def visit_AssignTarget(self, node: cst.AssignTarget) -> None:
-        if (extracted := self._extract_invalid_node(node)) is not None:
-            self.report(node, SNAKE_CASE.format(nodename=extracted["nodename"]))
+        self._validate_snake_case_name(node, "variable")
 
     def visit_For(self, node: cst.For) -> None:
-        if (extracted := self._extract_invalid_node(node)) is not None:
-            self.report(node, SNAKE_CASE.format(nodename=extracted["nodename"]))
+        self._validate_snake_case_name(node, "variable")
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
-        if (extracted := self._extract_invalid_node(node)) is not None:
-            self.report(node, SNAKE_CASE.format(nodename=extracted["nodename"]))
+        self._validate_snake_case_name(node, "function")
 
     def visit_NamedExpr(self, node: cst.NamedExpr) -> None:
-        if (extracted := self._extract_invalid_node(node)) is not None:
-            self.report(node, SNAKE_CASE.format(nodename=extracted["nodename"]))
+        self._validate_snake_case_name(node, "variable")
 
-    @staticmethod
-    def _extract_invalid_node(
+    def _validate_snake_case_name(
+        self,
         node: Union[
             cst.AnnAssign, cst.AssignTarget, cst.For, cst.FunctionDef, cst.NamedExpr
-        ]
-    ) -> Optional[Dict[str, Union[cst.CSTNode, Sequence[cst.CSTNode]]]]:
-        return m.extract(
+        ],
+        nodetype: str,
+    ) -> None:
+        namekey: str = "nodename"
+        extracted = m.extract(
             node,
             m.FunctionDef(
                 name=m.Name(
                     value=m.SaveMatchedNode(
-                        m.MatchIfTrue(_any_uppercase_letter), "nodename"
+                        m.MatchIfTrue(_any_uppercase_letter), namekey
                     )
                 )
             ),
@@ -102,8 +100,16 @@ class NamingConventionRule(CstLintRule):
             m.TypeOf(m.AnnAssign, m.AssignTarget, m.For, m.NamedExpr)(
                 target=m.Name(
                     value=m.SaveMatchedNode(
-                        m.MatchIfTrue(_any_uppercase_letter), "nodename"
+                        m.MatchIfTrue(_any_uppercase_letter), namekey
                     )
                 )
             ),
         )
+
+        if extracted is not None:
+            self.report(
+                node,
+                INVALID_SNAKE_CASE_NAME.format(
+                    nodetype=nodetype, nodename=extracted[namekey]
+                ),
+            )
