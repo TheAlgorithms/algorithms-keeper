@@ -2,7 +2,7 @@ from typing import Union
 
 import libcst as cst
 import libcst.matchers as m
-from fixit import CstLintRule
+from fixit import CstContext, CstLintRule
 from fixit import InvalidTestCase as Invalid
 from fixit import ValidTestCase as Valid
 
@@ -42,6 +42,7 @@ class NamingConventionRule(CstLintRule):
         Valid("def some_extra_words(): pass"),
         Valid("all = names_are = valid_in_multiple_assign = 5"),
         Valid("(walrus := 'operator')"),
+        Valid("multiple, valid, assignments = 1, 2, 3"),
     ]
 
     INVALID = [
@@ -58,7 +59,13 @@ class NamingConventionRule(CstLintRule):
         Invalid("valid = another_valid = Invalid = 5"),
         Invalid("(waLRus := 'operator')"),
         Invalid("def func(invalidParam, valid_param): pass"),
+        Invalid("multiple, inValid, assignments = 1, 2, 3"),
+        Invalid("[inside, list, inValid] = 1, 2, 3"),
     ]
+
+    def __init__(self, context: CstContext) -> None:
+        super().__init__(context)
+        self._assigntarget_counter: int = 0
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
         nodename = node.name.value
@@ -77,7 +84,16 @@ class NamingConventionRule(CstLintRule):
             self._validate_snake_case_name(node, "variable")
 
     def visit_AssignTarget(self, node: cst.AssignTarget) -> None:
+        self._assigntarget_counter += 1
         self._validate_snake_case_name(node, "variable")
+
+    def leave_AssignTarget(self, node: cst.AssignTarget) -> None:
+        self._assigntarget_counter -= 1
+
+    def visit_Element(self, node: cst.Element) -> None:
+        # We only care about elements in *List* or *Tuple* for multiple assignments.
+        if self._assigntarget_counter > 0:
+            self._validate_snake_case_name(node, "variable")
 
     def visit_For(self, node: cst.For) -> None:
         self._validate_snake_case_name(node, "variable")
@@ -96,6 +112,7 @@ class NamingConventionRule(CstLintRule):
         node: Union[
             cst.AnnAssign,
             cst.AssignTarget,
+            cst.Element,
             cst.For,
             cst.FunctionDef,
             cst.NamedExpr,
@@ -111,6 +128,8 @@ class NamingConventionRule(CstLintRule):
         - ``cst.AssignTarget``, the target for the assignment, which is the left side
           part of the assignment expression. This can be a simple *Name* node or a
           sequence type node like *List* or *Tuple* in case of multiple assignments.
+        - ``cst.Element``, this will only be checked if the elements come from multiple
+          assignment targets which occurs only in case of *List* or *Tuple*.
         - ``cst.For``, to check the target name of the iterator in the for statement.
         - ``cst.FunctionDef`` to check the name of the function.
         - ``cst.NamedExpr`` to check the assigned name in the expression. Also known
@@ -119,24 +138,41 @@ class NamingConventionRule(CstLintRule):
         - ``cst.Param`` to check the name of the function parameters.
         """
         namekey: str = "nodename"
-        extracted = m.extract(
-            node,
-            m.TypeOf(m.FunctionDef, m.Param)(
-                name=m.Name(
-                    value=m.SaveMatchedNode(
-                        m.MatchIfTrue(_any_uppercase_letter), namekey
+        # The match and extraction code below is similar to three ``if`` statements to
+        # ``isinstance`` calls and further either using ``m.extract`` or another
+        # ``isinstance`` call to verify we have the ``cst.Name`` node, verifying whether
+        # it conforms to the convention and extracting the name value.
+        extracted = (
+            m.extract(
+                node,
+                m.Element(
+                    value=m.Name(
+                        value=m.SaveMatchedNode(
+                            m.MatchIfTrue(_any_uppercase_letter), namekey
+                        )
                     )
-                )
-            ),
-        ) or m.extract(
-            node,
-            m.TypeOf(m.AnnAssign, m.AssignTarget, m.For, m.NamedExpr)(
-                target=m.Name(
-                    value=m.SaveMatchedNode(
-                        m.MatchIfTrue(_any_uppercase_letter), namekey
+                ),
+            )
+            or m.extract(
+                node,
+                m.TypeOf(m.FunctionDef, m.Param)(
+                    name=m.Name(
+                        value=m.SaveMatchedNode(
+                            m.MatchIfTrue(_any_uppercase_letter), namekey
+                        )
                     )
-                )
-            ),
+                ),
+            )
+            or m.extract(
+                node,
+                m.TypeOf(m.AnnAssign, m.AssignTarget, m.For, m.NamedExpr)(
+                    target=m.Name(
+                        value=m.SaveMatchedNode(
+                            m.MatchIfTrue(_any_uppercase_letter), namekey
+                        )
+                    )
+                ),
+            )
         )
 
         if extracted is not None:
