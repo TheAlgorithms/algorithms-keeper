@@ -1,5 +1,3 @@
-from typing import Union
-
 import libcst as cst
 import libcst.matchers as m
 from fixit import CstContext, CstLintRule
@@ -136,20 +134,7 @@ class NamingConventionRule(CstLintRule):
     def visit_Param(self, node: cst.Param) -> None:
         self._validate_snake_case_name(node, "parameter")
 
-    def _validate_snake_case_name(
-        self,
-        node: Union[
-            cst.AnnAssign,
-            cst.AssignTarget,
-            cst.Attribute,
-            cst.Element,
-            cst.For,
-            cst.FunctionDef,
-            cst.NamedExpr,
-            cst.Param,
-        ],
-        nodetype: str,
-    ) -> None:
+    def _validate_snake_case_name(self, node: cst.CSTNode, nodetype: str) -> None:
         """Validate that the provided node conforms to the *snake_case* naming
         convention. The validation will be done for the following nodes:
 
@@ -159,7 +144,7 @@ class NamingConventionRule(CstLintRule):
           part of the assignment expression. This can be a simple *Name* node or a
           sequence type node like *List* or *Tuple* in case of multiple assignments.
         - ``cst.Attribute``, to test the variable names assigned to the instance. This
-          will check only for the first attribute of *self*.
+          will check only for the *self* attribute.
         - ``cst.Element``, this will only be checked if the elements come from multiple
           assignment targets which occurs only in case of *List* or *Tuple*.
         - ``cst.For``, to check the target name of the iterator in the for statement.
