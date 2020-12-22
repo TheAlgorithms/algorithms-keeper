@@ -21,9 +21,10 @@ INVALID_SNAKE_CASE_NAME: str = (
 
 def _any_uppercase_letter(name: str) -> bool:
     """Check whether the given *name* contains any uppercase letter in it."""
-    for letter in name:
-        if letter.isupper():
-            return True
+    upper_count: int = len([letter for letter in name if letter.isupper()])
+    # If the count value equals the length of name, the name is a CONSTANT.
+    if upper_count and upper_count != len(name):
+        return True
     return False
 
 
@@ -32,6 +33,7 @@ class NamingConventionRule(CstLintRule):
     VALID = [
         Valid("type_hint: str"),
         Valid("type_hint_var: int = 5"),
+        Valid("CONSTANT = 10"),
         Valid("hello = 'world'"),
         Valid("snake_case = 'assign'"),
         Valid("for iteration in range(5): pass"),
@@ -43,11 +45,25 @@ class NamingConventionRule(CstLintRule):
         Valid("all = names_are = valid_in_multiple_assign = 5"),
         Valid("(walrus := 'operator')"),
         Valid("multiple, valid, assignments = 1, 2, 3"),
+        Valid(
+            """
+            class Spam:
+                def __init__(self, valid, another_valid):
+                    self.valid = valid
+                    self.another_valid = another_valid
+                    self._private = None
+                    self.__extreme_private = None
+
+                def bar(self):
+                    # This is just to test that the access is not being tested.
+                    return self.some_Invalid_NaMe
+            """
+        ),
     ]
 
     INVALID = [
         Invalid("type_Hint_Var: int = 5"),
-        Invalid("Hello = 'world'"),
+        Invalid("hellO = 'world'"),
         Invalid("ranDom_UpPercAse = 'testing'"),
         Invalid("for RandomCaps in range(5): pass"),
         Invalid("class _Invalid_PrivateClass: pass"),
@@ -60,7 +76,15 @@ class NamingConventionRule(CstLintRule):
         Invalid("(waLRus := 'operator')"),
         Invalid("def func(invalidParam, valid_param): pass"),
         Invalid("multiple, inValid, assignments = 1, 2, 3"),
-        Invalid("[inside, list, inValid] = 1, 2, 3"),
+        Invalid("[inside, list, inValid] = Invalid, 2, 3"),
+        Invalid(
+            """
+            class Spam:
+                def __init__(self, foo, bar):
+                    self.foo = foo
+                    self._Bar = bar
+            """
+        ),
     ]
 
     def __init__(self, context: CstContext) -> None:
@@ -90,6 +114,11 @@ class NamingConventionRule(CstLintRule):
     def leave_AssignTarget(self, node: cst.AssignTarget) -> None:
         self._assigntarget_counter -= 1
 
+    def visit_Attribute(self, node: cst.Attribute) -> None:
+        # We only care about assignment attribute for *self*.
+        if self._assigntarget_counter > 0:
+            self._validate_snake_case_name(node, "attribute")
+
     def visit_Element(self, node: cst.Element) -> None:
         # We only care about elements in *List* or *Tuple* for multiple assignments.
         if self._assigntarget_counter > 0:
@@ -112,6 +141,7 @@ class NamingConventionRule(CstLintRule):
         node: Union[
             cst.AnnAssign,
             cst.AssignTarget,
+            cst.Attribute,
             cst.Element,
             cst.For,
             cst.FunctionDef,
@@ -128,6 +158,8 @@ class NamingConventionRule(CstLintRule):
         - ``cst.AssignTarget``, the target for the assignment, which is the left side
           part of the assignment expression. This can be a simple *Name* node or a
           sequence type node like *List* or *Tuple* in case of multiple assignments.
+        - ``cst.Attribute``, to test the variable names assigned to the instance. This
+          will check only for the first attribute of *self*.
         - ``cst.Element``, this will only be checked if the elements come from multiple
           assignment targets which occurs only in case of *List* or *Tuple*.
         - ``cst.For``, to check the target name of the iterator in the for statement.
@@ -151,6 +183,17 @@ class NamingConventionRule(CstLintRule):
                             m.MatchIfTrue(_any_uppercase_letter), namekey
                         )
                     )
+                ),
+            )
+            or m.extract(
+                node,
+                m.Attribute(
+                    value=m.Name(value="self"),
+                    attr=m.Name(
+                        value=m.SaveMatchedNode(
+                            m.MatchIfTrue(_any_uppercase_letter), namekey
+                        )
+                    ),
                 ),
             )
             or m.extract(
