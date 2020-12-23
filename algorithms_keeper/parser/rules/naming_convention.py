@@ -1,32 +1,64 @@
+from enum import Enum, auto
+from typing import Collection, Optional
+
 import libcst as cst
 import libcst.matchers as m
 from fixit import CstContext, CstLintRule
 from fixit import InvalidTestCase as Invalid
 from fixit import ValidTestCase as Valid
+from libcst.metadata import QualifiedName, QualifiedNameProvider
 
-INVALID_CAMEL_CASE_NAME: str = (
+INVALID_CAMEL_CASE_NAME_COMMENT: str = (
     "Class names should follow the [`CamelCase`]"
     + "(https://en.wikipedia.org/wiki/Camel_case) naming convention. "
-    + "Please update the name of the class `{nodename}` accordingly. "
+    + "Please update the following name accordingly: `{nodename}`"
 )
 
-INVALID_SNAKE_CASE_NAME: str = (
+INVALID_SNAKE_CASE_NAME_COMMENT: str = (
     "Variable and function names should follow the [`snake_case`]"
     + "(https://en.wikipedia.org/wiki/Snake_case) naming convention. "
-    + "Please update the name of the {nodetype} `{nodename}` accordingly. "
+    + "Please update the following name accordingly: `{nodename}`"
 )
 
 
-def _any_uppercase_letter(name: str) -> bool:
-    """Check whether the given *name* contains any uppercase letter in it."""
-    upper_count: int = len([letter for letter in name if letter.isupper()])
-    # If the count value equals the length of name, the name is a CONSTANT.
-    if upper_count and upper_count != len(name):
+class NamingConvention(Enum):
+    CAMEL_CASE = auto()
+    SNAKE_CASE = auto()
+
+    @property
+    def comment(self) -> str:
+        """Return the appropriate comment for the naming convention."""
+        return (
+            INVALID_CAMEL_CASE_NAME_COMMENT
+            if self is NamingConvention.CAMEL_CASE
+            else INVALID_SNAKE_CASE_NAME_COMMENT
+        )
+
+    def valid(self, name: str) -> bool:
+        """Check whether the provided *name* conforms as per the naming convention
+        the method was called on.
+
+        Returns ``True`` if it is valid otherwise ``False``.
+        """
+        if self is NamingConvention.CAMEL_CASE:
+            for index, letter in enumerate(name):
+                if letter == "_":
+                    continue
+                # First non-underscore letter
+                elif letter.islower() or "_" in name[index:]:
+                    return False
+                break
+        else:
+            upper_count = len([letter for letter in name if letter.isupper()])
+            # If the count value equals the length of name, the name is a CONSTANT.
+            if upper_count and upper_count != len(name):
+                return False
         return True
-    return False
 
 
 class NamingConventionRule(CstLintRule):
+
+    METADATA_DEPENDENCIES = (QualifiedNameProvider,)  # type: ignore
 
     VALID = [
         Valid("type_hint: str"),
@@ -55,6 +87,15 @@ class NamingConventionRule(CstLintRule):
                 def bar(self):
                     # This is just to test that the access is not being tested.
                     return self.some_Invalid_NaMe
+            """
+        ),
+        Valid(
+            """
+            from typing import List
+
+            Matrix = List[int]
+
+            some_matrix: Matrix = [1, 2]
             """
         ),
     ]
@@ -89,124 +130,98 @@ class NamingConventionRule(CstLintRule):
         super().__init__(context)
         self._assigntarget_counter: int = 0
 
-    def visit_ClassDef(self, node: cst.ClassDef) -> None:
-        nodename = node.name.value
-        for index, letter in enumerate(nodename):
-            if letter == "_":
-                continue
-            # First non-underscore letter
-            elif letter.islower() or "_" in nodename[index:]:
-                self.report(node, INVALID_CAMEL_CASE_NAME.format(nodename=nodename))
-            break
+    def visit_Assign(self, node: cst.Assign) -> None:
+        metadata: Optional[Collection[QualifiedName]] = self.get_metadata(
+            QualifiedNameProvider, node.value, None
+        )
+
+        if metadata is not None:
+            for qualname in metadata:
+                # There should only be one qualified name for the provided node in case
+                # of type alias assignment. Multiple assignments for type alias does not
+                # look good nor assigning multiple variables to the same type value::
+                #
+                #    # Multiple aliases pointing to the same type value
+                #    FirstType, SecondType = List[int]
+                #
+                #    # Multiple type alias assignments
+                #    Matrix, T = List[int], TypeVar("T")
+                #
+                # If the name is coming from the ``typing`` module, then the assignment
+                # is actually a type alias which should follow the *CAMEL_CASE* naming
+                # convention (not enforcing this).
+                if qualname.name.startswith("typing"):
+                    return None
+
+        for target_node in node.targets:
+            if m.matches(target_node, m.AssignTarget(target=m.Name())):
+                nodename = cst.ensure_type(target_node.target, cst.Name).value
+                self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_AnnAssign(self, node: cst.AnnAssign) -> None:
-        # The assignment target is optional, as it is possible to annotate an
+        # The assignment value is optional, as it is possible to annotate an
         # expression without assigning to it: ``var: int``
-        if node.value is not None:
-            self._validate_snake_case_name(node, "variable")
+        if m.matches(
+            node,
+            m.AnnAssign(
+                target=m.Name(), value=m.MatchIfTrue(lambda value: value is not None)
+            ),
+        ):
+            nodename = cst.ensure_type(node.target, cst.Name).value
+            self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_AssignTarget(self, node: cst.AssignTarget) -> None:
         self._assigntarget_counter += 1
-        self._validate_snake_case_name(node, "variable")
 
     def leave_AssignTarget(self, node: cst.AssignTarget) -> None:
         self._assigntarget_counter -= 1
 
+    def visit_ClassDef(self, node: cst.ClassDef) -> None:
+        nodename = node.name.value
+        self._validate_nodename(node, nodename, NamingConvention.CAMEL_CASE)
+
     def visit_Attribute(self, node: cst.Attribute) -> None:
-        # We only care about assignment attribute for *self*.
+        # The attribute node can come through other context as well but we only care
+        # about the ones coming from assignments.
         if self._assigntarget_counter > 0:
-            self._validate_snake_case_name(node, "attribute")
+            # We only care about assignment attribute to *self*.
+            if m.matches(node, m.Attribute(value=m.Name(value="self"))):
+                nodename = node.attr.value
+                self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_Element(self, node: cst.Element) -> None:
-        # We only care about elements in *List* or *Tuple* for multiple assignments.
+        # We only care about elements in *List* or *Tuple* specifically coming from
+        # inside the multiple assignments.
         if self._assigntarget_counter > 0:
-            self._validate_snake_case_name(node, "variable")
+            if m.matches(node, m.Element(value=m.Name())):
+                nodename = cst.ensure_type(node.value, cst.Name).value
+                self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_For(self, node: cst.For) -> None:
-        self._validate_snake_case_name(node, "variable")
+        if m.matches(node, m.For(target=m.Name())):
+            nodename = cst.ensure_type(node.target, cst.Name).value
+            self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
-        self._validate_snake_case_name(node, "function")
+        nodename = node.name.value
+        self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_NamedExpr(self, node: cst.NamedExpr) -> None:
-        self._validate_snake_case_name(node, "variable")
+        if m.matches(node, m.NamedExpr(target=m.Name())):
+            nodename = cst.ensure_type(node.target, cst.Name).value
+            self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_Param(self, node: cst.Param) -> None:
-        self._validate_snake_case_name(node, "parameter")
+        nodename = node.name.value
+        self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
-    def _validate_snake_case_name(self, node: cst.CSTNode, nodetype: str) -> None:
-        """Validate that the provided node conforms to the *snake_case* naming
-        convention. The validation will be done for the following nodes:
+    def _validate_nodename(
+        self, node: cst.CSTNode, nodename: str, naming_convention: NamingConvention
+    ) -> None:
+        """Validate the provided *nodename* as per the given *naming_convention*.
 
-        - ``cst.AnnAssign`` (Annotated assignment), which means an assignment which is
-          type annotated like so ``var: int = 5``, to check the name of the variable.
-        - ``cst.AssignTarget``, the target for the assignment, which is the left side
-          part of the assignment expression. This can be a simple *Name* node or a
-          sequence type node like *List* or *Tuple* in case of multiple assignments.
-        - ``cst.Attribute``, to test the variable names assigned to the instance. This
-          will check only for the *self* attribute.
-        - ``cst.Element``, this will only be checked if the elements come from multiple
-          assignment targets which occurs only in case of *List* or *Tuple*.
-        - ``cst.For``, to check the target name of the iterator in the for statement.
-        - ``cst.FunctionDef`` to check the name of the function.
-        - ``cst.NamedExpr`` to check the assigned name in the expression. Also known
-          as the walrus operator, this expression allows you to make an assignment
-          inside an expression like so ``var := 10``.
-        - ``cst.Param`` to check the name of the function parameters.
+        This is a convenience method as the same steps will be repeated for every
+        visit functions which are to validate the name and report if found invalid.
         """
-        namekey: str = "nodename"
-        # The match and extraction code below is similar to three ``if`` statements to
-        # ``isinstance`` calls and further either using ``m.extract`` or another
-        # ``isinstance`` call to verify we have the ``cst.Name`` node, verifying whether
-        # it conforms to the convention and extracting the name value.
-        extracted = (
-            m.extract(
-                node,
-                m.Element(
-                    value=m.Name(
-                        value=m.SaveMatchedNode(
-                            m.MatchIfTrue(_any_uppercase_letter), namekey
-                        )
-                    )
-                ),
-            )
-            or m.extract(
-                node,
-                m.Attribute(
-                    value=m.Name(value="self"),
-                    attr=m.Name(
-                        value=m.SaveMatchedNode(
-                            m.MatchIfTrue(_any_uppercase_letter), namekey
-                        )
-                    ),
-                ),
-            )
-            or m.extract(
-                node,
-                m.TypeOf(m.FunctionDef, m.Param)(
-                    name=m.Name(
-                        value=m.SaveMatchedNode(
-                            m.MatchIfTrue(_any_uppercase_letter), namekey
-                        )
-                    )
-                ),
-            )
-            or m.extract(
-                node,
-                m.TypeOf(m.AnnAssign, m.AssignTarget, m.For, m.NamedExpr)(
-                    target=m.Name(
-                        value=m.SaveMatchedNode(
-                            m.MatchIfTrue(_any_uppercase_letter), namekey
-                        )
-                    )
-                ),
-            )
-        )
-
-        if extracted is not None:
-            self.report(
-                node,
-                INVALID_SNAKE_CASE_NAME.format(
-                    nodetype=nodetype, nodename=extracted[namekey]
-                ),
-            )
+        if not naming_convention.valid(nodename):
+            self.report(node, naming_convention.comment.format(nodename=nodename))
