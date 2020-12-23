@@ -92,8 +92,10 @@ class NamingConventionRule(CstLintRule):
         Valid(
             """
             from typing import List
+            from collections import namedtuple
 
             Matrix = List[int]
+            Point = namedtuple("Point", "x, y")
 
             some_matrix: Matrix = [1, 2]
             """
@@ -147,10 +149,15 @@ class NamingConventionRule(CstLintRule):
                 #    # Multiple type alias assignments
                 #    Matrix, T = List[int], TypeVar("T")
                 #
-                # If the name is coming from the ``typing`` module, then the assignment
-                # is actually a type alias which should follow the *CAMEL_CASE* naming
-                # convention (not enforcing this).
-                if qualname.name.startswith("typing"):
+                # For the following two cases, the assignment name should be
+                # *CAMEL_CASE* (not enforcing this), so ignore it in here:
+                # - If the name is coming from the ``typing`` module, then the
+                # assignment is actually a type alias.
+                # - The assignment is done for namedtuple.
+                if (
+                    qualname.name.startswith("typing")
+                    or qualname.name == "collections.namedtuple"
+                ):
                     return None
 
         for target_node in node.targets:
@@ -177,8 +184,7 @@ class NamingConventionRule(CstLintRule):
         self._assigntarget_counter -= 1
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
-        nodename = node.name.value
-        self._validate_nodename(node, nodename, NamingConvention.CAMEL_CASE)
+        self._validate_nodename(node, node.name.value, NamingConvention.CAMEL_CASE)
 
     def visit_Attribute(self, node: cst.Attribute) -> None:
         # The attribute node can come through other context as well but we only care
@@ -186,8 +192,9 @@ class NamingConventionRule(CstLintRule):
         if self._assigntarget_counter > 0:
             # We only care about assignment attribute to *self*.
             if m.matches(node, m.Attribute(value=m.Name(value="self"))):
-                nodename = node.attr.value
-                self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
+                self._validate_nodename(
+                    node, node.attr.value, NamingConvention.SNAKE_CASE
+                )
 
     def visit_Element(self, node: cst.Element) -> None:
         # We only care about elements in *List* or *Tuple* specifically coming from
@@ -203,8 +210,7 @@ class NamingConventionRule(CstLintRule):
             self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
-        nodename = node.name.value
-        self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
+        self._validate_nodename(node, node.name.value, NamingConvention.SNAKE_CASE)
 
     def visit_NamedExpr(self, node: cst.NamedExpr) -> None:
         if m.matches(node, m.NamedExpr(target=m.Name())):
@@ -212,8 +218,7 @@ class NamingConventionRule(CstLintRule):
             self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_Param(self, node: cst.Param) -> None:
-        nodename = node.name.value
-        self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
+        self._validate_nodename(node, node.name.value, NamingConvention.SNAKE_CASE)
 
     def _validate_nodename(
         self, node: cst.CSTNode, nodename: str, naming_convention: NamingConvention
