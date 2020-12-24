@@ -97,22 +97,3 @@ class BaseFilesParser:
             elif file.status == "modified":
                 label = Label.ENHANCEMENT
         return label if label not in self.pr_labels else ""
-
-
-class PythonFilesParser(BaseFilesParser):
-    DOCS_EXTENSIONS: Tuple[str, ...] = (".md", ".rst")
-
-    ACCEPTED_EXTENSIONS: Tuple[str, ...] = (
-        # Configuration files
-        ".ini",
-        ".toml",
-        ".yaml",
-        ".yml",
-        ".cfg",
-        # Data files
-        ".csv",
-        ".json",
-        ".txt",
-        # Good old Python file
-        ".py",
-    ) + DOCS_EXTENSIONS

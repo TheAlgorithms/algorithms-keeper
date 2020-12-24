@@ -2,7 +2,7 @@ import importlib
 import inspect
 from logging import Logger
 from types import ModuleType
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from fixit import CstLintRule, LintConfig
 from fixit.common.utils import LintRuleCollectionT
@@ -10,7 +10,7 @@ from fixit.rule_lint_engine import lint_file
 from libcst import ParserSyntaxError
 
 from algorithms_keeper.log import logger as main_logger
-from algorithms_keeper.parser.files_parser import PythonFilesParser
+from algorithms_keeper.parser.files_parser import BaseFilesParser
 from algorithms_keeper.parser.record import PullRequestReviewRecord
 from algorithms_keeper.parser.rules import RequireDoctestRule
 from algorithms_keeper.utils import File
@@ -45,7 +45,7 @@ def get_rules_from_config(config: LintConfig = DEFAULT_CONFIG) -> LintRuleCollec
     return rules
 
 
-class PythonParser(PythonFilesParser):
+class PythonParser(BaseFilesParser):
     """Parser for all the Python files in the pull request.
 
     This object performs no I/O of its own as the logic needs to be separated. This
@@ -58,6 +58,23 @@ class PythonParser(PythonFilesParser):
 
     _pr_report: PullRequestReviewRecord
     _rules: LintRuleCollectionT
+
+    DOCS_EXTENSIONS: Tuple[str, ...] = (".md", ".rst")
+
+    ACCEPTED_EXTENSIONS: Tuple[str, ...] = (
+        # Configuration files
+        ".ini",
+        ".toml",
+        ".yaml",
+        ".yml",
+        ".cfg",
+        # Data files
+        ".csv",
+        ".json",
+        ".txt",
+        # Good old Python file
+        ".py",
+    ) + DOCS_EXTENSIONS
 
     def __init__(
         self,
