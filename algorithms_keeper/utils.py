@@ -18,11 +18,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from gidgethub import BadRequest
-
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import PR_REVIEW_BODY
-from algorithms_keeper.log import logger
 
 
 @dataclass(frozen=True)
@@ -124,17 +121,10 @@ async def remove_label_from_pr_or_issue(
     # or issue) at once.
     for label in label_list:
         parse_label = urllib.parse.quote(label)
-        try:
-            await gh.delete(
-                f"{labels_url}/{parse_label}",
-                oauth_token=await gh.access_token,
-            )
-        # Case: More than one `require_` label removed triggers multiple webhook
-        # events, making the bot delete the `awaiting reviews` label multiple times.
-        # The exception is raised only on rare occasions, other times who knows what
-        # happens!
-        except BadRequest as exc:  # pragma: no cover
-            logger.warning(f'"{label}": {exc} %(url)s', {"url": pr_or_issue["url"]})
+        await gh.delete(
+            f"{labels_url}/{parse_label}",
+            oauth_token=await gh.access_token,
+        )
 
 
 async def get_user_open_pr_numbers(
