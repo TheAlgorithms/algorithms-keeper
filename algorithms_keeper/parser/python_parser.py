@@ -1,8 +1,7 @@
 import importlib
 import inspect
 from logging import Logger
-from types import ModuleType
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
 
 from fixit import CstLintRule, LintConfig
 from fixit.common.utils import LintRuleCollectionT
@@ -29,9 +28,9 @@ def get_rules_from_config(config: LintConfig = DEFAULT_CONFIG) -> LintRuleCollec
     have the suffix `Rule`.
     """
     rules: LintRuleCollectionT = set()
-    block_list_rules: List[str] = config.block_list_rules
+    block_list_rules = config.block_list_rules
     for package in config.packages:
-        pkg: ModuleType = importlib.import_module(package)
+        pkg = importlib.import_module(package)
         for name in dir(pkg):
             if name.endswith("Rule"):
                 obj = getattr(pkg, name)
@@ -78,8 +77,8 @@ class PythonParser(BaseFilesParser):
 
     def __init__(
         self,
-        pr_files: List[File],
-        pull_request: Dict[str, Any],
+        pr_files: Iterable[File],
+        pull_request: Mapping[str, Any],
         logger: Logger = main_logger,
     ) -> None:
         super().__init__(pr_files, pull_request, logger)
@@ -103,7 +102,7 @@ class PythonParser(BaseFilesParser):
     def collect_comments(self) -> List[Dict[str, Any]]:
         return self._pr_record.collect_comments()
 
-    def files_to_check(self, ignore_modified: bool) -> Generator[File, None, None]:
+    def files_to_check(self, ignore_modified: bool) -> Iterator[File]:
         """Generate all the ``File`` which should be checked.
 
         The caller of this function should use a loop to generate and parse the files

@@ -6,7 +6,7 @@ including the modified files. As we cannot post review comments on lines not par
 the diff, this command only modify the labels accordingly.
 """
 import re
-from typing import Any
+from typing import Any, Pattern
 
 from gidgethub import routing
 from gidgethub.sansio import Event
@@ -18,7 +18,7 @@ from algorithms_keeper.log import logger
 
 commands_router = routing.Router()
 
-COMMAND_RE = re.compile(r"@algorithms-keeper\s+([a-z\-]+)", re.IGNORECASE)
+COMMAND_RE: Pattern[str] = re.compile(r"@algorithms-keeper\s+([a-z\-]+)", re.IGNORECASE)
 
 
 @commands_router.register("issue_comment", action="created")

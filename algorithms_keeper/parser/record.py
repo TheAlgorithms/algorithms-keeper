@@ -77,7 +77,7 @@ class PullRequestReviewRecord:
         """Add any exception faced while parsing the source code."""
         import traceback
 
-        message: str = traceback.format_exc(limit=1)
+        message = traceback.format_exc(limit=1)
         # It seems that ``ParserSyntaxError`` is not a subclass of ``SyntaxError``,
         # the same information is stored under a different attribute. There is no
         # filename information in ``ParserSyntaxError``, thus the parameter `filepath`.
@@ -91,12 +91,12 @@ class PullRequestReviewRecord:
         )
         self._comments.append(ReviewComment(body, filepath, lineno))
 
-    def fill_labels(self, current_labels: List[str]) -> None:
+    def fill_labels(self, current_labels: Collection[str]) -> None:
         """Fill the ``add_labels`` and ``remove_labels`` with the appropriate data.
 
         This method is **only** to be called once after all the files have been parsed.
 
-        *current_labels* is a list of labels present on the pull request.
+        *current_labels* is a collection of labels present on the pull request.
         """
         for rule, label in RULE_TO_LABEL.items():
             if rule in self._violated_rules:

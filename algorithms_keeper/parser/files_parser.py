@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Collection, Iterable, List, Mapping, Set
 
 from algorithms_keeper.constants import Label
 from algorithms_keeper.log import logger as main_logger
@@ -16,19 +16,17 @@ class BaseFilesParser:
     ``DOCS_EXTENSIONS`` and ``ACCEPTED_EXTENSIONS`` as per the language repository.
     """
 
-    pr: Dict[str, Any]
-    pr_files: List[File]
     pr_labels: List[str]
     pr_html_url: str
     logger: Logger
 
-    DOCS_EXTENSIONS: Tuple[str, ...] = ()
-    ACCEPTED_EXTENSIONS: Tuple[str, ...] = ()
+    DOCS_EXTENSIONS: Collection[str] = ()
+    ACCEPTED_EXTENSIONS: Collection[str] = ()
 
     def __init__(
         self,
-        pr_files: List[File],
-        pull_request: Dict[str, Any],
+        pr_files: Iterable[File],
+        pull_request: Mapping[str, Any],
         logger: Logger = main_logger,
     ) -> None:
         # A pull request object for easy access.

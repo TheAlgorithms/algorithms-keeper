@@ -16,7 +16,7 @@ import urllib.parse
 from base64 import b64decode
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import PR_REVIEW_BODY
@@ -75,7 +75,7 @@ async def add_label_to_pr_or_issue(
     gh: GitHubAPI,
     *,
     label: Union[str, List[str]],
-    pr_or_issue: Dict[str, Any],
+    pr_or_issue: Mapping[str, Any],
 ) -> None:
     """Add the given label(s) to the pull request or issue provided.
 
@@ -101,7 +101,7 @@ async def remove_label_from_pr_or_issue(
     gh: GitHubAPI,
     *,
     label: Union[str, List[str]],
-    pr_or_issue: Dict[str, Any],
+    pr_or_issue: Mapping[str, Any],
 ) -> None:
     """Remove the given label(s) from pull request or issue provided.
 
@@ -147,7 +147,7 @@ async def get_user_open_pr_numbers(
 
 
 async def add_comment_to_pr_or_issue(
-    gh: GitHubAPI, *, comment: str, pr_or_issue: Dict[str, Any]
+    gh: GitHubAPI, *, comment: str, pr_or_issue: Mapping[str, Any]
 ) -> None:
     """Add a comment to the given pull request or issue object."""
     await gh.post(
@@ -161,7 +161,7 @@ async def close_pr_or_issue(
     gh: GitHubAPI,
     *,
     comment: str,
-    pr_or_issue: Dict[str, Any],
+    pr_or_issue: Mapping[str, Any],
     label: Optional[Union[str, List[str]]] = None,
 ) -> None:
     """Close the given pull request or issue with a comment and an optional label.
@@ -187,7 +187,7 @@ async def close_pr_or_issue(
 
 
 async def remove_requested_reviewers_from_pr(
-    gh: GitHubAPI, *, pull_request: Dict[str, Any]
+    gh: GitHubAPI, *, pull_request: Mapping[str, Any]
 ) -> None:
     """Remove all the requested reviewers from the given pull request."""
     await gh.delete(
@@ -201,7 +201,7 @@ async def remove_requested_reviewers_from_pr(
     )
 
 
-async def get_pr_files(gh: GitHubAPI, *, pull_request: Dict[str, Any]) -> List[File]:
+async def get_pr_files(gh: GitHubAPI, *, pull_request: Mapping[str, Any]) -> List[File]:
     """Return the list of files data from a given pull request.
 
     The data will include `filename` and `contents_url`. The `contents_url` will be
@@ -231,7 +231,7 @@ async def get_file_content(gh: GitHubAPI, *, file: File) -> bytes:
 
 
 async def create_pr_review(
-    gh: GitHubAPI, *, pull_request: Dict[str, Any], comments: List[Dict[str, Any]]
+    gh: GitHubAPI, *, pull_request: Mapping[str, Any], comments: List[Dict[str, Any]]
 ) -> None:
     """Submit a comment review for the given pull request.
 
@@ -252,7 +252,7 @@ async def create_pr_review(
 
 
 async def add_reaction(
-    gh: GitHubAPI, *, reaction: str, comment: Dict[str, Any]
+    gh: GitHubAPI, *, reaction: str, comment: Mapping[str, Any]
 ) -> None:
     """Add the given ``reaction`` to the provided ``comment``."""
     await gh.post(
@@ -263,13 +263,13 @@ async def add_reaction(
     )
 
 
-async def get_pr_for_issue(gh: GitHubAPI, *, issue: Dict[str, Any]) -> Any:
+async def get_pr_for_issue(gh: GitHubAPI, *, issue: Mapping[str, Any]) -> Any:
     """Return the pull request object for the given issue object."""
     return await gh.getitem(
         issue["pull_request"]["url"], oauth_token=await gh.access_token
     )
 
 
-async def update_pr(gh: GitHubAPI, *, pull_request: Dict[str, Any]) -> Any:
+async def update_pr(gh: GitHubAPI, *, pull_request: Mapping[str, Any]) -> Any:
     """Get the updated pull request object for the given pull request."""
     return await gh.getitem(pull_request["url"], oauth_token=await gh.access_token)
