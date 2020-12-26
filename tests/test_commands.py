@@ -12,7 +12,9 @@ from .test_parser import get_source
 from .utils import (
     ExpectedData,
     MockGitHubAPI,
+    comment,
     comment_url,
+    comments_url,
     files_url,
     html_pr_url,
     issue_url,
@@ -199,6 +201,7 @@ def test_command_regex_match(text: str, group: str) -> None:
                         "issue_url": issue_url,
                         "head": {"sha": sha},
                         "user": {"login": user},
+                        "comments_url": comments_url,
                         "labels": [],
                         "draft": False,
                     },
@@ -214,11 +217,12 @@ def test_command_regex_match(text: str, group: str) -> None:
                 },
             ),
             ExpectedData(
-                post_url=[reactions_url, labels_url, labels_url],
+                post_url=[reactions_url, labels_url, labels_url, comments_url],
                 post_data=[
                     {"labels": [Label.ENHANCEMENT]},
                     {"labels": [Label.REQUIRE_TEST]},
                     {"content": "+1"},
+                    {"body": comment},
                 ],
                 getitem_url=[pr_url],
                 getiter_url=[files_url],

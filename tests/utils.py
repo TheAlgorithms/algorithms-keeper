@@ -107,10 +107,14 @@ class MockGitHubAPI:
     async def post(self, url: str, *, data: Any, **kwargs: Any) -> Any:
         self.post_url.append(url)
         if url == review_url:
-            # Comments are arbitrary data, body is a constant and quite long.
+            # Review comments are arbitrary data, body is a constant and quite long.
             # This is done just for convenience.
             data.pop("body")
             data.pop("comments")
+        elif url == comments_url:
+            # Comments can contain arbitrary data, so we will replace it with the
+            # dummy commen and compare that.
+            data["body"] = comment
         self.post_data.append(data)
         # XXX Only used for installation. Is it really necessary?
         post_return = self._post_return
@@ -145,16 +149,17 @@ class MockGitHubAPI:
             expected_value = getattr(expected, field_name)
             assert len(actual_value) == len(expected_value), (
                 f"Expected the length of '{self.__class__.__name__}.{field_name}' be "
-                f"equal to the length of '{expected.__class__.__name__}.{field_name}', "
-                f"\n\nActual value: {actual_value}\n\nExpected value: {expected_value}"
+                + f"equal to the length of '{expected.__class__.__name__}.{field_name}'"
+                + f"\n\nActual value: {actual_value}"
+                + f"\n\nExpected value: {expected_value}"
             )
             for element in expected_value:
                 assert element in actual_value, (
-                    f"Expected the element of "
-                    f"'{expected.__class__.__name__}.{field_name}' be a member of "
-                    f"'{self.__class__.__name__}.{field_name}'\n\nElement: {element}"
-                    f"\n\nActual value: {actual_value}\n\n"
-                    f"Expected value: {expected_value}"
+                    "Expected the element of "
+                    + f"'{expected.__class__.__name__}.{field_name}' be a member of "
+                    + f"'{self.__class__.__name__}.{field_name}'\n\nElement: {element}"
+                    + f"\n\nActual value: {actual_value}"
+                    + f"\n\nExpected value: {expected_value}"
                 )
         return True
 

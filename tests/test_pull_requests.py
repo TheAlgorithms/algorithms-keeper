@@ -6,13 +6,7 @@ from gidgethub.sansio import Event
 from pytest import MonkeyPatch
 
 from algorithms_keeper import utils
-from algorithms_keeper.constants import (
-    CHECKBOX_NOT_TICKED_COMMENT,
-    EMPTY_PR_BODY_COMMENT,
-    INVALID_EXTENSION_COMMENT,
-    MAX_PR_REACHED_COMMENT,
-    Label,
-)
+from algorithms_keeper.constants import Label
 from algorithms_keeper.event.pull_request import pull_request_router
 
 from .test_parser import get_source
@@ -23,6 +17,7 @@ from .utils import (
     ExpectedData,
     MockGitHubAPI,
     check_run_url,
+    comment,
     comments_url,
     files_url,
     html_pr_url,
@@ -38,23 +33,12 @@ from .utils import (
     user,
 )
 
-# Filled comment constants
-FILLED_EMPTY_PR_BODY_COMMENT = EMPTY_PR_BODY_COMMENT.format(user_login=user)
-FILLED_CHECKBOX_NOT_TICKED_COMMENT = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=user)
-FILLED_MAX_PR_REACHED_COMMENT = MAX_PR_REACHED_COMMENT.format(
-    user_login=user, pr_number="#1, #2"
-)
-
 # This constant can only contain one invalid filename.
 INVALID = "invalid"
-FILLED_INVALID_EXTENSION_COMMENT = INVALID_EXTENSION_COMMENT.format(
-    user_login=user, files=INVALID
-)
 
 # There will be two items for this test to check on the only two possible cases:
 # 1. MAX_PR_PER_USER = 1 (this should close the pull request)
 # 2. MAX_PR_PER_USER = 0 (this should disable the check)
-# If this constant is changed, make sure to update ``FILLED_MAX_PR_REACHED_COMMENT``
 MAX_PR_TEST_NUMBER = 1
 MAX_PR_TEST_ENABLED_ID = "max_pr_number_enabled"
 MAX_PR_TEST_DISABLED_ID = "max_pr_number_disabled"
@@ -128,7 +112,7 @@ def patch_module(
                 post_url=[comments_url, labels_url],
                 post_data=[
                     {"labels": [Label.REVIEW]},
-                    {"body": FILLED_MAX_PR_REACHED_COMMENT},
+                    {"body": comment},
                 ],
                 patch_url=[pr_url],
                 patch_data=[{"state": "closed"}],
@@ -221,7 +205,7 @@ async def test_max_pr_by_user(
             ExpectedData(
                 post_url=[labels_url, comments_url, labels_url],
                 post_data=[
-                    {"body": FILLED_EMPTY_PR_BODY_COMMENT},
+                    {"body": comment},
                     {"labels": [Label.INVALID]},
                     {"labels": [Label.REVIEW]},
                 ],
@@ -260,7 +244,7 @@ async def test_max_pr_by_user(
             ExpectedData(
                 post_url=[labels_url, comments_url, labels_url],
                 post_data=[
-                    {"body": FILLED_CHECKBOX_NOT_TICKED_COMMENT},
+                    {"body": comment},
                     {"labels": [Label.INVALID]},
                     {"labels": [Label.REVIEW]},
                 ],
@@ -299,7 +283,7 @@ async def test_max_pr_by_user(
             ExpectedData(
                 post_url=[labels_url, comments_url],
                 post_data=[
-                    {"body": FILLED_EMPTY_PR_BODY_COMMENT},
+                    {"body": comment},
                     {"labels": [Label.INVALID]},
                 ],
                 patch_url=[pr_url],
@@ -347,7 +331,7 @@ async def test_max_pr_by_user(
                 post_url=[labels_url, labels_url, comments_url],
                 post_data=[
                     {"labels": [Label.REVIEW]},
-                    {"body": FILLED_INVALID_EXTENSION_COMMENT},
+                    {"body": comment},
                     {"labels": [Label.INVALID]},
                 ],
                 patch_url=[pr_url],

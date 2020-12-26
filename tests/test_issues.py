@@ -1,12 +1,13 @@
 import pytest
 from gidgethub.sansio import Event
 
-from algorithms_keeper.constants import EMPTY_ISSUE_BODY_COMMENT, Label
+from algorithms_keeper.constants import Label
 from algorithms_keeper.event.issues import issues_router
 
 from .utils import (
     ExpectedData,
     MockGitHubAPI,
+    comment,
     comments_url,
     html_issue_url,
     issue_url,
@@ -14,8 +15,6 @@ from .utils import (
     parametrize_id,
     user,
 )
-
-FILLED_EMPTY_ISSUE_BODY_COMMENT = EMPTY_ISSUE_BODY_COMMENT.format(user_login=user)
 
 
 # Reminder: ``Event.delivery_id`` is used as a short description for the respective
@@ -46,7 +45,7 @@ FILLED_EMPTY_ISSUE_BODY_COMMENT = EMPTY_ISSUE_BODY_COMMENT.format(user_login=use
             ExpectedData(
                 post_url=[comments_url, labels_url],
                 post_data=[
-                    {"body": FILLED_EMPTY_ISSUE_BODY_COMMENT},
+                    {"body": comment},
                     {"labels": [Label.INVALID]},
                 ],
                 patch_url=[issue_url],

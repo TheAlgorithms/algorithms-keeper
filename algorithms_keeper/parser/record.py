@@ -112,6 +112,16 @@ class PullRequestReviewRecord:
         """
         return [asdict(comment) for comment in self._comments]
 
+    def collect_review_contents(self) -> List[str]:
+        """Collect all the review comments as list of strings.
+
+        The format will be: ``filepath:lineno: message``
+        """
+        return [
+            f"**{comment.path}:{comment.line}:** {comment.body}"
+            for comment in self._comments
+        ]
+
     def _lineno_exist(self, body: str, filepath: str, lineno: int) -> bool:
         """Determine whether any review comment is registered for the given *lineno*
         for the given *filepath*.

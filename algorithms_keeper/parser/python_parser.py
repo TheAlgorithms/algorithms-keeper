@@ -102,6 +102,9 @@ class PythonParser(BaseFilesParser):
     def collect_comments(self) -> List[Dict[str, Any]]:
         return self._pr_record.collect_comments()
 
+    def collect_review_contents(self) -> List[str]:
+        return self._pr_record.collect_review_contents()
+
     def files_to_check(self, ignore_modified: bool) -> Iterator[File]:
         """Generate all the ``File`` which should be checked.
 

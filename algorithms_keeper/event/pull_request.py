@@ -33,6 +33,7 @@ from algorithms_keeper.constants import (
     EMPTY_PR_BODY_COMMENT,
     INVALID_EXTENSION_COMMENT,
     MAX_PR_REACHED_COMMENT,
+    PR_REVIEW_COMMENT,
     Label,
 )
 from algorithms_keeper.log import logger
@@ -183,7 +184,7 @@ async def check_pr_files(
     if pull_request["draft"]:
         return None
 
-    ignore_modified = kwargs.pop("ignore_modified", True)
+    ignore_modified: bool = kwargs.pop("ignore_modified", True)
     pr_files = await utils.get_pr_files(gh, pull_request=pull_request)
     parser = PythonParser(pr_files, pull_request)
 
@@ -220,11 +221,20 @@ async def check_pr_files(
             gh, label=parser.labels_to_remove, pr_or_issue=pull_request
         )
     # We can only post the review comments on lines included in the pull request diff.
-    # If the bot tries to post on lines not in the diff, GitHub will complain. For now
-    # we will not post review comments when ``@algorithms-keeper review-all`` command
-    # is run, we will only change the labels.
-    if ignore_modified and (comments := parser.collect_comments()):
-        await utils.create_pr_review(gh, pull_request=pull_request, comments=comments)
+    # If the bot tries to post on lines not in the diff, GitHub will complain. So, we
+    # will collect all the review content and post it as a single comment on the pull
+    # request. This is triggered only by the ``@algorithms-keeper review-all`` command.
+    if ignore_modified:
+        if comments := parser.collect_comments():
+            await utils.create_pr_review(
+                gh, pull_request=pull_request, comments=comments
+            )
+    elif contents := parser.collect_review_contents():
+        await utils.add_comment_to_pr_or_issue(
+            gh,
+            comment=PR_REVIEW_COMMENT.format(content="\n\n".join(contents)),
+            pr_or_issue=pull_request,
+        )
 
 
 @pull_request_router.register("pull_request", action="ready_for_review")
