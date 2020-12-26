@@ -209,7 +209,7 @@ def test_command_regex_match(text: str, group: str) -> None:
                 getiter={
                     files_url: [
                         {
-                            "filename": "doctest.py",
+                            "filename": "descriptive_name.py",
                             "contents_url": "",
                             "status": "modified",
                         },
@@ -220,7 +220,7 @@ def test_command_regex_match(text: str, group: str) -> None:
                 post_url=[reactions_url, labels_url, labels_url, comments_url],
                 post_data=[
                     {"labels": [Label.ENHANCEMENT]},
-                    {"labels": [Label.REQUIRE_TEST]},
+                    {"labels": [Label.DESCRIPTIVE_NAME]},
                     {"content": "+1"},
                     {"body": comment},
                 ],

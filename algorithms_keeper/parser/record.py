@@ -128,7 +128,7 @@ class PullRequestReviewRecord:
             if MULTIPLE_COMMENT_SEPARATOR in comment.body:
                 comment.body = comment.body.replace(
                     MULTIPLE_COMMENT_SEPARATOR,
-                    f"{MULTIPLE_COMMENT_SEPARATOR}**{comment.path}:{comment.line}:**",
+                    f"{MULTIPLE_COMMENT_SEPARATOR}**{comment.path}:{comment.line}:** ",
                 )
             content.append(f"**{comment.path}:{comment.line}:** {comment.body}")
         return content
