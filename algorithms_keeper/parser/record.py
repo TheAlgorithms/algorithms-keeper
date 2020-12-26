@@ -13,6 +13,8 @@ RULE_TO_LABEL: Dict[str, str] = {
     "RequireTypeHintRule": Label.TYPE_HINT,
 }
 
+MULTIPLE_COMMENT_SEPARATOR: str = "\n\n"
+
 
 @dataclass(frozen=False)
 class ReviewComment:
@@ -115,12 +117,21 @@ class PullRequestReviewRecord:
     def collect_review_contents(self) -> List[str]:
         """Collect all the review comments as list of strings.
 
+        If the comment body contains multiple comments from rules being violated
+        multiple time, each comment will be replaced in a way to maintain consistency
+        in the following format.
+
         The format will be: ``filepath:lineno: message``
         """
-        return [
-            f"**{comment.path}:{comment.line}:** {comment.body}"
-            for comment in self._comments
-        ]
+        content = []
+        for comment in self._comments:
+            if MULTIPLE_COMMENT_SEPARATOR in comment.body:
+                comment.body = comment.body.replace(
+                    MULTIPLE_COMMENT_SEPARATOR,
+                    f"{MULTIPLE_COMMENT_SEPARATOR}**{comment.path}:{comment.line}:**",
+                )
+            content.append(f"**{comment.path}:{comment.line}:** {comment.body}")
+        return content
 
     def _lineno_exist(self, body: str, filepath: str, lineno: int) -> bool:
         """Determine whether any review comment is registered for the given *lineno*
@@ -131,6 +142,6 @@ class PullRequestReviewRecord:
         """
         for comment in self._comments:
             if comment.line == lineno and comment.path == filepath:
-                comment.body += f"\n\n{body}"
+                comment.body += f"{MULTIPLE_COMMENT_SEPARATOR}{body}"
                 return True
         return False

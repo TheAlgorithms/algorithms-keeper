@@ -143,6 +143,6 @@ PR_REVIEW_COMMENT = (
 {content}
 
 ---
-**Content format: `[file path]:[line number]: [message]`**
+###### **Content format: `[file path]:[line number]: [message]`**
 """
 )
