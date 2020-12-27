@@ -8,15 +8,15 @@ constant related to pull request will be defined in the `pull_requests` module.
 
 class Label:
     INVALID = "invalid"
-    DESCRIPTIVE_NAME = "Require: Descriptive names"
-    REQUIRE_TEST = "Require: Tests"
-    TYPE_HINT = "Require: Type hints"
-    CHANGE = "Status: awaiting changes"
-    REVIEW = "Status: awaiting reviews"
-    MERGE_CONFLICT = "Status: Merge conflicts"
-    FAILED_TEST = "Status: Tests are failing"
-    DOCUMENTATION = "Type: documentation"
-    ENHANCEMENT = "Type: enhancement"
+    CHANGE = "awaiting changes"
+    REVIEW = "awaiting reviews"
+    DESCRIPTIVE_NAME = "require descriptive names"
+    REQUIRE_TEST = "require tests"
+    TYPE_HINT = "require type hints"
+    MERGE_CONFLICT = "merge conflicts"
+    FAILED_TEST = "tests are failing"
+    DOCUMENTATION = "documentation"
+    ENHANCEMENT = "enhancement"
 
 
 # All the comments made by the bot
