@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum
 from typing import Collection, Optional
 
 import libcst as cst
@@ -22,17 +22,8 @@ INVALID_SNAKE_CASE_NAME_COMMENT: str = (
 
 
 class NamingConvention(Enum):
-    CAMEL_CASE = auto()
-    SNAKE_CASE = auto()
-
-    @property
-    def comment(self) -> str:
-        """Return the appropriate comment for the naming convention."""
-        return (
-            INVALID_CAMEL_CASE_NAME_COMMENT
-            if self is NamingConvention.CAMEL_CASE
-            else INVALID_SNAKE_CASE_NAME_COMMENT
-        )
+    CAMEL_CASE = INVALID_CAMEL_CASE_NAME_COMMENT
+    SNAKE_CASE = INVALID_SNAKE_CASE_NAME_COMMENT
 
     def valid(self, name: str) -> bool:
         """Check whether the provided *name* conforms as per the naming convention
@@ -229,4 +220,4 @@ class NamingConventionRule(CstLintRule):
         visit functions which are to validate the name and report if found invalid.
         """
         if not naming_convention.valid(nodename):
-            self.report(node, naming_convention.comment.format(nodename=nodename))
+            self.report(node, naming_convention.value.format(nodename=nodename))
