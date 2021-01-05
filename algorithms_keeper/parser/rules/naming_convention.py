@@ -41,8 +41,9 @@ class NamingConvention(Enum):
                 break
         else:
             upper_count = len([letter for letter in name if letter.isupper()])
-            # If the count value equals the length of name, the name is a CONSTANT.
-            if upper_count and upper_count != len(name):
+            # If the upper count + underscore count equals the length of name,
+            # the name is a CONSTANT.
+            if upper_count and name.count("_") + upper_count != len(name):
                 return False
         return True
 
@@ -54,7 +55,7 @@ class NamingConventionRule(CstLintRule):
     VALID = [
         Valid("type_hint: str"),
         Valid("type_hint_var: int = 5"),
-        Valid("CONSTANT = 10"),
+        Valid("CONSTANT_WITH_UNDERSCORE = 10"),
         Valid("hello = 'world'"),
         Valid("snake_case = 'assign'"),
         Valid("for iteration in range(5): pass"),
