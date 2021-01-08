@@ -187,8 +187,7 @@ pr_url = f"https://api.github.com/repos/{repository}/pulls/{number}"
 html_pr_url = f"https://github.com/{repository}/pulls/{number}"
 reviewers_url = f"{pr_url}/requested_reviewers"
 files_url = f"{pr_url}/files"
-contents_url1 = f"https://api.github.com/repos/{repository}/contents/test1.py?ref={sha}"
-contents_url2 = f"https://api.github.com/repos/{repository}/contents/test2.py?ref={sha}"
+contents_url = f"https://api.github.com/repos/{repository}/contents/test1.py?ref={sha}"
 review_url = f"{pr_url}/reviews"
 
 # Check run

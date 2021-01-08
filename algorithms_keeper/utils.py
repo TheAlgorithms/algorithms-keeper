@@ -211,16 +211,14 @@ async def get_pr_files(gh: GitHubAPI, *, pull_request: Mapping[str, Any]) -> Lis
     async for data in gh.getiter(
         pull_request["url"] + "/files", oauth_token=await gh.access_token
     ):
-        # No need to do any checks for files which are removed.
-        if data["status"] != "removed":
-            files.append(
-                File(
-                    data["filename"],
-                    Path(data["filename"]),
-                    data["contents_url"],
-                    data["status"],
-                )
+        files.append(
+            File(
+                data["filename"],
+                Path(data["filename"]),
+                data["contents_url"],
+                data["status"],
             )
+        )
     return files
 
 

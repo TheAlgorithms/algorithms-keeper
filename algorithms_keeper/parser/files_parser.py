@@ -81,7 +81,7 @@ class BaseFilesParser:
 
         **documentation**: Contains a file with an extension from ``DOCS_EXTENSIONS``
 
-        **enhancement**: Some/all files were *modified*
+        **enhancement**: Some/all files were *modified/renamed/removed*
 
         NOTE: These two types are mutually exclusive which means a modified docs file
         will be labeled **documentation** and not **enhancement**.
@@ -92,6 +92,6 @@ class BaseFilesParser:
                 if file.path.name not in IGNORE_FILES_FOR_TYPELABEL:
                     label = Label.DOCUMENTATION
                     break
-            elif file.status == "modified":
+            elif file.status != "added":
                 label = Label.ENHANCEMENT
         return label if label not in self.pr_labels else ""

@@ -14,8 +14,7 @@ from .utils import (
     comment,
     comment_url,
     comments_url,
-    contents_url1,
-    contents_url2,
+    contents_url,
     files_url,
     issue_url,
     labels_url,
@@ -253,43 +252,24 @@ async def test_close_pr_or_issue_with_label() -> None:
 async def test_get_pr_files() -> None:
     getiter = {
         files_url: [
-            {"filename": "test1.py", "contents_url": contents_url1, "status": "added"},
-            {"filename": "test2.py", "contents_url": contents_url2, "status": "added"},
+            {"filename": "t1.py", "contents_url": contents_url, "status": "added"},
+            {"filename": "t2.py", "contents_url": contents_url, "status": "removed"},
+            {"filename": "t3.py", "contents_url": contents_url, "status": "modified"},
+            {"filename": "t4.py", "contents_url": contents_url, "status": "renamed"},
         ]
     }
     pull_request = {"url": pr_url}
     gh = MockGitHubAPI(getiter=getiter)
     result = await utils.get_pr_files(cast(GitHubAPI, gh), pull_request=pull_request)
-    assert len(result) == 2
-    assert result[0].name == "test1.py"
-    assert result[1].name == "test2.py"
-    assert files_url in gh.getiter_url
-
-
-@pytest.mark.asyncio
-async def test_get_added_pr_files() -> None:
-    getiter = {
-        files_url: [
-            {"filename": "test1.py", "contents_url": contents_url1, "status": "added"},
-            {
-                "filename": "test2.py",
-                "contents_url": contents_url2,
-                "status": "removed",  # We don't want the removed file.
-            },
-        ]
-    }
-    pull_request = {"url": pr_url}
-    gh = MockGitHubAPI(getiter=getiter)
-    result = await utils.get_pr_files(cast(GitHubAPI, gh), pull_request=pull_request)
-    assert len(result) == 1
-    assert result[0].name == "test1.py"
+    assert len(result) == 4
+    assert [r.name for r in result] == ["t1.py", "t2.py", "t3.py", "t4.py"]
     assert files_url in gh.getiter_url
 
 
 @pytest.mark.asyncio
 async def test_get_file_content() -> None:
     getitem = {
-        contents_url1: {
+        contents_url: {
             "content": (
                 "ZGVmIHRlc3QxKGEsIGIsIGMpOgoJIiIiCglBIHRlc3QgZnVuY3Rpb24KCSI"
                 "i\nIgoJcmV0dXJuIEZhbHNlCgpkZWYgdGVzdDIoZCwgZSwgZik6CgkiIiIKC"
@@ -303,7 +283,7 @@ async def test_get_file_content() -> None:
     gh = MockGitHubAPI(getitem=getitem)
     result = await utils.get_file_content(
         cast(GitHubAPI, gh),
-        file=utils.File("test.py", Path("test.py"), contents_url1, "added"),
+        file=utils.File("test.py", Path("test.py"), contents_url, "added"),
     )
     assert result == (
         b'def test1(a, b, c):\n\t"""\n\tA test function\n\t"""\n\treturn False'
@@ -311,7 +291,7 @@ async def test_get_file_content() -> None:
         b'\n\ndef test3(a: int) -> None:\n\t"""\n\t>>> findIslands(1, 1, 1)\n\t"""'
         b"\n\treturn None\n\nif __name__ == '__main__':\n\tpass\n"
     )
-    assert contents_url1 in gh.getitem_url
+    assert contents_url in gh.getitem_url
 
 
 @pytest.mark.asyncio

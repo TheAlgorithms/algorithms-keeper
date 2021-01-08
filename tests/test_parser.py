@@ -70,6 +70,8 @@ def test_validate_extension(parser: PythonParser, expected: str) -> None:
         (get_parser("README.rst", "modified"), Label.DOCUMENTATION),
         (get_parser("test.py, README.md", "modified"), Label.DOCUMENTATION),
         (get_parser("test.py", "modified"), Label.ENHANCEMENT),
+        (get_parser("test.py", "renamed"), Label.ENHANCEMENT),
+        (get_parser("test.py", "removed"), Label.ENHANCEMENT),
         # DIRECTORY.md gets updated automatically in every PR.
         (get_parser("sol1.py, DIRECTORY.md"), ""),
         (get_parser("test_file.py"), ""),
@@ -87,6 +89,8 @@ def test_type_label(parser: PythonParser, expected: str) -> None:
         (get_parser("algo.py, test_algo.py, algo_test.py"), True, 1),
         (get_parser("algo.py, another.py, yetanother.py", "modified"), True, 0),
         (get_parser("algo.py, another.py, README.md", "modified"), False, 2),
+        (get_parser("algo.py, another.py, README.md", "removed"), False, 2),
+        (get_parser("algo.py, another.py, README.md", "renamed"), False, 2),
         (get_parser("algo.py, another.py, README.md"), False, 2),
     ),
 )

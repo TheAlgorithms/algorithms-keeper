@@ -1,7 +1,7 @@
 import importlib
 import inspect
 from logging import Logger
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Tuple
 
 from fixit import CstLintRule, LintConfig
 from fixit.common.utils import LintRuleCollectionT
@@ -119,11 +119,12 @@ class PythonParser(BaseFilesParser):
         - Optionally ignore files which were modified (Issue #11)
         - Files in the *scripts/* directory (Issue #11)
         """
-        ignore: Optional[str] = "modified" if ignore_modified else None
         for file in self.pr_files:
             filepath = file.path
             if (
-                file.status != ignore
+                # If *ignore_modified* is ``True``, yield only the added files,
+                # otherwise yield all the files.
+                (not ignore_modified or file.status == "added")
                 and filepath.suffix == ".py"
                 and "scripts" not in filepath.parts
                 and not filepath.name.startswith("__")
