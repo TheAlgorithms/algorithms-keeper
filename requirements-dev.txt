@@ -1,6 +1,6 @@
 -r requirements.txt
 mypy==0.800
-pre-commit==2.9.3
+pre-commit==2.10.1
 pytest==6.2.1
 pytest-aiohttp==0.3.0
 pytest-asyncio==0.14.0
