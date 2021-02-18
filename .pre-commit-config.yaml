@@ -22,14 +22,3 @@ repos:
       - id: flake8
         args:
           - --max-line-length=88
-  # It was either this or filling the `additional_dependencies` options will
-  # all the dependencies from requirements.txt creating duplications and hard
-  # to maintain.
-  - repo: local
-    hooks:
-      - id: mypy
-        name: mypy
-        entry: mypy algorithms_keeper/ tests/
-        language: python
-        types: [python]
-        pass_filenames: false
