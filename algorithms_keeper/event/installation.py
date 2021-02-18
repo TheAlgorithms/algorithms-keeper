@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from gidgethub import routing
@@ -7,6 +8,8 @@ from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import GREETING_COMMENT
 
 installation_router = routing.Router()
+
+logger = logging.getLogger(__package__)
 
 
 @installation_router.register("installation", action="created")
@@ -26,8 +29,10 @@ async def repo_installation_added(
         repositories = event.data["repositories_added"]
 
     for repository in repositories:
+        repo_name = repository["full_name"]
+        logger.info("New repository added: %s", repo_name)
         response = await gh.post(
-            f"/repos/{repository['full_name']}/issues",
+            f"/repos/{repo_name}/issues",
             data={
                 "title": "Installation successful!",
                 "body": GREETING_COMMENT.format(login=event.data["sender"]["login"]),

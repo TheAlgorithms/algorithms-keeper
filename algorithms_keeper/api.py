@@ -1,5 +1,5 @@
+import logging
 import os
-from logging import Logger
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 from aiohttp import ClientResponse
@@ -8,22 +8,19 @@ from gidgethub import apps
 from gidgethub.abc import UTF_8_CHARSET
 from gidgethub.aiohttp import GitHubAPI as BaseGitHubAPI
 
-from algorithms_keeper.log import STATUS_OK, inject_status_color
-from algorithms_keeper.log import logger as main_logger
-
 # Timed token_cache for installation access token (1 minute less than an hour)
 token_cache: MutableMapping[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)
 
+# From `gidgethub.sansio.decipher_response()`
+# From `gidgethub.abc._request()#113`
+STATUS_OK: Tuple[int, int, int, int] = (200, 201, 204, 304)
+
+logger = logging.getLogger(__package__)
+
 
 class GitHubAPI(BaseGitHubAPI):
-
-    logger: Logger
-
-    LOG_FORMAT = 'api "%(method)s %(path)s %(data)s %(version)s" => %(status)s'
-
     def __init__(self, installation_id: int, *args: Any, **kwargs: Any) -> None:
         self._installation_id = installation_id
-        self.logger = kwargs.pop("logger", main_logger)
         super().__init__(*args, **kwargs)
 
     @property
@@ -68,38 +65,32 @@ class GitHubAPI(BaseGitHubAPI):
             self._headers = response.headers
             return response.status, response.headers, await response.read()
 
-    def log(self, response: ClientResponse, body: bytes) -> None:  # pragma: no cover
+    @staticmethod
+    def log(response: ClientResponse, body: bytes) -> None:  # pragma: no cover
         """Log the request-response cycle for the GitHub API calls made by the bot.
 
         The logger information will be useful to know what actions the bot made.
         INFO: All actions taken by the bot.
         ERROR: Unknown error in the API call.
         """
-        inject_status_color(response.status)
         if response.status in STATUS_OK:
-            loggerlevel = self.logger.info
-            # Comments and reviews are too long to be logged.
-            if response.url.name == "comments":
-                data = "COMMENT"
-            elif response.url.name == "reviews":
-                data = "REVIEW"
+            loggerlevel = logger.info
+            # Comments and reviews are too long to be logged for INFO level
+            if response.url.name in ("comments", "reviews"):
+                data = response.url.name.upper()
             else:
                 data = body.decode(UTF_8_CHARSET)
         else:
-            loggerlevel = self.logger.error
+            loggerlevel = logger.error
             data = body.decode(UTF_8_CHARSET)
-        # Trying to satisfy ``mypy`` be like...
         version = response.version
         if version is not None:
             version = f"{version.major}.{version.minor}"
         loggerlevel(
-            self.LOG_FORMAT,
-            {
-                "method": response.method,
-                # Host is always going to be 'api.github.com'.
-                "path": response.url.raw_path_qs,
-                "version": f"{response.url.scheme.upper()}/{version}",
-                "data": data,
-                "status": f"{response.status}:{response.reason}",
-            },
+            'api "%s %s %s %s" => %s',
+            response.method,
+            response.url.raw_path_qs,
+            f"{response.url.scheme.upper()}/{version}",
+            data,
+            f"{response.status}:{response.reason}",
         )

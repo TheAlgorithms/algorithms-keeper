@@ -1,3 +1,4 @@
+import logging
 from typing import Any, List
 
 from gidgethub import routing
@@ -6,9 +7,10 @@ from gidgethub.sansio import Event
 from algorithms_keeper import utils
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import Label
-from algorithms_keeper.log import logger
 
 check_run_router = routing.Router()
+
+logger = logging.getLogger(__package__)
 
 
 @check_run_router.register("check_run", action="completed")
@@ -42,8 +44,8 @@ async def check_ci_status_and_label(
     # - CheckRun event came from a commit made directly on master branch
     if pr_for_commit is None:
         logger.info(
-            "Pull request not found for commit: %(url)s",
-            {"url": f"https://github.com/{repository}/commit/{commit_sha}"},
+            "Pull request not found for commit: %s",
+            f"https://github.com/{repository}/commit/{commit_sha}",
         )
         return None
 

@@ -1,6 +1,6 @@
 import importlib
 import inspect
-from logging import Logger
+import logging
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Tuple
 
 from fixit import CstLintRule, LintConfig
@@ -8,7 +8,6 @@ from fixit.common.utils import LintRuleCollectionT
 from fixit.rule_lint_engine import lint_file
 from libcst import ParserSyntaxError
 
-from algorithms_keeper.log import logger as main_logger
 from algorithms_keeper.parser.files_parser import BaseFilesParser
 from algorithms_keeper.parser.record import PullRequestReviewRecord
 from algorithms_keeper.parser.rules import RequireDoctestRule
@@ -17,6 +16,8 @@ from algorithms_keeper.utils import File
 RULES_DOTPATH: str = "algorithms_keeper.parser.rules"
 
 DEFAULT_CONFIG: LintConfig = LintConfig(packages=[RULES_DOTPATH])
+
+logger = logging.getLogger(__package__)
 
 
 def get_rules_from_config(config: LintConfig = DEFAULT_CONFIG) -> LintRuleCollectionT:
@@ -79,9 +80,8 @@ class PythonParser(BaseFilesParser):
         self,
         pr_files: Iterable[File],
         pull_request: Mapping[str, Any],
-        logger: Logger = main_logger,
     ) -> None:
-        super().__init__(pr_files, pull_request, logger)
+        super().__init__(pr_files, pull_request)
         self._pr_record = PullRequestReviewRecord()
         # Collection of rules are going to be static for a pull request, so let's
         # extract it out and store it.
@@ -153,9 +153,8 @@ class PythonParser(BaseFilesParser):
             self._pr_record.add_comments(reports, file.name)
         except (SyntaxError, ParserSyntaxError) as exc:
             self._pr_record.add_error(exc, file.name)
-            self.logger.info(
-                "Invalid Python code for the file: [%(file)s] %(url)s",
-                {"file": file.name, "url": self.pr_html_url},
+            logger.info(
+                "Invalid Python code for the file: [%s] %s", file.name, self.pr_html_url
             )
 
     def _contains_testfile(self) -> bool:

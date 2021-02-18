@@ -20,6 +20,7 @@ digraph "PR stages" {
 }
 """
 import asyncio
+import logging
 import re
 from typing import Any, Dict, List, Optional
 
@@ -36,7 +37,6 @@ from algorithms_keeper.constants import (
     PR_REVIEW_COMMENT,
     Label,
 )
-from algorithms_keeper.log import logger
 from algorithms_keeper.parser import PythonParser
 
 # To disable this check, set the constant to 0.
@@ -45,6 +45,8 @@ STAGE_PREFIX = "awaiting"
 MAX_RETRIES = 5
 
 pull_request_router = routing.Router()
+
+logger = logging.getLogger(__package__)
 
 
 async def update_stage_label(
@@ -121,10 +123,10 @@ async def close_invalid_or_additional_pr(
 
         if not pr_body:
             comment = EMPTY_PR_BODY_COMMENT.format(user_login=pr_author)
-            logger.info("Empty PR body: %(url)s", {"url": pull_request["html_url"]})
+            logger.info("Empty PR body: %s", pull_request["html_url"])
         elif re.search(r"\[x]", pr_body, re.IGNORECASE) is None:
             comment = CHECKBOX_NOT_TICKED_COMMENT.format(user_login=pr_author)
-            logger.info("Empty checklist: %(url)s", {"url": pull_request["html_url"]})
+            logger.info("Empty checklist: %s", pull_request["html_url"])
 
         if comment is not None:
             await utils.close_pr_or_issue(
@@ -139,9 +141,7 @@ async def close_invalid_or_additional_pr(
             )
 
             if len(user_pr_numbers) > MAX_PR_PER_USER:
-                logger.info(
-                    "Multiple open PRs: %(url)s", {"url": pull_request["html_url"]}
-                )
+                logger.info("Multiple open PRs: %s", pull_request["html_url"])
                 # Convert list of numbers to: "#1, #2, #3"
                 pr_number = "#{}".format(", #".join(map(str, user_pr_numbers)))
                 await utils.close_pr_or_issue(

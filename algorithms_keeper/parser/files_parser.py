@@ -1,12 +1,13 @@
-from logging import Logger
+import logging
 from typing import Any, Collection, Iterable, List, Mapping, Set
 
 from algorithms_keeper.constants import Label
-from algorithms_keeper.log import logger as main_logger
 from algorithms_keeper.utils import File
 
 # These files are updated automatically by a GitHub action in almost every pull request.
 IGNORE_FILES_FOR_TYPELABEL: Set[str] = {"DIRECTORY.md"}
+
+logger = logging.getLogger(__package__)
 
 
 class BaseFilesParser:
@@ -18,7 +19,6 @@ class BaseFilesParser:
 
     pr_labels: List[str]
     pr_html_url: str
-    logger: Logger
 
     DOCS_EXTENSIONS: Collection[str] = ()
     ACCEPTED_EXTENSIONS: Collection[str] = ()
@@ -27,17 +27,12 @@ class BaseFilesParser:
         self,
         pr_files: Iterable[File],
         pull_request: Mapping[str, Any],
-        logger: Logger = main_logger,
     ) -> None:
         # A pull request object for easy access.
         self.pr = pull_request
         self.pr_files = pr_files
         self.pr_labels = [label["name"] for label in pull_request["labels"]]
         self.pr_html_url = pull_request["html_url"]
-
-        # By providing the logger to the class, we won't have to log anything from the
-        # pull requests module. Defaults to ``algorithms_keeper.log.logger``
-        self.logger = logger
 
     def validate_extension(self) -> str:
         """Check pull request files extension. Returns an empty string if all files are
@@ -68,10 +63,7 @@ class BaseFilesParser:
                 invalid_filepath.append(file.name)
         invalid_files = ", ".join(invalid_filepath)
         if invalid_files:
-            self.logger.info(
-                "Invalid file(s) [%(file)s]: %(url)s",
-                {"file": invalid_files, "url": self.pr_html_url},
-            )
+            logger.info("Invalid file(s) [%s]: %s", invalid_files, self.pr_html_url)
         return invalid_files
 
     def type_label(self) -> str:
