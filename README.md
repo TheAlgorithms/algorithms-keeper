@@ -18,7 +18,7 @@ Open an issue with the message greeting the user who either installed the app or
 - To indicate the stage the pull request is currently at. This is a cycle of two labels which indicates the two stages: The pull request requires a review/re-review, or a maintainer has requested changes for the pull request.
 - To indicate whether the pull request contains merge conflicts or not.
 
-The pull request stages can be best described in a [graphviz](http://www.webgraphviz.com/) diagram whose code is in the [pull requests module](https://github.com/dhruvmanila/algorithms-keeper/blob/master/algorithms_keeper/pull_requests.py).
+The pull request stages can be best described in a [graphviz](http://www.webgraphviz.com/) diagram whose code is in the [pull requests module](https://github.com/dhruvmanila/algorithms-keeper/blob/master/algorithms_keeper/event/pull_request.py).
 
 ### Close invalid pull requests
 A pull request is considered invalid if:
@@ -46,7 +46,7 @@ Some actions of the bot can be triggered using commands:
 ***NOTE: Commands are in BETA and valid only if it is commented on a pull request and only by either a member or owner of the organization.***
 
 ## Logging
-There are three loggers out of which one is the main `logger` for the bot that is being used to log certain events and exceptions. The other two loggers are: `aiohttp.access` from `aiohttp.log.access_logger`, used to log `POST` requests made by GitHub for delivering the payload and `api`, used to log all the API calls made to GitHub. The logs can be viewed best using the following command ([_requires Heroku CLI_](https://devcenter.heroku.com/articles/heroku-cli#download-and-install)):
-```commandline
-heroku logs -a algorithms-keeper -d web -t
+Logging is done using the standard library logging module. All the API calls made by the bot are being logged at INFO level and `aiohttp.log.access_logger` is logging the POST requests made by GitHub for delivering the payload. Other minor events relevant to the repository is also being logged along with using the using [Sentry](https://sentry.io/). The logs can be viewed best using the following command ([_requires Heroku CLI_](https://devcenter.heroku.com/articles/heroku-cli#download-and-install)):
+```shell
+heroku logs -a algorithms-keeper -t
 ```

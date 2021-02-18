@@ -38,7 +38,7 @@ async def main(request: Request) -> Response:
         if event.event == "ping":
             return Response(status=200)
         logger.info(
-            "event=%s, delivery_id=%s",
+            "event=%s delivery_id=%s",
             f"{event.event}:{event.data['action']}",
             event.delivery_id,
         )
