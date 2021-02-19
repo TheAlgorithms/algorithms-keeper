@@ -1,6 +1,6 @@
 # algorithms-keeper
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/dhruvmanila/algorithms-keeper/CI?label=CI&logo=github&style=flat-square)](https://github.com/dhruvmanila/algorithms-keeper/actions)
-[![Codecov](https://img.shields.io/codecov/c/gh/dhruvmanila/algorithms-keeper?label=codecov&logo=codecov&style=flat-square)](https://codecov.io/gh/dhruvmanila/algorithms-keeper)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/TheAlgorithms/algorithms-keeper/CI?label=CI&logo=github&style=flat-square)](https://github.com/TheAlgorithms/algorithms-keeper/actions)
+[![Codecov](https://img.shields.io/codecov/c/gh/TheAlgorithms/algorithms-keeper?label=codecov&logo=codecov&style=flat-square)](https://app.codecov.io/gh/TheAlgorithms/algorithms-keeper)
 [![code style: black](https://img.shields.io/static/v1?label=code%20style&message=black&color=black&style=flat-square)](https://github.com/psf/black)
 [![Checked with mypy](https://img.shields.io/static/v1?label=mypy&message=checked&style=flat-square&color=2a6db2&labelColor=505050)](http://mypy-lang.org/)
 
@@ -18,7 +18,7 @@ Open an issue with the message greeting the user who either installed the app or
 - To indicate the stage the pull request is currently at. This is a cycle of two labels which indicates the two stages: The pull request requires a review/re-review, or a maintainer has requested changes for the pull request.
 - To indicate whether the pull request contains merge conflicts or not.
 
-The pull request stages can be best described in a [graphviz](http://www.webgraphviz.com/) diagram whose code is in the [pull requests module](https://github.com/dhruvmanila/algorithms-keeper/blob/master/algorithms_keeper/event/pull_request.py).
+The pull request stages can be best described in a [graphviz](http://www.webgraphviz.com/) diagram whose code is in the [pull requests module](https://github.com/TheAlgorithms/algorithms-keeper/blob/master/algorithms_keeper/event/pull_request.py#L3).
 
 ### Close invalid pull requests
 A pull request is considered invalid if:
