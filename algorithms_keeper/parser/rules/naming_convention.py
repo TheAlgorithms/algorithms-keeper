@@ -32,18 +32,11 @@ class NamingConvention(Enum):
         Returns ``True`` if it is valid otherwise ``False``.
         """
         if self is NamingConvention.CAMEL_CASE:
-            for index, letter in enumerate(name):
-                if letter == "_":
-                    continue
-                # First non-underscore letter
-                elif letter.islower() or "_" in name[index:]:
-                    return False
-                break
+            name = name.strip("_")
+            if name[0].islower() or "_" in name:
+                return False
         else:
-            upper_count = len([letter for letter in name if letter.isupper()])
-            # If the upper count + underscore count equals the length of name,
-            # the name is a CONSTANT.
-            if upper_count and name.count("_") + upper_count != len(name):
+            if name.lower() != name and name.upper() != name:
                 return False
         return True
 
@@ -55,7 +48,7 @@ class NamingConventionRule(CstLintRule):
     VALID = [
         Valid("type_hint: str"),
         Valid("type_hint_var: int = 5"),
-        Valid("CONSTANT_WITH_UNDERSCORE = 10"),
+        Valid("CONSTANT_WITH_UNDERSCORE12 = 10"),
         Valid("hello = 'world'"),
         Valid("snake_case = 'assign'"),
         Valid("for iteration in range(5): pass"),
@@ -131,25 +124,11 @@ class NamingConventionRule(CstLintRule):
 
         if metadata is not None:
             for qualname in metadata:
-                # There should only be one qualified name for the provided node in case
-                # of type alias assignment. Multiple assignments for type alias does not
-                # look good nor assigning multiple variables to the same type value::
-                #
-                #    # Multiple aliases pointing to the same type value
-                #    FirstType, SecondType = List[int]
-                #
-                #    # Multiple type alias assignments
-                #    Matrix, T = List[int], TypeVar("T")
-                #
-                # For the following two cases, the assignment name should be
-                # *CAMEL_CASE* (not enforcing this), so ignore it in here:
-                # - If the name is coming from the ``typing`` module, then the
-                # assignment is actually a type alias.
-                # - The assignment is done for namedtuple.
-                if (
-                    qualname.name.startswith("typing")
-                    or qualname.name == "collections.namedtuple"
-                ):
+                # If the assignment is done with some objects from the typing or
+                # collections module, then we will skip the check as the assignment
+                # could be a type alias or the variable could be a class made using
+                # ``collections.namedtuple``.
+                if qualname.name.startswith(("typing", "collections")):
                     return None
 
         for target_node in node.targets:
