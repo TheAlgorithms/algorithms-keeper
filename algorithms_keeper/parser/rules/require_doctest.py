@@ -1,21 +1,21 @@
-from typing import Union
-
 import libcst as cst
 import libcst.matchers as m
 from fixit import CstContext, CstLintRule
 from fixit import InvalidTestCase as Invalid
 from fixit import ValidTestCase as Valid
+from typing import Union
 
 MISSING_DOCTEST: str = (
-    "As there is no test file in this pull request nor any test function or class in "
-    + "the file `{filepath}`, please provide doctest for the function `{nodename}`"
+        "As there is no test file in this pull request nor any test function or class in "
+        + "the file `{filepath}`, please provide doctest for the function `{nodename}`"
 )
 
-INIT: str = "__init__"
+
+def _is_dunder_name(st: str) -> bool:
+    return st.startswith('__') and st.endswith('__')
 
 
 class RequireDoctestRule(CstLintRule):
-
     VALID = [
         # Module-level docstring contains doctest.
         Valid(
@@ -221,7 +221,7 @@ class RequireDoctestRule(CstLintRule):
 
     def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
         nodename = node.name.value
-        if nodename != INIT and not self._has_doctest(node):
+        if not _is_dunder_name(nodename) and not self._has_doctest(node):
             self.report(
                 node,
                 MISSING_DOCTEST.format(
@@ -230,7 +230,7 @@ class RequireDoctestRule(CstLintRule):
             )
 
     def _has_doctest(
-        self, node: Union[cst.Module, cst.ClassDef, cst.FunctionDef]
+            self, node: Union[cst.Module, cst.ClassDef, cst.FunctionDef]
     ) -> bool:
         """Check whether the given node contains doctests.
 
