@@ -12,6 +12,7 @@ The rest of the arguments must be keyword-only arguments. This is done to
 maintain consistency throughout the module and improve readability in files
 that uses all the given functions.
 """
+import logging
 import urllib.parse
 from base64 import b64decode
 from dataclasses import dataclass
@@ -20,6 +21,8 @@ from typing import Any, Mapping, Optional, Union
 
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import PR_REVIEW_BODY
+
+logger = logging.getLogger(__package__)
 
 
 @dataclass(frozen=True)
@@ -271,3 +274,52 @@ async def get_pr_for_issue(gh: GitHubAPI, *, issue: Mapping[str, Any]) -> Any:
 async def update_pr(gh: GitHubAPI, *, pull_request: Mapping[str, Any]) -> Any:
     """Get the updated pull request object for the given pull request."""
     return await gh.getitem(pull_request["url"], oauth_token=await gh.access_token)
+
+
+async def get_pr_for_workflow_run(
+    gh: GitHubAPI, *, workflow_run: Mapping[str, Any]
+) -> Optional[Any]:
+    """Return the pull request object for the given workflow run object.
+
+    If the workflow run is not triggered by a pull request, then return None.
+    If the workflow run contains the pull request information, then return the first
+    pull request object, otherwise make a request to the GitHub API to get the pull
+    request associated with the workflow run.
+    """
+    if workflow_run["event"] != "pull_request":
+        return None
+
+    if workflow_run["pull_requests"]:
+        return await gh.getitem(
+            workflow_run["pull_requests"][0]["url"],
+            oauth_token=await gh.access_token,
+        )
+
+    # Format: "user/organization:branch"
+    head = (
+        workflow_run["head_repository"]["owner"]["login"]
+        + ":"
+        + workflow_run["head_branch"]
+    )
+
+    prs = await gh.getitem(
+        workflow_run["repository"]["pulls_url"]
+        + "?"
+        + urllib.parse.urlencode({"state": "open", "head": head}),
+        oauth_token=await gh.access_token,
+    )
+    if not prs:
+        logger.info("No open pull request found for %r", head)
+        return None
+
+    # There can be only one open pull request for a given branch.
+    return prs[0]
+
+
+async def approve_workflow_run(
+    gh: GitHubAPI, *, workflow_run: Mapping[str, Any]
+) -> None:
+    """Approve the given workflow run."""
+    await gh.post(
+        workflow_run["url"] + "/approve", data={}, oauth_token=await gh.access_token
+    )

@@ -5,6 +5,7 @@ from algorithms_keeper.event.commands import commands_router
 from algorithms_keeper.event.installation import installation_router
 from algorithms_keeper.event.issues import issues_router
 from algorithms_keeper.event.pull_request import pull_request_router
+from algorithms_keeper.event.workflow import workflow_router
 
 main_router: Router = Router(
     check_run_router,
@@ -12,6 +13,7 @@ main_router: Router = Router(
     installation_router,
     issues_router,
     pull_request_router,
+    workflow_router,
 )
 
 __all__ = ["main_router"]
