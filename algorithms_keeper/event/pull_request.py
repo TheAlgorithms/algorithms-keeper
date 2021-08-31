@@ -22,7 +22,7 @@ digraph "PR stages" {
 import asyncio
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from gidgethub import routing
 from gidgethub.sansio import Event
@@ -50,7 +50,7 @@ logger = logging.getLogger(__package__)
 
 
 async def update_stage_label(
-    gh: GitHubAPI, *, pull_request: Dict[str, Any], next_label: Optional[str] = None
+    gh: GitHubAPI, *, pull_request: dict[str, Any], next_label: Optional[str] = None
 ) -> None:
     """Update the stage label of the given pull request.
 
@@ -336,7 +336,7 @@ async def check_merge_status(
             await asyncio.sleep(retry_interval)
             pull_request = await utils.update_pr(gh, pull_request=pull_request)
         else:
-            current_labels: List[str] = [
+            current_labels: list[str] = [
                 label["name"] for label in pull_request["labels"]
             ]
             if not mergeable:

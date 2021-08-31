@@ -1,11 +1,11 @@
 import logging
-from typing import Any, Collection, Iterable, List, Mapping, Set
+from typing import Any, Collection, Iterable, Mapping
 
 from algorithms_keeper.constants import Label
 from algorithms_keeper.utils import File
 
 # These files are updated automatically by a GitHub action in almost every pull request.
-IGNORE_FILES_FOR_TYPELABEL: Set[str] = {"DIRECTORY.md"}
+IGNORE_FILES_FOR_TYPELABEL: set[str] = {"DIRECTORY.md"}
 
 logger = logging.getLogger(__package__)
 
@@ -17,7 +17,7 @@ class BaseFilesParser:
     ``DOCS_EXTENSIONS`` and ``ACCEPTED_EXTENSIONS`` as per the language repository.
     """
 
-    pr_labels: List[str]
+    pr_labels: list[str]
     pr_html_url: str
 
     DOCS_EXTENSIONS: Collection[str] = ()

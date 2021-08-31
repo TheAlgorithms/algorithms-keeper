@@ -1,5 +1,3 @@
-from typing import Set
-
 import libcst as cst
 from fixit import CstContext, CstLintRule
 from fixit import InvalidTestCase as Invalid
@@ -13,7 +11,7 @@ MISSING_RETURN_TYPE_HINT: str = (
     + "the type hint as:** `def function() -> None:`"
 )
 
-IGNORE_PARAM: Set[str] = {"self", "cls"}
+IGNORE_PARAM: set[str] = {"self", "cls"}
 
 
 class RequireTypeHintRule(CstLintRule):

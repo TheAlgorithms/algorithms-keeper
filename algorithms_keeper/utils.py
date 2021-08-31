@@ -16,7 +16,7 @@ import urllib.parse
 from base64 import b64decode
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import PR_REVIEW_BODY
@@ -74,7 +74,7 @@ async def get_check_runs_for_commit(gh: GitHubAPI, *, sha: str, repository: str)
 async def add_label_to_pr_or_issue(
     gh: GitHubAPI,
     *,
-    label: Union[str, List[str]],
+    label: Union[str, list[str]],
     pr_or_issue: Mapping[str, Any],
 ) -> None:
     """Add the given label(s) to the pull request or issue provided.
@@ -100,7 +100,7 @@ async def add_label_to_pr_or_issue(
 async def remove_label_from_pr_or_issue(
     gh: GitHubAPI,
     *,
-    label: Union[str, List[str]],
+    label: Union[str, list[str]],
     pr_or_issue: Mapping[str, Any],
 ) -> None:
     """Remove the given label(s) from pull request or issue provided.
@@ -129,7 +129,7 @@ async def remove_label_from_pr_or_issue(
 
 async def get_user_open_pr_numbers(
     gh: GitHubAPI, *, repository: str, user_login: str
-) -> List[int]:
+) -> list[int]:
     """Return the user's open pull request numbers in the given repository.
 
     For GitHub's REST API v3, issues and pull requests are the same so
@@ -162,7 +162,7 @@ async def close_pr_or_issue(
     *,
     comment: str,
     pr_or_issue: Mapping[str, Any],
-    label: Optional[Union[str, List[str]]] = None,
+    label: Optional[Union[str, list[str]]] = None,
 ) -> None:
     """Close the given pull request or issue with a comment and an optional label.
     If it is a pull request then dismiss all the requested reviews from it as well.
@@ -201,7 +201,7 @@ async def remove_requested_reviewers_from_pr(
     )
 
 
-async def get_pr_files(gh: GitHubAPI, *, pull_request: Mapping[str, Any]) -> List[File]:
+async def get_pr_files(gh: GitHubAPI, *, pull_request: Mapping[str, Any]) -> list[File]:
     """Return the list of files data from a given pull request.
 
     The data will include `filename` and `contents_url`. The `contents_url` will be
@@ -229,7 +229,7 @@ async def get_file_content(gh: GitHubAPI, *, file: File) -> bytes:
 
 
 async def create_pr_review(
-    gh: GitHubAPI, *, pull_request: Mapping[str, Any], comments: List[Dict[str, Any]]
+    gh: GitHubAPI, *, pull_request: Mapping[str, Any], comments: list[dict[str, Any]]
 ) -> None:
     """Submit a comment review for the given pull request.
 

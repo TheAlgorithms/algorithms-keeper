@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import Any
 
 from gidgethub import routing
 from gidgethub.sansio import Event
@@ -53,10 +53,10 @@ async def check_ci_status_and_label(
         gh, sha=commit_sha, repository=repository
     )
 
-    all_check_run_status: List[str] = [
+    all_check_run_status: list[str] = [
         check_run["status"] for check_run in check_runs["check_runs"]
     ]
-    all_check_run_conclusion: List[str] = [
+    all_check_run_conclusion: list[str] = [
         check_run["conclusion"] for check_run in check_runs["check_runs"]
     ]
 
@@ -64,7 +64,7 @@ async def check_ci_status_and_label(
         "in_progress" not in all_check_run_status
         and "queued" not in all_check_run_status
     ):  # wait until all check runs are completed
-        current_labels: List[str] = [label["name"] for label in pr_for_commit["labels"]]
+        current_labels: list[str] = [label["name"] for label in pr_for_commit["labels"]]
         if any(
             conclusion in [None, "failure", "timed_out"]
             for conclusion in all_check_run_conclusion

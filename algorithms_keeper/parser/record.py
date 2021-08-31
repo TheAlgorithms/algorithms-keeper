@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any, Collection, Dict, List, Set, Union
+from typing import Any, Collection, Union
 
 from fixit.common.report import BaseLintRuleReport
 from libcst import ParserSyntaxError
@@ -7,7 +7,7 @@ from libcst import ParserSyntaxError
 from algorithms_keeper.constants import Label
 
 # Mapping of rule to the appropriate label.
-RULE_TO_LABEL: Dict[str, str] = {
+RULE_TO_LABEL: dict[str, str] = {
     "RequireDescriptiveNameRule": Label.DESCRIPTIVE_NAME,
     "RequireDoctestRule": Label.REQUIRE_TEST,
     "RequireTypeHintRule": Label.TYPE_HINT,
@@ -47,16 +47,16 @@ class PullRequestReviewRecord:
 
     # Initialize the label attributes. These should be filled with the appropriate
     # labels **only** after all the files have been linted.
-    labels_to_add: List[str] = field(default_factory=list, init=False)
-    labels_to_remove: List[str] = field(default_factory=list, init=False)
+    labels_to_add: list[str] = field(default_factory=list, init=False)
+    labels_to_remove: list[str] = field(default_factory=list, init=False)
 
     # Store all the ``ReviewComment`` instances.
-    _comments: List[ReviewComment] = field(default_factory=list, init=False, repr=False)
+    _comments: list[ReviewComment] = field(default_factory=list, init=False, repr=False)
 
     # A set of rules which were violated during the runtime of the parser for the
     # current pull request. This is being represented as ``set`` internally to avoid
     # duplication.
-    _violated_rules: Set[str] = field(default_factory=set, init=False, repr=False)
+    _violated_rules: set[str] = field(default_factory=set, init=False, repr=False)
 
     def add_comments(
         self, reports: Collection[BaseLintRuleReport], filepath: str
@@ -107,14 +107,14 @@ class PullRequestReviewRecord:
             elif label in current_labels and label not in self.labels_to_remove:
                 self.labels_to_remove.append(label)
 
-    def collect_comments(self) -> List[Dict[str, Any]]:
+    def collect_comments(self) -> list[dict[str, Any]]:
         """Return all the review comments in the record instance.
 
         This is how GitHub wants the *comments* value while creating the review.
         """
         return [asdict(comment) for comment in self._comments]
 
-    def collect_review_contents(self) -> List[str]:
+    def collect_review_contents(self) -> list[str]:
         """Collect all the review comments as list of strings.
 
         If the comment body contains multiple comments from rules being violated

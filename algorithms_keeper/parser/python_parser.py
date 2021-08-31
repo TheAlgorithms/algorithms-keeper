@@ -1,7 +1,7 @@
 import importlib
 import inspect
 import logging
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Tuple
+from typing import Any, Iterable, Iterator, Mapping
 
 from fixit import CstLintRule, LintConfig
 from fixit.common.utils import LintRuleCollectionT
@@ -59,9 +59,9 @@ class PythonParser(BaseFilesParser):
     _pr_report: PullRequestReviewRecord
     _rules: LintRuleCollectionT
 
-    DOCS_EXTENSIONS: Tuple[str, ...] = (".md", ".rst")
+    DOCS_EXTENSIONS: tuple[str, ...] = (".md", ".rst")
 
-    ACCEPTED_EXTENSIONS: Tuple[str, ...] = (
+    ACCEPTED_EXTENSIONS: tuple[str, ...] = (
         # Configuration files
         ".ini",
         ".toml",
@@ -92,17 +92,17 @@ class PythonParser(BaseFilesParser):
             self._rules.discard(RequireDoctestRule)
 
     @property
-    def labels_to_add(self) -> List[str]:
+    def labels_to_add(self) -> list[str]:
         return self._pr_record.labels_to_add
 
     @property
-    def labels_to_remove(self) -> List[str]:
+    def labels_to_remove(self) -> list[str]:
         return self._pr_record.labels_to_remove
 
-    def collect_comments(self) -> List[Dict[str, Any]]:
+    def collect_comments(self) -> list[dict[str, Any]]:
         return self._pr_record.collect_comments()
 
-    def collect_review_contents(self) -> List[str]:
+    def collect_review_contents(self) -> list[str]:
         return self._pr_record.collect_review_contents()
 
     def files_to_check(self, ignore_modified: bool) -> Iterator[File]:

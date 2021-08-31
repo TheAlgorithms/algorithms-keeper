@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Mapping, MutableMapping, Optional
 
 from aiohttp import ClientResponse
 from cachetools import TTLCache
@@ -13,7 +13,7 @@ token_cache: MutableMapping[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)
 
 # From `gidgethub.sansio.decipher_response()`
 # From `gidgethub.abc._request()#113`
-STATUS_OK: Tuple[int, int, int, int] = (200, 201, 204, 304)
+STATUS_OK: tuple[int, int, int, int] = (200, 201, 204, 304)
 
 logger = logging.getLogger(__package__)
 
@@ -52,7 +52,7 @@ class GitHubAPI(BaseGitHubAPI):
 
     async def _request(
         self, method: str, url: str, headers: Mapping[str, str], body: bytes = b""
-    ) -> Tuple[int, Mapping[str, str], bytes]:
+    ) -> tuple[int, Mapping[str, str], bytes]:
         """Make the API request and log the request-response cycle along with storing
         the response headers.
 
