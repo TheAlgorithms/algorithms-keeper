@@ -13,6 +13,10 @@ __pycache__/
 local/
 .env
 
+# Environments
+env/
+venv/
+
 # Coverage
 .coverage
 coverage.xml
