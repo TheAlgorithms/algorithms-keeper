@@ -3,4 +3,4 @@ cachetools==4.2.2
 fixit==0.1.4
 gidgethub==5.0.1
 libcst==0.3.21
-sentry-sdk==1.4.0
+sentry-sdk==1.4.1
