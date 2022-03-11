@@ -1,0 +1,28 @@
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+ignore_missing_imports = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_subclassing_any = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = "tests.data.*"
+disallow_untyped_defs = false
+check_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+addopts = """\
+  --cov=algorithms_keeper
+  --cov-report=xml
+  --cov-report=term-missing
+"""
