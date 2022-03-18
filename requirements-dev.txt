@@ -1,5 +1,5 @@
 -r requirements.txt
-pytest==6.2.5
+pytest==7.1.1
 pytest-aiohttp==0.3.0
 pytest-asyncio==0.16.0
 pytest-cov==3.0.0
