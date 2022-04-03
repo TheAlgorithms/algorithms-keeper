@@ -1,10 +1,10 @@
 <div align="center">
 
 # algorithms-keeper
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/TheAlgorithms/algorithms-keeper/CI?label=CI&logo=github&style=flat-square)](https://github.com/TheAlgorithms/algorithms-keeper/actions)
-[![Codecov](https://img.shields.io/codecov/c/gh/TheAlgorithms/algorithms-keeper?label=codecov&logo=codecov&style=flat-square)](https://app.codecov.io/gh/TheAlgorithms/algorithms-keeper)
-[![code style: black](https://img.shields.io/static/v1?label=code%20style&message=black&color=black&style=flat-square)](https://github.com/psf/black)
-[![Checked with mypy](https://img.shields.io/static/v1?label=mypy&message=checked&style=flat-square&color=2a6db2&labelColor=505050)](http://mypy-lang.org/)
+[![CI](https://github.com/TheAlgorithms/algorithms-keeper/actions/workflows/main.yml/badge.svg)](https://github.com/TheAlgorithms/algorithms-keeper/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/TheAlgorithms/algorithms-keeper/branch/master/graph/badge.svg?token=QYAZ665UJL)](https://codecov.io/gh/TheAlgorithms/algorithms-keeper)
+[![code style: black](https://img.shields.io/static/v1?label=code%20style&message=black&color=black)](https://github.com/psf/black)
+[![Checked with mypy](https://img.shields.io/static/v1?label=mypy&message=checked&color=2a6db2&labelColor=505050)](http://mypy-lang.org/)
 
 </div>
 
