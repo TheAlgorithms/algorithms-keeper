@@ -1,3 +1,4 @@
+import pytest
 from aiohttp import web
 
 from algorithms_keeper import __main__ as main
@@ -5,6 +6,7 @@ from algorithms_keeper import __main__ as main
 from .utils import number
 
 
+@pytest.mark.asyncio
 async def test_ping(aiohttp_client):  # type: ignore
     app = web.Application()
     app.router.add_post("/", main.main)
@@ -15,6 +17,7 @@ async def test_ping(aiohttp_client):  # type: ignore
     assert response.status == 200
 
 
+@pytest.mark.asyncio
 async def test_failure(aiohttp_client):  # type: ignore
     # Even in the face of an exception, the server should not crash.
     app = web.Application()
@@ -25,6 +28,7 @@ async def test_failure(aiohttp_client):  # type: ignore
     assert response.status == 500
 
 
+@pytest.mark.asyncio
 async def test_success(aiohttp_client):  # type: ignore
     app = web.Application()
     app.router.add_post("/", main.main)
