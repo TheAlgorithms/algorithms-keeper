@@ -2,6 +2,7 @@ from typing import Any, AsyncGenerator, Dict
 
 import aiohttp
 import pytest
+import pytest_asyncio
 from gidgethub import apps, sansio
 from pytest import MonkeyPatch
 
@@ -14,7 +15,7 @@ async def mock_return(*args: Any, **kwargs: Any) -> Dict[str, str]:
     return {"token": token}
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def github_api() -> AsyncGenerator[GitHubAPI, None]:
     async with aiohttp.ClientSession() as session:
         gh = GitHubAPI(number, session, "algorithms-keeper")
