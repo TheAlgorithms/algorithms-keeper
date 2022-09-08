@@ -4,8 +4,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any, MutableMapping
 
-from aiohttp import ClientSession
-from aiohttp.web import Application, Request, Response, run_app
+from aiohttp import ClientSession, web
 from cachetools import LRUCache
 from gidgethub.sansio import Event
 from sentry_sdk import init as sentry_init
@@ -29,14 +28,17 @@ logging.basicConfig(
 
 logger = logging.getLogger(__package__)
 
+routes = web.RouteTableDef()
 
-async def main(request: Request) -> Response:
+
+@routes.post("/")
+async def main(request: web.Request) -> web.Response:
     try:
         body = await request.read()
         secret = os.environ.get("GITHUB_SECRET")
         event = Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
-            return Response(status=200)
+            return web.Response(status=200)
         logger.info(
             "event=%s delivery_id=%s",
             f"{event.event}:{event.data['action']}",
@@ -58,15 +60,15 @@ async def main(request: Request) -> Response:
                 f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}",
                 gh.rate_limit.reset_datetime - datetime.now(timezone.utc),
             )
-        return Response(status=200)
+        return web.Response(status=200)
     except Exception as err:
         logger.exception(err)
-        return Response(status=500, text=str(err))
+        return web.Response(status=500, text=str(err))
 
 
 if __name__ == "__main__":  # pragma: no cover
-    app = Application()
-    app.router.add_post("/", main)
+    app = web.Application()
+    app.add_routes(routes)
     # Heroku dynamically assigns the app a port, so we can't set the port to a fixed
     # number. Heroku adds the port to the env, so we need to pull it from there.
-    run_app(app, port=int(os.environ.get("PORT", 5000)))
+    web.run_app(app, port=int(os.environ.get("PORT", 5000)))
