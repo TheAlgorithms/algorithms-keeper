@@ -31,6 +31,11 @@ logger = logging.getLogger(__package__)
 routes = web.RouteTableDef()
 
 
+@routes.get("/")
+async def index(_: web.Request) -> web.Response:
+    return web.HTTPFound(location="https://github.com/TheAlgorithms/algorithms-keeper")
+
+
 @routes.post("/")
 async def main(request: web.Request) -> web.Response:
     try:
