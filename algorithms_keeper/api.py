@@ -18,9 +18,33 @@ STATUS_OK: tuple[int, int, int, int] = (200, 201, 204, 304)
 logger = logging.getLogger(__package__)
 
 
+def _get_private_key() -> str:
+    """Return the private key from either the environment or a file.
+
+    It is recommended to use the environment variable, but in case where the
+    it cannot be used, the private key can be stored in a file. This could be
+    the case when deploying to a platform which does not support multiline
+    environment variables (e.g. Render).
+    """
+    private_key = os.getenv("GITHUB_PRIVATE_KEY")
+    if private_key is None:
+        private_key_path = os.getenv("GITHUB_PRIVATE_KEY_PATH")
+        if private_key_path is None:
+            raise RuntimeError(
+                "Provide the private key using the GITHUB_PRIVATE_KEY environment "
+                + "variable or in a file using the GITHUB_PRIVATE_KEY_PATH "
+                + "environment variable. The path should either be absolute or "
+                + "relative to the repository root."
+            )
+        with open(private_key_path, "r") as f:
+            private_key = f.read()
+    return private_key
+
+
 class GitHubAPI(BaseGitHubAPI):
     def __init__(self, installation_id: int, *args: Any, **kwargs: Any) -> None:
         self._installation_id = installation_id
+        self._private_key = _get_private_key()
         super().__init__(*args, **kwargs)
 
     @property
@@ -45,7 +69,7 @@ class GitHubAPI(BaseGitHubAPI):
                 self,
                 installation_id=str(installation_id),
                 app_id=os.environ["GITHUB_APP_ID"],
-                private_key=os.environ["GITHUB_PRIVATE_KEY"],
+                private_key=self._private_key,
             )
             token_cache[installation_id] = data["token"]
         return token_cache[installation_id]
