@@ -36,6 +36,11 @@ async def index(_: web.Request) -> web.Response:
     return web.HTTPFound(location="https://github.com/TheAlgorithms/algorithms-keeper")
 
 
+@routes.get("/health")
+async def health(_: web.Request) -> web.Response:
+    return web.Response(status=200, text="OK")
+
+
 @routes.post("/")
 async def main(request: web.Request) -> web.Response:
     try:
