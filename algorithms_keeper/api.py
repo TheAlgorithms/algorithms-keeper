@@ -44,7 +44,6 @@ def _get_private_key() -> str:
 class GitHubAPI(BaseGitHubAPI):
     def __init__(self, installation_id: int, *args: Any, **kwargs: Any) -> None:
         self._installation_id = installation_id
-        self._private_key = _get_private_key()
         super().__init__(*args, **kwargs)
 
     @property
@@ -63,6 +62,8 @@ class GitHubAPI(BaseGitHubAPI):
         # We will store the token with key as installation ID so that the app can be
         # installed in multiple repositories (max installation determined by the
         # maxsize argument to the token_cache).
+        if not hasattr(self, "_private_key"):
+            self._private_key = _get_private_key()
         installation_id = self._installation_id
         if installation_id not in token_cache:
             data = await apps.get_installation_access_token(
