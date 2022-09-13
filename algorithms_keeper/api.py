@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping
 
 from aiohttp import ClientResponse
 from cachetools import TTLCache
@@ -47,13 +47,6 @@ class GitHubAPI(BaseGitHubAPI):
         super().__init__(*args, **kwargs)
 
     @property
-    def headers(self) -> Optional[Mapping[str, Any]]:
-        """Return the response headers after it is stored."""
-        if hasattr(self, "_headers"):
-            return self._headers
-        return None
-
-    @property
     async def access_token(self) -> str:
         """Return the installation access token if it is present in the ``token_cache``
         else create a new token and store it for later use."""
@@ -87,7 +80,6 @@ class GitHubAPI(BaseGitHubAPI):
             method, url, headers=headers, data=body
         ) as response:
             self.log(response, body)
-            self._headers = response.headers
             return response.status, response.headers, await response.read()
 
     @staticmethod

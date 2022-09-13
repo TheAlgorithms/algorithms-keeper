@@ -33,8 +33,6 @@ async def test_initialization() -> None:
     assert github_api._session == session
     # Abstract layer is initialized
     assert github_api.requester == "algorithms-keeper"
-    # Response headers should not be set yet.
-    assert github_api.headers is None
 
 
 @pytest.mark.asyncio
@@ -53,12 +51,9 @@ async def test_access_token(github_api: GitHubAPI, monkeypatch: MonkeyPatch) -> 
 
 @pytest.mark.asyncio
 async def test_headers_and_log(github_api: GitHubAPI) -> None:
-    assert github_api.headers is None
     request_headers = sansio.create_headers("algorithms-keeper")
     resp = await github_api._request(
         "GET", "https://api.github.com/rate_limit", request_headers
     )
     data, rate_limit, _ = sansio.decipher_response(*resp)
     assert "rate" in data
-    # Response headers should now be set.
-    assert github_api.headers is not None
