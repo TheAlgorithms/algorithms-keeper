@@ -2,6 +2,7 @@ import pytest
 from aiohttp import web
 
 from algorithms_keeper import __main__ as main
+from algorithms_keeper.constants import SOURCE_CODE_URL
 
 from .utils import number
 
@@ -39,3 +40,20 @@ async def test_success(client):  # type: ignore
     data = {"action": "created", "installation": {"id": number}}
     response = await client.post("/", headers=headers, json=data)
     assert response.status == 200
+
+
+@pytest.mark.asyncio
+async def test_redirect(client):  # type: ignore
+    response = await client.get("/", allow_redirects=False)
+    assert response.status == 302
+    assert response.headers["Location"] == SOURCE_CODE_URL
+    response = await client.get("/", allow_redirects=True)
+    assert response.status == 200
+    assert str(response.url) == SOURCE_CODE_URL
+
+
+@pytest.mark.asyncio
+async def test_health(client):  # type: ignore
+    response = await client.get("/health")
+    assert response.status == 200
+    assert await response.text() == "OK"

@@ -11,6 +11,7 @@ from sentry_sdk import init as sentry_init
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from algorithms_keeper.api import GitHubAPI
+from algorithms_keeper.constants import SOURCE_CODE_URL
 from algorithms_keeper.event import main_router
 
 cache: MutableMapping[Any, Any] = LRUCache(maxsize=500)
@@ -33,7 +34,7 @@ routes = web.RouteTableDef()
 
 @routes.get("/")
 async def index(_: web.Request) -> web.Response:
-    return web.HTTPFound(location="https://github.com/TheAlgorithms/algorithms-keeper")
+    return web.HTTPFound(location=SOURCE_CODE_URL)
 
 
 @routes.get("/health")
