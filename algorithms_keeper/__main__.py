@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, MutableMapping
 
 from aiohttp import ClientSession, web
@@ -11,7 +12,6 @@ from sentry_sdk import init as sentry_init
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from algorithms_keeper.api import GitHubAPI
-from algorithms_keeper.constants import SOURCE_CODE_URL
 from algorithms_keeper.event import main_router
 
 cache: MutableMapping[Any, Any] = LRUCache(maxsize=500)
@@ -31,10 +31,20 @@ logger = logging.getLogger(__package__)
 
 routes = web.RouteTableDef()
 
+STATIC_DIR = Path(__file__).parent / "static"
+
 
 @routes.get("/")
 async def index(_: web.Request) -> web.Response:
-    return web.HTTPFound(location=SOURCE_CODE_URL)
+    return web.Response(
+        body=STATIC_DIR.joinpath("index.html").read_text(),
+        content_type="text/html",
+    )
+
+
+@routes.get("/favicon.ico")
+async def favicon(_: web.Request) -> web.FileResponse:
+    return web.FileResponse(STATIC_DIR.joinpath("favicon.ico"))
 
 
 @routes.get("/health")

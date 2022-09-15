@@ -5,8 +5,6 @@ Constants related to a specific event are defined in their own module. So a
 constant related to pull request will be defined in the `pull_requests` module.
 """
 
-SOURCE_CODE_URL = "https://github.com/TheAlgorithms/algorithms-keeper"
-
 
 class Label:
     INVALID = "invalid"
