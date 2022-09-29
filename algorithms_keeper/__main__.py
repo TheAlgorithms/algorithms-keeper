@@ -67,9 +67,9 @@ async def main(request: web.Request) -> web.Response:
         )
         async with ClientSession() as session:
             gh = GitHubAPI(
-                event.data["installation"]["id"],
-                session,
-                "dhruvmanila/algorithms-keeper",
+                installation_id=event.data["installation"]["id"],
+                session=session,
+                requester="dhruvmanila/algorithms-keeper",
                 cache=cache,
             )
             # Give GitHub some time to reach internal consistency.
