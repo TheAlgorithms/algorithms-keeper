@@ -59,6 +59,7 @@ async def main(request: web.Request) -> web.Response:
         secret = os.environ.get("GITHUB_SECRET")
         event = Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
+            logger.debug("Received ping event")
             return web.Response(status=200)
         logger.info(
             "event=%s delivery_id=%s",
@@ -74,6 +75,7 @@ async def main(request: web.Request) -> web.Response:
             )
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
+            logger.debug("Callbacks: %r", main_router.fetch(event))
             await main_router.dispatch(event, gh)
         if gh.rate_limit is not None:  # pragma: no cover
             logger.info(
@@ -81,6 +83,7 @@ async def main(request: web.Request) -> web.Response:
                 f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}",
                 gh.rate_limit.reset_datetime - datetime.now(timezone.utc),
             )
+        logger.debug("status=200")
         return web.Response(status=200)
     except Exception as err:
         logger.exception(err)
