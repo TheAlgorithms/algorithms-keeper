@@ -24,7 +24,9 @@ logger = logging.getLogger(__package__)
 
 
 @commands_router.register("issue_comment", action="created")
-async def main(event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any) -> None:
+async def check_issue_comment_for_command(
+    event: Event, gh: GitHubAPI, *args: Any, **kwargs: Any
+) -> None:
     """Main function to parse the issue comment body and call the respective command
     function if it matches.
 
