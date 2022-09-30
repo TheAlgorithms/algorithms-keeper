@@ -21,6 +21,7 @@ async def test_ping(client):  # type: ignore
     data = {"zen": "testing is good"}
     response = await client.post("/", headers=headers, json=data)
     assert response.status == 200
+    assert await response.text() == "pong"
 
 
 @pytest.mark.asyncio

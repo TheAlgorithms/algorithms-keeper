@@ -59,21 +59,26 @@ async def main(request: web.Request) -> web.Response:
         secret = os.environ.get("GITHUB_SECRET")
         event = Event.from_http(request.headers, body, secret=secret)
         if event.event == "ping":
-            return web.Response(status=200)
+            logger.debug("Received ping event")
+            return web.Response(status=200, text="pong")
         logger.info(
             "event=%s delivery_id=%s",
             f"{event.event}:{event.data['action']}",
             event.delivery_id,
         )
+        logger.debug("payload: %s", event.data)
         async with ClientSession() as session:
             gh = GitHubAPI(
                 installation_id=event.data["installation"]["id"],
                 session=session,
-                requester="dhruvmanila/algorithms-keeper",
+                requester="TheAlgorithms/algorithms-keeper",
                 cache=cache,
             )
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
+            if logger.isEnabledFor(logging.DEBUG):
+                callbacks = [func.__name__ for func in main_router.fetch(event)]
+                logger.debug("callbacks: %s", callbacks)
             await main_router.dispatch(event, gh)
         if gh.rate_limit is not None:  # pragma: no cover
             logger.info(
