@@ -61,11 +61,8 @@ async def main(request: web.Request) -> web.Response:
         if event.event == "ping":
             logger.debug("Received ping event")
             return web.Response(status=200, text="pong")
-        logger.info(
-            "event=%s delivery_id=%s",
-            f"{event.event}:{event.data['action']}",
-            event.delivery_id,
-        )
+        event_info = f"{event.event}:{event.data['action']}"
+        logger.info("event=%s delivery_id=%s", event_info, event.delivery_id)
         async with ClientSession() as session:
             gh = GitHubAPI(
                 installation_id=event.data["installation"]["id"],
@@ -77,7 +74,7 @@ async def main(request: web.Request) -> web.Response:
             await asyncio.sleep(1)
             if logger.isEnabledFor(logging.DEBUG):
                 callbacks = [func.__name__ for func in main_router.fetch(event)]
-                logger.debug("callbacks: %s", callbacks)
+                logger.debug("event=%s callbacks=%s", event_info, callbacks)
             await main_router.dispatch(event, gh)
         if gh.rate_limit is not None:  # pragma: no cover
             logger.info(
