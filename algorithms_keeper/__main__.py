@@ -66,7 +66,6 @@ async def main(request: web.Request) -> web.Response:
             f"{event.event}:{event.data['action']}",
             event.delivery_id,
         )
-        logger.debug("payload: %s", event.data)
         async with ClientSession() as session:
             gh = GitHubAPI(
                 installation_id=event.data["installation"]["id"],
