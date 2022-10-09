@@ -116,7 +116,11 @@ async def close_invalid_or_additional_pr(
     """
     pull_request = event.data["pull_request"]
 
-    if pull_request["author_association"].lower() not in {"owner", "member"}:
+    if (
+        pull_request["author_association"].lower() not in {"owner", "member"}
+        # Don't check for invalid pull request made by a bot.
+        and pull_request["user"]["type"].lower() != "bot"
+    ):
         pr_body = pull_request["body"]
         pr_author = pull_request["user"]["login"]
         comment = None
@@ -204,6 +208,10 @@ async def check_pr_files(
             await utils.add_label_to_pr_or_issue(
                 gh, label=label, pr_or_issue=pull_request
             )
+
+    # Don't perform file checks if the pull request is made by a bot.
+    if pull_request["user"]["type"].lower() == "bot":
+        return None
 
     # Default behavior is to ignore modified files but that can be changed.
     # This will come only from the commands module through the command:

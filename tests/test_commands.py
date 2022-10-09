@@ -162,7 +162,7 @@ def test_command_regex_match(text: str, group: str) -> None:
                     pr_url: {
                         "url": pr_url,
                         "html_url": html_pr_url,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "labels": [],
                         "draft": False,
                     },
@@ -200,7 +200,7 @@ def test_command_regex_match(text: str, group: str) -> None:
                         "html_url": html_pr_url,
                         "issue_url": issue_url,
                         "head": {"sha": sha},
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "comments_url": comments_url,
                         "labels": [],
                         "draft": False,

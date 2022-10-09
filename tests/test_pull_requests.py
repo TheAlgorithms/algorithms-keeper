@@ -81,7 +81,7 @@ def patch_module(
                     "pull_request": {
                         "url": pr_url,
                         "body": CHECKBOX_TICKED_UPPER,  # Case doesn't matter
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "labels": [],
                         "author_association": "NONE",
                         "comments_url": comments_url,
@@ -130,7 +130,7 @@ def patch_module(
                         "url": pr_url,
                         "body": CHECKBOX_TICKED_UPPER,  # Case doesn't matter
                         "labels": [],
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "author_association": "NONE",
                         "comments_url": comments_url,
                         "issue_url": issue_url,
@@ -186,7 +186,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "body": "",
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "labels": [],
                         "author_association": "NONE",
                         "comments_url": comments_url,
@@ -225,7 +225,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "body": CHECKBOX_NOT_TICKED,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "labels": [],
                         "author_association": "NONE",
                         "comments_url": comments_url,
@@ -264,7 +264,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "body": "",
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "labels": [],
                         "author_association": "NONE",
                         "comments_url": comments_url,
@@ -303,7 +303,7 @@ async def test_max_pr_by_user(
                         "body": CHECKBOX_TICKED,
                         "head": {"sha": sha},
                         "labels": [],
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "author_association": "NONE",
                         "comments_url": comments_url,
                         "issue_url": issue_url,
@@ -350,7 +350,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "body": CHECKBOX_TICKED,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "labels": [],
                         "author_association": "NONE",
                         "comments_url": comments_url,
@@ -385,7 +385,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "body": CHECKBOX_TICKED,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "labels": [],
                         "author_association": "NONE",
                         "comments_url": comments_url,
@@ -414,7 +414,7 @@ async def test_max_pr_by_user(
                         "url": pr_url,
                         "body": "",  # body can be empty for member
                         "labels": [],
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "author_association": "MEMBER",
                         "comments_url": comments_url,
                         "issue_url": issue_url,
@@ -435,6 +435,50 @@ async def test_max_pr_by_user(
                 post_data=[{"labels": [Label.REVIEW]}],
             ),
         ),
+        # Pull request opened by a bot, so don't perform any validation checks nor any
+        # file checks. This will be verified by keeping the pull request body empty.
+        (
+            Event(
+                data={
+                    "action": "opened",
+                    "pull_request": {
+                        "url": pr_url,
+                        "body": "",
+                        "labels": [],
+                        "user": {"login": "bot", "type": "Bot"},
+                        "author_association": "NONE",
+                        "comments_url": comments_url,
+                        "issue_url": issue_url,
+                        "html_url": html_pr_url,
+                        "requested_reviewers": [],
+                        "draft": False,
+                        "mergeable": True,
+                    },
+                    "repository": {"full_name": repository},
+                },
+                event="pull_request",
+                delivery_id="pr_opened_by_bot",
+            ),
+            MockGitHubAPI(
+                getiter={
+                    files_url: [
+                        {
+                            "filename": "annotation.py",
+                            "contents_url": "",
+                            "status": "added",
+                        },
+                    ]
+                }
+            ),
+            # No file checks should be performed by the bot. This is validated by
+            # passing an invalid file in the mock data and no comment/label added
+            # to the pull request.
+            ExpectedData(
+                getiter_url=[files_url],
+                post_url=[labels_url],
+                post_data=[{"labels": [Label.REVIEW]}],
+            ),
+        ),
         # Pull request synchronize event to test whether the add labels function gets
         # called if there are any labels to be added, post review comments gets called
         # if there are comments to be posted and remove labels function gets called if
@@ -449,7 +493,7 @@ async def test_max_pr_by_user(
                         # This got added when the pull request was opened.
                         "labels": [{"name": Label.REVIEW}, {"name": Label.TYPE_HINT}],
                         "head": {"sha": sha},
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "author_association": "NONE",
                         "comments_url": comments_url,
                         "issue_url": issue_url,
@@ -496,7 +540,7 @@ async def test_max_pr_by_user(
                         # The label was added when the PR was opened.
                         "labels": [{"name": Label.REVIEW}],
                         "head": {"sha": sha},
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "author_association": "NONE",
                         "comments_url": comments_url,
                         "issue_url": issue_url,
@@ -538,7 +582,7 @@ async def test_max_pr_by_user(
                         "body": CHECKBOX_TICKED,
                         "head": {"sha": sha},
                         "labels": [],
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "author_association": "NONE",
                         "comments_url": comments_url,
                         "issue_url": issue_url,
@@ -741,7 +785,7 @@ async def test_max_pr_by_user(
                 data={
                     "action": "synchronize",
                     "pull_request": {
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "issue_url": issue_url,
                         "labels": [{"name": Label.CHANGE}],
                         "draft": True,
@@ -762,7 +806,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "html_url": html_pr_url,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "issue_url": issue_url,
                         "labels": [{"name": Label.CHANGE}],
                         "draft": False,
@@ -823,7 +867,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "html_url": html_pr_url,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "issue_url": issue_url,
                         "labels": [{"name": Label.REVIEW}],
                         "draft": False,
@@ -857,7 +901,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "html_url": html_pr_url,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "issue_url": issue_url,
                         "labels": [{"name": Label.REVIEW}],
                         "draft": False,
@@ -879,7 +923,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "html_url": html_pr_url,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "issue_url": issue_url,
                         "labels": [
                             {"name": Label.REVIEW},
@@ -907,7 +951,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "html_url": html_pr_url,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "issue_url": issue_url,
                         "labels": [{"name": Label.REVIEW}],
                         "draft": False,
@@ -933,7 +977,7 @@ async def test_max_pr_by_user(
                     "pull_request": {
                         "url": pr_url,
                         "html_url": html_pr_url,
-                        "user": {"login": user},
+                        "user": {"login": user, "type": "User"},
                         "issue_url": issue_url,
                         "labels": [
                             {"name": Label.REVIEW},
