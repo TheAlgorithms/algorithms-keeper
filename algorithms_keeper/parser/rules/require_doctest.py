@@ -151,6 +151,14 @@ class RequireDoctestRule(CstLintRule):
                     pass
             """
         ),
+        # No doctest required in the ``web_programming`` directory.
+        Valid(
+            """
+            def foo():
+                pass
+            """,
+            filename="web_programming/foo.py",
+        ),
     ]
 
     INVALID = [
@@ -203,6 +211,9 @@ class RequireDoctestRule(CstLintRule):
         super().__init__(context)
         self._skip_doctest: bool = False
         self._temporary: bool = False
+
+    def should_skip_file(self) -> bool:
+        return self.context.file_path.match("web_programming/*")
 
     def visit_Module(self, node: cst.Module) -> None:
         self._skip_doctest = self._has_testnode(node) or self._has_doctest(node)
