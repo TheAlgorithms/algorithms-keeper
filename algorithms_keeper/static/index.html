@@ -24,7 +24,7 @@
         width: min(calc(100vw - 20px), 902px);
         box-sizing: border-box;
         border-radius: 6px;
-        padding: 0px 15px;
+        padding: 0px 15px 10px;
         word-wrap: break-word;
       }
       main,
@@ -66,6 +66,13 @@
         >
         for more information.
       </p>
+      <small>
+        Commit
+        <a
+          href="https://github.com/TheAlgorithms/algorithms-keeper/commit/{{ commit }}"
+          ><code>{{ short_commit }}</code></a
+        >
+      </small>
     </main>
   </body>
 </html>

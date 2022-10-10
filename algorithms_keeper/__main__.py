@@ -36,10 +36,14 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 @routes.get("/")
 async def index(_: web.Request) -> web.Response:
-    return web.Response(
-        body=STATIC_DIR.joinpath("index.html").read_text(),
-        content_type="text/html",
+    commit = os.getenv("RENDER_GIT_COMMIT", "???")
+    content = (
+        STATIC_DIR.joinpath("index.html")
+        .read_text()
+        .replace("{{ commit }}", commit)
+        .replace("{{ short_commit }}", commit[:7])
     )
+    return web.Response(body=content, content_type="text/html")
 
 
 @routes.get("/favicon.ico")
