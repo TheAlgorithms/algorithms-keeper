@@ -183,6 +183,13 @@ async def check_pr_files(
     pull request is made ready for review, a new commit has been pushed to the
     pull request and when the pull request is reopened.
     """
+    # When a bot pushes a commit to a pull request, don't perform any file checks.
+    if (
+        event.data["action"] == "synchronize"
+        and event.data["sender"]["type"].lower() == "bot"
+    ):
+        return None
+
     pull_request = event.data["pull_request"]
 
     if pull_request["draft"]:
