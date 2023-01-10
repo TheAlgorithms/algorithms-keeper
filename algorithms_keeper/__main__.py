@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, MutableMapping
@@ -13,6 +14,11 @@ from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.event import main_router
+
+# TODO(dhruvmanila): Remove this block when it's the default.
+# https://github.com/Instagram/LibCST/issues/285#issuecomment-1011427731
+if sys.version_info >= (3, 10):
+    os.environ["LIBCST_PARSER_TYPE"] = "native"
 
 cache: MutableMapping[Any, Any] = LRUCache(maxsize=500)
 
