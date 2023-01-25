@@ -1,5 +1,5 @@
 aiohttp==3.8.3
-cachetools==5.2.1
+cachetools==5.3.0
 fixit==0.1.4
 gidgethub==5.2.1
 libcst==0.4.9
