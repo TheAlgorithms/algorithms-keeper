@@ -6,7 +6,6 @@ from fixit import ValidTestCase as Valid
 
 
 class UseFstringRule(CstLintRule):
-
     MESSAGE: str = (
         "As mentioned in the [Contributing Guidelines]"
         + "(https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md), "

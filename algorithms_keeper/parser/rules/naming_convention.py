@@ -42,7 +42,6 @@ class NamingConvention(Enum):
 
 
 class NamingConventionRule(CstLintRule):
-
     METADATA_DEPENDENCIES = (QualifiedNameProvider,)  # type: ignore
 
     VALID = [

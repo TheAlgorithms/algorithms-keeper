@@ -15,7 +15,6 @@ IGNORE_PARAM: set[str] = {"self", "cls"}
 
 
 class RequireTypeHintRule(CstLintRule):
-
     VALID = [
         Valid(
             """

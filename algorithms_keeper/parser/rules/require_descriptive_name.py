@@ -9,7 +9,6 @@ MESSAGE: str = "Please provide descriptive name for the {nodetype}: `{nodename}`
 
 
 class RequireDescriptiveNameRule(CstLintRule):
-
     VALID = [
         Valid(
             """

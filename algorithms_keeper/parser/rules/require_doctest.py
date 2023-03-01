@@ -15,7 +15,6 @@ INIT: str = "__init__"
 
 
 class RequireDoctestRule(CstLintRule):
-
     VALID = [
         # Module-level docstring contains doctest.
         Valid(
