@@ -76,7 +76,7 @@ select = [
   # "TRY",  s# tryceratops
 ]
 ignore = ["N802", "PGH003", "RUF012", "SLF001"]
-line-length = 125
+line-length = 88
 target-version = "py38"
 
 [tool.ruff.mccabe]

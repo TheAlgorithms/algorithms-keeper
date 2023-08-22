@@ -84,7 +84,10 @@ class MockGitHubAPI:
         if getitem_return is not None:
             return getitem_return[url]
         else:
-            msg = "Expected to be supplied with the 'getitem' argument when instantiating the object but got 'None' instead."
+            msg = (
+                "Expected to be supplied with the 'getitem' argument when "
+                "instantiating the object but got 'None' instead."
+            )
             raise AssertionError(msg)
 
     async def getiter(self, url: str, **kwargs: Any) -> AsyncGenerator[Any, None]:
@@ -93,7 +96,10 @@ class MockGitHubAPI:
         if getiter_return is not None:
             data = getiter_return[url]
         else:
-            msg = "Expected to be supplied with the 'getiter' argument when instantiating the object but got 'None' instead."
+            msg = (
+                "Expected to be supplied with the 'getiter' argument when "
+                "instantiating the object but got 'None' instead."
+            )
             raise AssertionError(msg)
         if isinstance(data, dict) and "items" in data:
             data = data["items"]
