@@ -168,11 +168,10 @@ class NamingConventionRule(CstLintRule):
     def visit_Element(self, node: cst.Element) -> None:
         # We only care about elements in *List* or *Tuple* specifically coming from
         # inside the multiple assignments.
-        if self._assigntarget_counter > 0 and m.matches(
-            node, m.Element(value=m.Name())
-        ):
-            nodename = cst.ensure_type(node.value, cst.Name).value
-            self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
+        if self._assigntarget_counter > 0:  # noqa: SIM102
+            if m.matches(node, m.Element(value=m.Name())):
+                nodename = cst.ensure_type(node.value, cst.Name).value
+                self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)
 
     def visit_For(self, node: cst.For) -> None:
         if m.matches(node, m.For(target=m.Name())):
