@@ -56,7 +56,7 @@ def _gen_all_test_cases(rules: LintRuleCollectionT) -> List[GenTestCaseType]:
     for rule in rules:
         if not issubclass(rule, CstLintRule):
             continue
-        for test_type in {"VALID", "INVALID"}:
+        for test_type in ("VALID", "INVALID"):
             if cases := getattr(rule, test_type, None):
                 for index, test_case in enumerate(cases):
                     all_cases.append((rule, test_case, f"{test_type}_{index}"))
@@ -102,12 +102,11 @@ def test_rules(
     else:
         assert len(reports) > 0, (
             'Expected a report for this "invalid" test case but `self.report` was '
-            + "not called:\n"
-            + test_case.code,
+            "not called:\n" + test_case.code,
         )
         assert len(reports) <= 1, (
             'Expected one report from this "invalid" test case. Found multiple:\n'
-            + "\n".join(str(e) for e in reports),
+            "\n".join(str(e) for e in reports),
         )
 
         report = reports[0]  # type: ignore
@@ -129,7 +128,7 @@ def test_rules(
         if test_case.expected_message is not None:
             assert test_case.expected_message == report.message, (
                 f"Expected message:\n    {test_case.expected_message}\n"
-                + f"But got:\n    {report.message}"
+                f"But got:\n    {report.message}"
             )
 
         patch = report.patch
@@ -138,13 +137,13 @@ def test_rules(
         if patch is None:
             assert expected_replacement is None, (
                 "The rule for this test case has no auto-fix, but expected source was "
-                + "specified."
+                "specified."
             )
             return
 
         assert expected_replacement is not None, (
             "The rule for this test case has an auto-fix, but no expected source was "
-            + "specified."
+            "specified."
         )
 
         expected_replacement = _dedent(expected_replacement)
@@ -152,6 +151,6 @@ def test_rules(
 
         assert patched_code == expected_replacement, (
             "Auto-fix did not produce expected result.\n"
-            + f"Expected:\n{expected_replacement}\n"
-            + f"But found:\n{patched_code}"
+            f"Expected:\n{expected_replacement}\n"
+            f"But found:\n{patched_code}"
         )

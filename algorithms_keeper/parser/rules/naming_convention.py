@@ -10,14 +10,14 @@ from libcst.metadata import QualifiedName, QualifiedNameProvider
 
 INVALID_CAMEL_CASE_NAME_COMMENT: str = (
     "Class names should follow the [`CamelCase`]"
-    + "(https://en.wikipedia.org/wiki/Camel_case) naming convention. "
-    + "Please update the following name accordingly: `{nodename}`"
+    "(https://en.wikipedia.org/wiki/Camel_case) naming convention. "
+    "Please update the following name accordingly: `{nodename}`"
 )
 
 INVALID_SNAKE_CASE_NAME_COMMENT: str = (
     "Variable and function names should follow the [`snake_case`]"
-    + "(https://en.wikipedia.org/wiki/Snake_case) naming convention. "
-    + "Please update the following name accordingly: `{nodename}`"
+    "(https://en.wikipedia.org/wiki/Snake_case) naming convention. "
+    "Please update the following name accordingly: `{nodename}`"
 )
 
 
@@ -35,9 +35,8 @@ class NamingConvention(Enum):
             name = name.strip("_")
             if name[0].islower() or "_" in name:
                 return False
-        else:
-            if name.lower() != name and name.upper() != name:
-                return False
+        elif name.lower() != name and name.upper() != name:
+            return False
         return True
 
 
@@ -159,7 +158,7 @@ class NamingConventionRule(CstLintRule):
     def visit_Attribute(self, node: cst.Attribute) -> None:
         # The attribute node can come through other context as well but we only care
         # about the ones coming from assignments.
-        if self._assigntarget_counter > 0:
+        if self._assigntarget_counter > 0:  # noqa: SIM102
             # We only care about assignment attribute to *self*.
             if m.matches(node, m.Attribute(value=m.Name(value="self"))):
                 self._validate_nodename(
@@ -169,7 +168,7 @@ class NamingConventionRule(CstLintRule):
     def visit_Element(self, node: cst.Element) -> None:
         # We only care about elements in *List* or *Tuple* specifically coming from
         # inside the multiple assignments.
-        if self._assigntarget_counter > 0:
+        if self._assigntarget_counter > 0:  # noqa: SIM102
             if m.matches(node, m.Element(value=m.Name())):
                 nodename = cst.ensure_type(node.value, cst.Name).value
                 self._validate_nodename(node, nodename, NamingConvention.SNAKE_CASE)

@@ -53,7 +53,7 @@ class BaseFilesParser:
             filepath = file.path
             if not filepath.suffix:
                 if ".github" not in filepath.parts:
-                    if filepath.parent.name:
+                    if filepath.parent.name:  # noqa: SIM114
                         invalid_filepath.append(file.name)
                     # Dotfiles are not considered as invalid if they are present in the
                     # root of the repository

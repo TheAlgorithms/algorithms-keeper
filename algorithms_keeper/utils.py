@@ -142,7 +142,7 @@ async def get_user_open_pr_numbers(
     )
     pr_numbers = []
     async for pull in gh.getiter(search_url, oauth_token=await gh.access_token):
-        pr_numbers.append(pull["number"])
+        pr_numbers.append(pull["number"])  # noqa: PERF401
     return pr_numbers
 
 
@@ -211,7 +211,7 @@ async def get_pr_files(gh: GitHubAPI, *, pull_request: Mapping[str, Any]) -> lis
     async for data in gh.getiter(
         pull_request["url"] + "/files", oauth_token=await gh.access_token
     ):
-        files.append(
+        files.append(  # noqa: PERF401
             File(
                 data["filename"],
                 Path(data["filename"]),

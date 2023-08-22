@@ -84,10 +84,11 @@ class MockGitHubAPI:
         if getitem_return is not None:
             return getitem_return[url]
         else:
-            raise AssertionError(
+            msg = (
                 "Expected to be supplied with the 'getitem' argument when "
                 "instantiating the object but got 'None' instead."
             )
+            raise AssertionError(msg)
 
     async def getiter(self, url: str, **kwargs: Any) -> AsyncGenerator[Any, None]:
         self.getiter_url.append(url)
@@ -95,10 +96,11 @@ class MockGitHubAPI:
         if getiter_return is not None:
             data = getiter_return[url]
         else:
-            raise AssertionError(
+            msg = (
                 "Expected to be supplied with the 'getiter' argument when "
                 "instantiating the object but got 'None' instead."
             )
+            raise AssertionError(msg)
         if isinstance(data, dict) and "items" in data:
             data = data["items"]
         for item in data:
@@ -113,7 +115,7 @@ class MockGitHubAPI:
             data.pop("comments")
         elif url == comments_url:
             # Comments can contain arbitrary data, so we will replace it with the
-            # dummy commen and compare that.
+            # dummy comment and compare that.
             data["body"] = comment
         self.post_data.append(data)
         # XXX Only used for installation. Is it really necessary?
@@ -144,29 +146,29 @@ class MockGitHubAPI:
             return NotImplemented
         for f in fields(expected):
             field_name = f.name
-            # Let the ``AttributeError`` propogate, if any.
+            # Let the ``AttributeError`` propagate, if any.
             actual_value = getattr(self, field_name)
             expected_value = getattr(expected, field_name)
             assert len(actual_value) == len(expected_value), (
                 f"Expected the length of '{self.__class__.__name__}.{field_name}' be "
-                + f"equal to the length of '{expected.__class__.__name__}.{field_name}'"
-                + f"\n\nActual value: {actual_value}"
-                + f"\n\nExpected value: {expected_value}"
+                f"equal to the length of '{expected.__class__.__name__}.{field_name}'"
+                f"\n\nActual value: {actual_value}"
+                f"\n\nExpected value: {expected_value}"
             )
             for element in expected_value:
                 assert element in actual_value, (
                     "Expected the element of "
-                    + f"'{expected.__class__.__name__}.{field_name}' be a member of "
-                    + f"'{self.__class__.__name__}.{field_name}'\n\nElement: {element}"
-                    + f"\n\nActual value: {actual_value}"
-                    + f"\n\nExpected value: {expected_value}"
+                    f"'{expected.__class__.__name__}.{field_name}' be a member of "
+                    f"'{self.__class__.__name__}.{field_name}'\n\nElement: {element}"
+                    f"\n\nActual value: {actual_value}"
+                    f"\n\nExpected value: {expected_value}"
                 )
         return True
 
 
 # ---------------------- Common data used throughout the tests ----------------------
 # Meta information
-token = "12345"
+token = "12345"  # noqa: S105
 number = 1
 repository = "user/testing"
 sha = "a06212024d8f1c339c55c5ea4568ech155368c21"
