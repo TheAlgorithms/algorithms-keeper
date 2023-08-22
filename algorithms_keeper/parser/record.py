@@ -83,12 +83,12 @@ class PullRequestReviewRecord:
         # It seems that ``ParserSyntaxError`` is not a subclass of ``SyntaxError``,
         # the same information is stored under a different attribute. There is no
         # filename information in ``ParserSyntaxError``, thus the parameter `filepath`.
-        if isinstance(exc, SyntaxError):  # pragma: no cover
+        if isinstance(exc, SyntaxError):  # noqa: SIM108, pragma: no cover
             lineno = exc.lineno or 1
         else:
             lineno = exc.raw_line
         body = (
-            f"An error occured while parsing the file: `{filepath}`\n"
+            f"An error occurred while parsing the file: `{filepath}`\n"
             f"```python\n{message}\n```"
         )
         self._comments.append(ReviewComment(body, filepath, lineno))

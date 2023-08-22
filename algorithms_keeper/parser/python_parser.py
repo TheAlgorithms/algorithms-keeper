@@ -74,7 +74,8 @@ class PythonParser(BaseFilesParser):
         ".txt",
         # Good old Python file
         ".py",
-    ) + DOCS_EXTENSIONS
+        *DOCS_EXTENSIONS,
+    )
 
     def __init__(
         self,

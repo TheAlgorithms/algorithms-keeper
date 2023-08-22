@@ -3,7 +3,6 @@ from urllib.parse import quote
 
 import pytest
 from gidgethub.sansio import Event
-from pytest import MonkeyPatch
 
 from algorithms_keeper import utils
 from algorithms_keeper.constants import Label
@@ -47,8 +46,8 @@ MAX_PR_TEST_ITEMS = [{"number": i} for i in range(1, MAX_PR_TEST_NUMBER + 2)]
 
 @pytest.fixture(scope="module", autouse=True)
 def patch_module(
-    monkeypatch: MonkeyPatch = MonkeyPatch(),
-) -> Generator[MonkeyPatch, None, None]:
+    monkeypatch: pytest.MonkeyPatch = pytest.MonkeyPatch(),
+) -> Generator[pytest.MonkeyPatch, None, None]:
     async def mock_get_file_content(*args: Any, **kwargs: Any) -> bytes:
         filename = kwargs["file"].name
         if filename in {
@@ -67,7 +66,7 @@ def patch_module(
     monkeypatch.undo()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "event, gh, expected",
     # Pull request opened by the user, the bot found that the user has number of
@@ -157,7 +156,10 @@ def patch_module(
     ids=parametrize_id,
 )
 async def test_max_pr_by_user(
-    monkeypatch: MonkeyPatch, event: Event, gh: MockGitHubAPI, expected: ExpectedData
+    monkeypatch: pytest.MonkeyPatch,
+    event: Event,
+    gh: MockGitHubAPI,
+    expected: ExpectedData,
 ) -> None:
     # There are only two possible cases for the ``MAX_PR_BY_USER`` constant:
     # - The value is some arbitrary positive number greater than 0.
@@ -174,7 +176,7 @@ async def test_max_pr_by_user(
     assert gh == expected
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "event, gh, expected",
     (

@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import List
 
 import pytest
-from pytest import MonkeyPatch
 
 from algorithms_keeper.constants import Label
 from algorithms_keeper.parser import PythonParser, rules
@@ -20,7 +19,7 @@ PR = {"user": {"login": user}, "labels": [], "html_url": "", "url": ""}
 
 # Don't mix this up with `utils.get_file_content`
 def get_source(filename: str) -> bytes:
-    with open(DATA_DIRPATH / filename) as file:
+    with Path.open(DATA_DIRPATH / filename) as file:
         file_content = file.read()
     return file_content.encode("utf-8")
 
@@ -28,7 +27,7 @@ def get_source(filename: str) -> bytes:
 def get_parser(filenames: str, status: str = "added") -> PythonParser:
     files = []
     for name in filenames.split(","):
-        name = name.strip()
+        name = name.strip()  # noqa: PLW2901
         files.append(File(name, Path(name), "", status))
     return PythonParser(files, pull_request=PR)
 
@@ -36,7 +35,7 @@ def get_parser(filenames: str, status: str = "added") -> PythonParser:
 @pytest.mark.parametrize(
     "parser, expected",
     (
-        # Non-python files having preffix `test_` should not be considered.
+        # Non-python files having prefix `test_` should not be considered.
         (get_parser("test_data.txt, sol1.py"), TOTAL_RULES_COUNT),
         (get_parser("tests/test_file.py, data/no_error.py"), TOTAL_RULES_COUNT - 1),
         (get_parser("data/no_error.py, data/doctest.py"), TOTAL_RULES_COUNT),
@@ -187,7 +186,7 @@ def test_same_lineno_multiple_source() -> None:
     ),
 )
 def test_combinations(
-    monkeypatch: MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch,
     filename: str,
     expected: int,
     labels: List[str],

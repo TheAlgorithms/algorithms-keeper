@@ -20,7 +20,7 @@ FILLED_GREETING_COMMENT = GREETING_COMMENT.format(login=user)
 
 # Reminder: ``Event.delivery_id`` is used as a short description for the respective
 # test case and as a way to id the specific test case in the parametrized group.
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "event, gh, expected",
     (

@@ -30,13 +30,14 @@ def _get_private_key() -> str:
     if private_key is None:
         private_key_path = os.getenv("GITHUB_PRIVATE_KEY_PATH")
         if private_key_path is None:
-            raise RuntimeError(
+            msg = (
                 "Provide the private key using the GITHUB_PRIVATE_KEY environment "
-                + "variable or in a file using the GITHUB_PRIVATE_KEY_PATH "
-                + "environment variable. The path should either be absolute or "
-                + "relative to the repository root."
+                "variable or in a file using the GITHUB_PRIVATE_KEY_PATH environment "
+                "variable. The path should either be absolute or relative to the "
+                "repository root."
             )
-        with open(private_key_path, "r") as f:
+            raise RuntimeError(msg)
+        with open(private_key_path) as f:  # noqa: PTH123
             private_key = f.read()
     return private_key
 
@@ -93,10 +94,11 @@ class GitHubAPI(BaseGitHubAPI):
         if response.status in STATUS_OK:
             loggerlevel = logger.info
             # Comments and reviews are too long to be logged for INFO level
-            if response.url.name in ("comments", "reviews"):
-                data = response.url.name.upper()
-            else:
-                data = body.decode(UTF_8_CHARSET)
+            data = (
+                response.url.name.upper()
+                if response.url.name in ("comments", "reviews")
+                else body.decode(UTF_8_CHARSET)
+            )
         else:
             loggerlevel = logger.error
             data = body.decode(UTF_8_CHARSET)

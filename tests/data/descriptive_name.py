@@ -66,5 +66,3 @@ class ClassTest:
 
 class C:
     """A class which requires descriptive names"""
-
-    pass
