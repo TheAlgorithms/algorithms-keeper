@@ -68,6 +68,7 @@ class PythonParser(BaseFilesParser):
         ".yaml",
         ".yml",
         ".cfg",
+        ".disabled",
         # Data files
         ".csv",
         ".json",
