@@ -151,7 +151,11 @@ def test_command_regex_match(text: str, group: str) -> None:
                         "author_association": "MEMBER",
                         "body": "@algorithms-keeper review",
                     },
-                    "issue": {"pull_request": {"url": pr_url}},
+                    "issue": {
+                        "pull_request": {
+                            "url": pr_url,
+                        }
+                    },
                 },
                 event="issue_comment",
                 delivery_id="review_command",
@@ -162,6 +166,7 @@ def test_command_regex_match(text: str, group: str) -> None:
                         "url": pr_url,
                         "html_url": html_pr_url,
                         "user": {"login": user, "type": "User"},
+                        "author_association": "MEMBER",
                         "labels": [],
                         "draft": False,
                     },
@@ -187,7 +192,11 @@ def test_command_regex_match(text: str, group: str) -> None:
                         "author_association": "MEMBER",
                         "body": "@algorithms-keeper review-all",
                     },
-                    "issue": {"pull_request": {"url": pr_url}},
+                    "issue": {
+                        "pull_request": {
+                            "url": pr_url,
+                        }
+                    },
                 },
                 event="issue_comment",
                 delivery_id="review_all_command",
@@ -200,6 +209,7 @@ def test_command_regex_match(text: str, group: str) -> None:
                         "issue_url": issue_url,
                         "head": {"sha": sha},
                         "user": {"login": user, "type": "User"},
+                        "author_association": "MEMBER",
                         "comments_url": comments_url,
                         "labels": [],
                         "draft": False,

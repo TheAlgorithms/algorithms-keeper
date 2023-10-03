@@ -201,7 +201,9 @@ async def check_pr_files(
 
     # No need to perform these checks every time a commit is pushed.
     if event.data["action"] != "synchronize":
-        if invalid_files := parser.validate_extension():
+        if pull_request["author_association"].lower() not in {"owner", "member"} and (
+            invalid_files := parser.validate_extension()
+        ):
             await utils.close_pr_or_issue(
                 gh,
                 comment=INVALID_EXTENSION_COMMENT.format(
