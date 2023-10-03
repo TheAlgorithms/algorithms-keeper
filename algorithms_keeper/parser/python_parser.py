@@ -68,6 +68,8 @@ class PythonParser(BaseFilesParser):
         ".yaml",
         ".yml",
         ".cfg",
+        ".disabled",
+        ".devcontainer/Dockerfile",
         # Data files
         ".csv",
         ".json",
