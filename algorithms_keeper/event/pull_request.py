@@ -40,7 +40,7 @@ from algorithms_keeper.constants import (
 from algorithms_keeper.parser import PythonParser
 
 # To disable this check, set the constant to 0.
-MAX_PR_PER_USER = 3
+MAX_PR_PER_USER = 0
 STAGE_PREFIX = "awaiting"
 MAX_RETRIES = 5
 
