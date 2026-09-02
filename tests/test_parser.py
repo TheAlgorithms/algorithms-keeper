@@ -58,6 +58,9 @@ def test_contains_testfile(parser: PythonParser, expected: int) -> None:
         ),
         # Lock files are committed for reproducible CI, so they are valid.
         (get_parser("uv.lock, sol1.py"), ""),
+        # ``Dockerfile`` is an accepted extension-less filename.
+        (get_parser("Dockerfile, sol1.py"), ""),
+        (get_parser(".devcontainer/Dockerfile"), ""),
     ),
 )
 def test_validate_extension(parser: PythonParser, expected: str) -> None:

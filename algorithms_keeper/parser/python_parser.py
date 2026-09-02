@@ -80,6 +80,9 @@ class PythonParser(BaseFilesParser):
         *DOCS_EXTENSIONS,
     )
 
+    # Extension-less files whose exact name is accepted (container/build tooling).
+    ACCEPTED_FILENAMES: tuple[str, ...] = ("Dockerfile",)
+
     def __init__(
         self,
         pr_files: Iterable[File],
