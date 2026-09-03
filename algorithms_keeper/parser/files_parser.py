@@ -23,6 +23,9 @@ class BaseFilesParser:
     DOCS_EXTENSIONS: Collection[str] = ()
     ACCEPTED_EXTENSIONS: Collection[str] = ()
 
+    # Extension-less filenames that are nonetheless valid (e.g. ``Dockerfile``).
+    ACCEPTED_FILENAMES: Collection[str] = ()
+
     def __init__(
         self,
         pr_files: Iterable[File],
@@ -46,12 +49,15 @@ class BaseFilesParser:
           `ACCEPTED_EXTENSIONS` constant.
 
         NOTE: Extensionless files will be considered valid only if it is present in
-        the ".github" directory. Eg: ".github/CODEOWNERS"
+        the ".github" directory (eg: ".github/CODEOWNERS") or if its name is listed in
+        ``ACCEPTED_FILENAMES`` (eg: "Dockerfile").
         """
         invalid_filepath = []
         for file in self.pr_files:
             filepath = file.path
             if not filepath.suffix:
+                if filepath.name in self.ACCEPTED_FILENAMES:
+                    continue
                 if ".github" not in filepath.parts:
                     if filepath.parent.name:  # noqa: SIM114
                         invalid_filepath.append(file.name)

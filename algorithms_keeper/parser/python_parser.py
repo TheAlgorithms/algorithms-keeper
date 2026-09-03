@@ -72,10 +72,16 @@ class PythonParser(BaseFilesParser):
         ".csv",
         ".json",
         ".txt",
+        # Lock files (e.g. ``uv.lock``, ``poetry.lock``) are committed to keep CI
+        # reproducible; a transitive dependency bump lives only here, so allow it.
+        ".lock",
         # Good old Python file
         ".py",
         *DOCS_EXTENSIONS,
     )
+
+    # Extension-less files whose exact name is accepted (container/build tooling).
+    ACCEPTED_FILENAMES: tuple[str, ...] = ("Dockerfile",)
 
     def __init__(
         self,
