@@ -184,7 +184,7 @@ dev = [
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-aiohttp", specifier = "==1.0.5" },
+    { name = "pytest-aiohttp", specifier = "==1.1.1" },
     { name = "pytest-asyncio", specifier = "==1.4.0" },
     { name = "pytest-cov", specifier = "==7.1.0" },
 ]
@@ -1320,16 +1320,16 @@ wheels = [
 
 [[package]]
 name = "pytest-aiohttp"
-version = "1.0.5"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/28/ad/7915ae42ca364a66708755517c5d669a7a4921d70d1070d3b660ea716a3e/pytest-aiohttp-1.0.5.tar.gz", hash = "sha256:880262bc5951e934463b15e3af8bb298f11f7d4d3ebac970aab425aff10a780a", size = 12209, upload-time = "2023-09-06T14:18:19.718Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/51/4d/c6621fc79022f6c84a806e23d9b7eca24fae4f3ee779219bbe524339d666/pytest_aiohttp-1.1.1.tar.gz", hash = "sha256:3aa9c9fe26e543eaccc7eb0add381c685ba3ed3e2fed0af74540f63bcd31458d", size = 13704, upload-time = "2026-06-07T23:56:34.173Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/a7/6e50ba2c0a27a34859a952162e63362a13142ce3c646e925b76de440e102/pytest_aiohttp-1.0.5-py3-none-any.whl", hash = "sha256:63a5360fd2f34dda4ab8e6baee4c5f5be4cd186a403cabd498fced82ac9c561e", size = 8547, upload-time = "2023-09-06T14:18:17.729Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/b0/5056ed4c3f68a4db2b4a39fb0ec61b1e4cf1d89ee14effe5261cc587264c/pytest_aiohttp-1.1.1-py3-none-any.whl", hash = "sha256:f293441ad4f8446a1e12257130c26c7de03a615c2a5572a8cb046e5b3b4e5211", size = 9007, upload-time = "2026-06-07T23:56:33.333Z" },
 ]
 
 [[package]]
