@@ -92,6 +92,7 @@ allow-magic-value-types = ["bytes", "int", "str"]
 max-args = 6  # Recommended: 5
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
 testpaths = "tests"
 addopts = """\
   --cov=algorithms_keeper

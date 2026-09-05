@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 from aiohttp import web
 
 from algorithms_keeper import __main__ as main
@@ -6,13 +7,13 @@ from algorithms_keeper import __main__ as main
 from .utils import number
 
 
-@pytest.fixture()
-def client(loop, aiohttp_client):  # type: ignore
+@pytest_asyncio.fixture()
+async def client(aiohttp_client):  # type: ignore
     app = web.Application()
     app.router.add_get("/", main.index)
     app.router.add_get("/health", main.health)
     app.router.add_post("/", main.main)
-    return loop.run_until_complete(aiohttp_client(app))
+    return await aiohttp_client(app)
 
 
 @pytest.mark.asyncio()
