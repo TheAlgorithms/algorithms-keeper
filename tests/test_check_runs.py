@@ -1,6 +1,11 @@
+import asyncio
+from http import HTTPStatus
+from typing import Any
+from unittest.mock import AsyncMock
 from urllib.parse import quote
 
 import pytest
+from gidgethub import BadRequest
 from gidgethub.sansio import Event
 
 from algorithms_keeper.constants import Label
@@ -226,3 +231,54 @@ async def test_check_run(
 ) -> None:
     await check_run_router.dispatch(event, gh)
     assert gh == expected
+
+
+@pytest.mark.asyncio()
+async def test_concurrent_check_runs_remove_same_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gh = MockGitHubAPI(
+        getitem={
+            search_url: {
+                "total_count": 1,
+                "items": [
+                    {"labels": [{"name": Label.FAILED_TEST}], "labels_url": labels_url}
+                ],
+            },
+            check_run_url: {
+                "check_runs": [{"status": "completed", "conclusion": "success"}],
+            },
+        }
+    )
+    deleted = False
+    both_deleting = asyncio.Event()
+
+    async def delete_label(url: str, **kwargs: Any) -> None:
+        nonlocal deleted
+        # Both handlers have read the same label snapshot before either deletes it.
+        if delete.await_count == 2:
+            both_deleting.set()
+        await asyncio.wait_for(both_deleting.wait(), timeout=5)
+        if deleted:
+            raise BadRequest(HTTPStatus.NOT_FOUND, "Label does not exist")
+        deleted = True
+
+    delete = AsyncMock(side_effect=delete_label)
+    monkeypatch.setattr(gh, "delete", delete)
+    events = [
+        Event(
+            data={
+                "action": "completed",
+                "repository": {"full_name": repository},
+                "check_run": {"id": check_id, "head_sha": sha},
+            },
+            event="check_run",
+            delivery_id=f"completed-check-{check_id}",
+        )
+        for check_id in range(2)
+    ]
+
+    await asyncio.gather(*(check_run_router.dispatch(event, gh) for event in events))
+
+    assert deleted
+    assert delete.await_count == 2

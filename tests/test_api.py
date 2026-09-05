@@ -1,3 +1,4 @@
+import logging
 from typing import Any, AsyncGenerator, Awaitable, Callable, Dict
 
 import aiohttp
@@ -81,3 +82,75 @@ async def test_headers_and_log(github_api: GitHubAPI) -> None:
     )
     data, rate_limit, _ = sansio.decipher_response(*resp)
     assert "rate" in data
+
+
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "request_args, response_args, expected_level",
+    [
+        (
+            ("DELETE", "/repos/org/repo/issues/1/labels/tests%20are%20failing"),
+            (404, b'{"message": "Label does not exist"}'),
+            logging.INFO,
+        ),
+        (
+            ("DELETE", "/repos/org/repo/issues/1/labels/tests%20are%20failing"),
+            (404, b'{"message": "Not Found"}'),
+            logging.ERROR,
+        ),
+        (
+            ("DELETE", "/repos/org/repo/issues/1/labels/tests%20are%20failing"),
+            (403, b'{"message": "Label does not exist"}'),
+            logging.ERROR,
+        ),
+        (
+            ("POST", "/repos/org/repo/issues/1/labels/tests%20are%20failing"),
+            (404, b'{"message": "Label does not exist"}'),
+            logging.ERROR,
+        ),
+        (
+            ("DELETE", "/repos/org/repo/labels/tests%20are%20failing"),
+            (404, b'{"message": "Label does not exist"}'),
+            logging.ERROR,
+        ),
+        (
+            ("DELETE", "/repos/org/repo/issues/1/labels/tests%20are%20failing"),
+            (404, b"not json"),
+            logging.ERROR,
+        ),
+        (
+            ("DELETE", "/repos/org/repo/issues/1/labels/tests%20are%20failing"),
+            (404, b"[]"),
+            logging.ERROR,
+        ),
+    ],
+)
+async def test_label_removal_logging(
+    request_args: tuple[str, str],
+    response_args: tuple[int, bytes],
+    expected_level: int,
+    github_api: GitHubAPI,
+    aiohttp_server: Callable[..., Awaitable[TestServer]],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    response_status, response_body = response_args
+
+    async def handler(request: web.Request) -> web.Response:
+        return web.Response(status=response_status, body=response_body)
+
+    app = web.Application()
+    app.router.add_route("*", "/{path:.*}", handler)
+    server = await aiohttp_server(app)
+    method, path = request_args
+    with caplog.at_level(logging.INFO, logger="algorithms_keeper"):
+        status, _, body = await github_api._request(
+            method, str(server.make_url(path)), {}
+        )
+
+    assert status == response_status
+    assert body == response_body
+    records = [
+        record for record in caplog.records if record.name == "algorithms_keeper"
+    ]
+    assert len(records) == 1
+    assert records[0].levelno == expected_level
