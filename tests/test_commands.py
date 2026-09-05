@@ -1,4 +1,6 @@
-from typing import Any, Generator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from gidgethub.sansio import Event
@@ -24,6 +26,9 @@ from .utils import (
     sha,
     user,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -82,7 +87,7 @@ def test_command_regex_match(text: str, group: str) -> None:
 
 # Reminder: ``Event.delivery_id`` is used as a short description for the respective
 # test case and as a way to id the specific test case in the parametrized group.
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "event, gh, expected",
     (

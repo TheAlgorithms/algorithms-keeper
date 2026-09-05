@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Union
 
 import libcst as cst
 import libcst.matchers as m
@@ -238,9 +237,7 @@ class RequireDoctestRule(lint_rule.ReviewLintRule):
                 MISSING_DOCTEST.format(filepath=self._file_path, nodename=nodename),
             )
 
-    def _has_doctest(
-        self, node: Union[cst.Module, cst.ClassDef, cst.FunctionDef]
-    ) -> bool:
+    def _has_doctest(self, node: cst.Module | cst.ClassDef | cst.FunctionDef) -> bool:
         """Check whether the given node contains doctests.
 
         If the ``_skip_doctest`` attribute is ``True``, the function will by default

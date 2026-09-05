@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import urllib.parse
 from pathlib import Path
-from typing import Dict, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from algorithms_keeper import utils
-from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import Label
 
 from .utils import (
@@ -30,8 +31,11 @@ from .utils import (
     user,
 )
 
+if TYPE_CHECKING:
+    from algorithms_keeper.api import GitHubAPI
 
-@pytest.mark.asyncio()
+
+@pytest.mark.asyncio
 async def test_get_issue_for_commit() -> None:
     getitem = {
         search_url: {
@@ -41,7 +45,7 @@ async def test_get_issue_for_commit() -> None:
     }
     gh = MockGitHubAPI(getitem=getitem)
     result = await utils.get_pr_for_commit(
-        cast(GitHubAPI, gh), sha=sha, repository=repository
+        cast("GitHubAPI", gh), sha=sha, repository=repository
     )
     assert search_url in gh.getitem_url
     assert result is not None
@@ -49,7 +53,7 @@ async def test_get_issue_for_commit() -> None:
     assert result["state"] == "open"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_issue_for_commit_not_found() -> None:
     getitem = {
         search_url: {
@@ -59,13 +63,13 @@ async def test_get_issue_for_commit_not_found() -> None:
     }
     gh = MockGitHubAPI(getitem=getitem)
     result = await utils.get_pr_for_commit(
-        cast(GitHubAPI, gh), sha=sha, repository=repository
+        cast("GitHubAPI", gh), sha=sha, repository=repository
     )
     assert search_url in gh.getitem_url
     assert result is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_check_runs_for_commit() -> None:
     getitem = {
         check_run_url: {
@@ -78,7 +82,7 @@ async def test_get_check_runs_for_commit() -> None:
     }
     gh = MockGitHubAPI(getitem=getitem)
     result = await utils.get_check_runs_for_commit(
-        cast(GitHubAPI, gh), sha=sha, repository=repository
+        cast("GitHubAPI", gh), sha=sha, repository=repository
     )
     assert check_run_url in gh.getitem_url
     assert result["total_count"] == 2
@@ -89,26 +93,26 @@ async def test_get_check_runs_for_commit() -> None:
     assert {check_run["status"] for check_run in result["check_runs"]} == {"completed"}
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "pr_or_issue",
     [{"issue_url": issue_url}, {"labels_url": labels_url}],
 )
-async def test_add_label_to_pr_or_issue(pr_or_issue: Dict[str, str]) -> None:
+async def test_add_label_to_pr_or_issue(pr_or_issue: dict[str, str]) -> None:
     gh = MockGitHubAPI()
     await utils.add_label_to_pr_or_issue(
-        cast(GitHubAPI, gh), label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
+        cast("GitHubAPI", gh), label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
     )
     assert labels_url in gh.post_url
     assert {"labels": [Label.FAILED_TEST]} in gh.post_data
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_add_multiple_labels() -> None:
     pr_or_issue = {"number": number, "issue_url": issue_url}
     gh = MockGitHubAPI()
     await utils.add_label_to_pr_or_issue(
-        cast(GitHubAPI, gh),
+        cast("GitHubAPI", gh),
         label=[Label.TYPE_HINT, Label.REVIEW],
         pr_or_issue=pr_or_issue,
     )
@@ -116,28 +120,28 @@ async def test_add_multiple_labels() -> None:
     assert {"labels": [Label.TYPE_HINT, Label.REVIEW]} in gh.post_data
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "pr_or_issue",
     [{"issue_url": issue_url}, {"labels_url": labels_url}],
 )
-async def test_remove_label_from_pr_or_issue(pr_or_issue: Dict[str, str]) -> None:
+async def test_remove_label_from_pr_or_issue(pr_or_issue: dict[str, str]) -> None:
     parse_label = urllib.parse.quote(Label.FAILED_TEST)
     gh = MockGitHubAPI()
     await utils.remove_label_from_pr_or_issue(
-        cast(GitHubAPI, gh), label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
+        cast("GitHubAPI", gh), label=Label.FAILED_TEST, pr_or_issue=pr_or_issue
     )
     assert f"{labels_url}/{parse_label}" in gh.delete_url
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_remove_multiple_labels() -> None:
     parse_label1 = urllib.parse.quote(Label.TYPE_HINT)
     parse_label2 = urllib.parse.quote(Label.REVIEW)
     pr_or_issue = {"issue_url": issue_url}
     gh = MockGitHubAPI()
     await utils.remove_label_from_pr_or_issue(
-        cast(GitHubAPI, gh),
+        cast("GitHubAPI", gh),
         label=[Label.TYPE_HINT, Label.REVIEW],
         pr_or_issue=pr_or_issue,
     )
@@ -145,7 +149,7 @@ async def test_remove_multiple_labels() -> None:
     assert f"{labels_url}/{parse_label2}" in gh.delete_url
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_user_open_pr_numbers() -> None:
     getiter = {
         pr_user_search_url: {
@@ -155,25 +159,25 @@ async def test_get_user_open_pr_numbers() -> None:
     }
     gh = MockGitHubAPI(getiter=getiter)
     result = await utils.get_user_open_pr_numbers(
-        cast(GitHubAPI, gh), repository=repository, user_login=user
+        cast("GitHubAPI", gh), repository=repository, user_login=user
     )
     assert result == [1, 2, 3]
     assert gh.getiter_url[0] == pr_user_search_url
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_add_comment_to_pr_or_issue() -> None:
     # PR and issue both have `comments_url` key.
     pr_or_issue = {"number": number, "comments_url": comments_url}
     gh = MockGitHubAPI()
     await utils.add_comment_to_pr_or_issue(
-        cast(GitHubAPI, gh), comment=comment, pr_or_issue=pr_or_issue
+        cast("GitHubAPI", gh), comment=comment, pr_or_issue=pr_or_issue
     )
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_close_pr_no_reviewers() -> None:
     pull_request = {
         "url": pr_url,
@@ -182,7 +186,7 @@ async def test_close_pr_no_reviewers() -> None:
     }
     gh = MockGitHubAPI()
     await utils.close_pr_or_issue(
-        cast(GitHubAPI, gh), comment=comment, pr_or_issue=pull_request
+        cast("GitHubAPI", gh), comment=comment, pr_or_issue=pull_request
     )
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -192,7 +196,7 @@ async def test_close_pr_no_reviewers() -> None:
     assert gh.delete_data == []
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_close_pr_with_reviewers() -> None:
     pull_request = {
         "url": pr_url,
@@ -201,7 +205,7 @@ async def test_close_pr_with_reviewers() -> None:
     }
     gh = MockGitHubAPI()
     await utils.close_pr_or_issue(
-        cast(GitHubAPI, gh), comment=comment, pr_or_issue=pull_request
+        cast("GitHubAPI", gh), comment=comment, pr_or_issue=pull_request
     )
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -211,13 +215,13 @@ async def test_close_pr_with_reviewers() -> None:
     assert {"reviewers": ["test1", "test2"]} in gh.delete_data
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_close_issue() -> None:
     # Issues don't have `requested_reviewers` field.
     issue = {"url": issue_url, "comments_url": comments_url}
     gh = MockGitHubAPI()
     await utils.close_pr_or_issue(
-        cast(GitHubAPI, gh), comment=comment, pr_or_issue=issue
+        cast("GitHubAPI", gh), comment=comment, pr_or_issue=issue
     )
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -226,7 +230,7 @@ async def test_close_issue() -> None:
     assert gh.delete_url == []
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_close_pr_or_issue_with_label() -> None:
     # PRs don't have `labels_url` attribute.
     pull_request = {
@@ -237,7 +241,10 @@ async def test_close_pr_or_issue_with_label() -> None:
     }
     gh = MockGitHubAPI()
     await utils.close_pr_or_issue(
-        cast(GitHubAPI, gh), comment=comment, pr_or_issue=pull_request, label="invalid"
+        cast("GitHubAPI", gh),
+        comment=comment,
+        pr_or_issue=pull_request,
+        label="invalid",
     )
     assert comments_url in gh.post_url
     assert {"body": comment} in gh.post_data
@@ -248,7 +255,7 @@ async def test_close_pr_or_issue_with_label() -> None:
     assert gh.delete_url == []
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_pr_files() -> None:
     getiter = {
         files_url: [
@@ -260,13 +267,13 @@ async def test_get_pr_files() -> None:
     }
     pull_request = {"url": pr_url}
     gh = MockGitHubAPI(getiter=getiter)
-    result = await utils.get_pr_files(cast(GitHubAPI, gh), pull_request=pull_request)
+    result = await utils.get_pr_files(cast("GitHubAPI", gh), pull_request=pull_request)
     assert len(result) == 4
     assert [r.name for r in result] == ["t1.py", "t2.py", "t3.py", "t4.py"]
     assert files_url in gh.getiter_url
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_file_content() -> None:
     getitem = {
         contents_url: {
@@ -282,7 +289,7 @@ async def test_get_file_content() -> None:
     }
     gh = MockGitHubAPI(getitem=getitem)
     result = await utils.get_file_content(
-        cast(GitHubAPI, gh),
+        cast("GitHubAPI", gh),
         file=utils.File("test.py", Path("test.py"), contents_url, "added"),
     )
     assert result == (
@@ -294,31 +301,31 @@ async def test_get_file_content() -> None:
     assert contents_url in gh.getitem_url
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_create_pr_review() -> None:
     pull_request = {"url": pr_url, "head": {"sha": sha}}
     gh = MockGitHubAPI()
     await utils.create_pr_review(
-        cast(GitHubAPI, gh), pull_request=pull_request, comments=[{"body": "test"}]
+        cast("GitHubAPI", gh), pull_request=pull_request, comments=[{"body": "test"}]
     )
     assert review_url in gh.post_url
     assert gh.post_data[0]["event"] == "COMMENT"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_add_reaction() -> None:
     comment = {"url": comment_url}
     gh = MockGitHubAPI()
-    await utils.add_reaction(cast(GitHubAPI, gh), reaction="+1", comment=comment)
+    await utils.add_reaction(cast("GitHubAPI", gh), reaction="+1", comment=comment)
     assert reactions_url in gh.post_url
     assert {"content": "+1"} in gh.post_data
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_pr_for_issue() -> None:
     getitem = {pr_url: None}
     issue = {"pull_request": {"url": pr_url}}
     gh = MockGitHubAPI(getitem=getitem)
-    result = await utils.get_pr_for_issue(cast(GitHubAPI, gh), issue=issue)
+    result = await utils.get_pr_for_issue(cast("GitHubAPI", gh), issue=issue)
     assert result is None
     assert pr_url in gh.getitem_url

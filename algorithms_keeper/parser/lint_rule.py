@@ -1,5 +1,11 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fixit import LintRule
-from libcst import CSTNode
+
+if TYPE_CHECKING:
+    from libcst import CSTNode
 
 
 class ReviewLintRule(LintRule):

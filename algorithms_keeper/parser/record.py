@@ -1,10 +1,16 @@
-from dataclasses import asdict, dataclass, field
-from typing import Any, Collection, Union
+from __future__ import annotations
 
-from fixit import LintViolation
-from libcst import ParserSyntaxError
+import traceback
+from dataclasses import asdict, dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from algorithms_keeper.constants import Label
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
+
+    from fixit import LintViolation
+    from libcst import ParserSyntaxError
 
 # Mapping of rule to the appropriate label.
 RULE_TO_LABEL: dict[str, str] = {
@@ -73,12 +79,8 @@ class PullRequestReviewRecord:
                 ReviewComment(report.message, filepath, report.range.start.line)
             )
 
-    def add_error(
-        self, exc: Union[SyntaxError, ParserSyntaxError], filepath: str
-    ) -> None:
+    def add_error(self, exc: SyntaxError | ParserSyntaxError, filepath: str) -> None:
         """Add any exception faced while parsing the source code."""
-        import traceback
-
         message = traceback.format_exc(limit=1)
         # It seems that ``ParserSyntaxError`` is not a subclass of ``SyntaxError``,
         # the same information is stored under a different attribute. There is no

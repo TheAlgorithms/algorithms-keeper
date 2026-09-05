@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from gidgethub import routing
-from gidgethub.sansio import Event
 
 from algorithms_keeper import utils
-from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import Label
+
+if TYPE_CHECKING:
+    from gidgethub.sansio import Event
+
+    from algorithms_keeper.api import GitHubAPI
 
 check_run_router = routing.Router()
 

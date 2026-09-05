@@ -12,14 +12,21 @@ The rest of the arguments must be keyword-only arguments. This is done to
 maintain consistency throughout the module and improve readability in files
 that uses all the given functions.
 """
+
+from __future__ import annotations
+
 import urllib.parse
 from base64 import b64decode
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any
 
-from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import PR_REVIEW_BODY
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from algorithms_keeper.api import GitHubAPI
 
 
 @dataclass(frozen=True)
@@ -43,9 +50,7 @@ class File:
     status: str
 
 
-async def get_pr_for_commit(
-    gh: GitHubAPI, *, sha: str, repository: str
-) -> Optional[Any]:
+async def get_pr_for_commit(gh: GitHubAPI, *, sha: str, repository: str) -> Any | None:
     """Return the issue object, relative to the pull request, for the given SHA
     of a commit.
 
@@ -74,7 +79,7 @@ async def get_check_runs_for_commit(gh: GitHubAPI, *, sha: str, repository: str)
 async def add_label_to_pr_or_issue(
     gh: GitHubAPI,
     *,
-    label: Union[str, list[str]],
+    label: str | list[str],
     pr_or_issue: Mapping[str, Any],
 ) -> None:
     """Add the given label(s) to the pull request or issue provided.
@@ -100,7 +105,7 @@ async def add_label_to_pr_or_issue(
 async def remove_label_from_pr_or_issue(
     gh: GitHubAPI,
     *,
-    label: Union[str, list[str]],
+    label: str | list[str],
     pr_or_issue: Mapping[str, Any],
 ) -> None:
     """Remove the given label(s) from pull request or issue provided.
@@ -119,8 +124,8 @@ async def remove_label_from_pr_or_issue(
     label_list = [label] if isinstance(label, str) else label
     # We can only remove labels one at a time or all (every label in the pull request
     # or issue) at once.
-    for label in label_list:
-        parse_label = urllib.parse.quote(label)
+    for label_name in label_list:
+        parse_label = urllib.parse.quote(label_name)
         await gh.delete(
             f"{labels_url}/{parse_label}",
             oauth_token=await gh.access_token,
@@ -162,7 +167,7 @@ async def close_pr_or_issue(
     *,
     comment: str,
     pr_or_issue: Mapping[str, Any],
-    label: Optional[Union[str, list[str]]] = None,
+    label: str | list[str] | None = None,
 ) -> None:
     """Close the given pull request or issue with a comment and an optional label.
     If it is a pull request then dismiss all the requested reviews from it as well.

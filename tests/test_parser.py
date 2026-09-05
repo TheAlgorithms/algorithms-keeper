@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -194,7 +193,7 @@ def test_combinations(
     monkeypatch: pytest.MonkeyPatch,
     filename: str,
     expected: int,
-    labels: List[str],
+    labels: list[str],
     add_count: int,
     remove_count: int,
 ) -> None:

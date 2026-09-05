@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from algorithms_keeper.constants import Label
-from algorithms_keeper.utils import File
+
+if TYPE_CHECKING:
+    from collections.abc import Collection, Iterable, Mapping
+
+    from algorithms_keeper.utils import File
 
 # These files are updated automatically by a GitHub action in almost every pull request.
 IGNORE_FILES_FOR_TYPELABEL: set[str] = {"DIRECTORY.md"}

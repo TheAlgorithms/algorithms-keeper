@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 import logging
 import os
-from typing import Any, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any
 
-from aiohttp import ClientResponse
 from cachetools import TTLCache
 from gidgethub import apps
 from gidgethub.abc import UTF_8_CHARSET
 from gidgethub.aiohttp import GitHubAPI as BaseGitHubAPI
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, MutableMapping
+
+    from aiohttp import ClientResponse
 
 # Timed token_cache for installation access token (1 minute less than an hour)
 token_cache: MutableMapping[int, str] = TTLCache(maxsize=10, ttl=1 * 59 * 60)

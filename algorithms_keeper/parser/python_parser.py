@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Iterable, Iterator, Mapping
+from typing import TYPE_CHECKING, Any
 
 from fixit import Config, LintRule
 from fixit.engine import LintRunner
@@ -14,7 +16,11 @@ from algorithms_keeper.parser.rules import (
     RequireTypeHintRule,
     UseFstringRule,
 )
-from algorithms_keeper.utils import File
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator, Mapping
+
+    from algorithms_keeper.utils import File
 
 # Select only the bot's review rules, independent of Fixit's built-in defaults.
 DEFAULT_RULES: frozenset[type[LintRule]] = frozenset(

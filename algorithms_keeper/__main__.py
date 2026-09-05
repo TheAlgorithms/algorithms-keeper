@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
-import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, MutableMapping
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientSession, web
 from cachetools import LRUCache
@@ -15,10 +16,12 @@ from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.event import main_router
 
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
 # TODO(dhruvmanila): Remove this block when it's the default.
 # https://github.com/Instagram/LibCST/issues/285#issuecomment-1011427731
-if sys.version_info >= (3, 10):
-    os.environ["LIBCST_PARSER_TYPE"] = "native"
+os.environ["LIBCST_PARSER_TYPE"] = "native"
 
 cache: MutableMapping[Any, Any] = LRUCache(maxsize=500)
 
@@ -90,7 +93,7 @@ async def main(request: web.Request) -> web.Response:
             logger.info(
                 "ratelimit=%s, time_remaining=%s",
                 f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}",
-                gh.rate_limit.reset_datetime - datetime.now(timezone.utc),
+                gh.rate_limit.reset_datetime - datetime.now(UTC),
             )
         return web.Response(status=200)
     except Exception as err:
@@ -103,4 +106,4 @@ if __name__ == "__main__":  # pragma: no cover
     app.add_routes(routes)
     # Heroku dynamically assigns the app a port, so we can't set the port to a fixed
     # number. Heroku adds the port to the env, so we need to pull it from there.
-    web.run_app(app, port=int(os.environ.get("PORT", 5000)))
+    web.run_app(app, port=int(os.environ.get("PORT", "5000")))
