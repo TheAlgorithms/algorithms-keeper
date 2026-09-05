@@ -2,7 +2,6 @@
 
 # algorithms-keeper
 [![CI](https://github.com/TheAlgorithms/algorithms-keeper/actions/workflows/main.yml/badge.svg)](https://github.com/TheAlgorithms/algorithms-keeper/actions/workflows/main.yml)
-[![codecov](https://codecov.io/gh/TheAlgorithms/algorithms-keeper/branch/master/graph/badge.svg?token=QYAZ665UJL)](https://codecov.io/gh/TheAlgorithms/algorithms-keeper)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://docs.astral.sh/ty/)
 

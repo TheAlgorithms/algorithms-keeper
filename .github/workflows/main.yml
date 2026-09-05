@@ -27,5 +27,3 @@ jobs:
         run: uv run --locked pre-commit run --verbose --all-files --show-diff-on-failure
       - name: Run ty
         run: uv run --locked ty check
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
