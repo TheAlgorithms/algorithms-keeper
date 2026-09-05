@@ -23,7 +23,7 @@ jobs:
         run: uv sync --locked
       - name: Run tests
         run: uv run --locked pytest
-      - name: Run pre-commit (Ruff lint, format, and other checks)
+      - name: Run pre-commit checks
         run: uv run --locked pre-commit run --verbose --all-files --show-diff-on-failure
       # FIXME: mypy is failing due to missing types-* packages
       # - name: Run mypy

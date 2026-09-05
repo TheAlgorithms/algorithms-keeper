@@ -1,12 +1,16 @@
-import traceback
-from collections.abc import Collection
-from dataclasses import asdict, dataclass, field
-from typing import Any
+from __future__ import annotations
 
-from fixit import LintViolation
-from libcst import ParserSyntaxError
+import traceback
+from dataclasses import asdict, dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from algorithms_keeper.constants import Label
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
+
+    from fixit import LintViolation
+    from libcst import ParserSyntaxError
 
 # Mapping of rule to the appropriate label.
 RULE_TO_LABEL: dict[str, str] = {

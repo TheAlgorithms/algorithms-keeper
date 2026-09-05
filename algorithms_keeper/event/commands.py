@@ -6,17 +6,22 @@ including the modified files. As we cannot post review comments on lines not par
 the diff, this command only modify the labels accordingly.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 from re import Pattern
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from gidgethub import routing
-from gidgethub.sansio import Event
 
 from algorithms_keeper import utils
-from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.event.pull_request import check_pr_files
+
+if TYPE_CHECKING:
+    from gidgethub.sansio import Event
+
+    from algorithms_keeper.api import GitHubAPI
 
 commands_router = routing.Router()
 

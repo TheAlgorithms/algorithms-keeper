@@ -20,16 +20,16 @@ digraph "PR stages" {
 }
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from gidgethub import routing
-from gidgethub.sansio import Event
 
 from algorithms_keeper import utils
-from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import (
     CHECKBOX_NOT_TICKED_COMMENT,
     EMPTY_PR_BODY_COMMENT,
@@ -40,6 +40,11 @@ from algorithms_keeper.constants import (
 )
 from algorithms_keeper.event.check_run import check_ci_status_and_label
 from algorithms_keeper.parser import PythonParser
+
+if TYPE_CHECKING:
+    from gidgethub.sansio import Event
+
+    from algorithms_keeper.api import GitHubAPI
 
 # To disable this check, set the constant to 0.
 MAX_PR_PER_USER = 3

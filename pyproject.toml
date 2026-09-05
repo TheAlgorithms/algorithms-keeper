@@ -49,6 +49,7 @@ line-length = 88
 target-version = "py311"
 
 [tool.ruff.lint]
+future-annotations = true
 select = [
   "A",      # flake8-builtins
   "AIR",    # Airflow

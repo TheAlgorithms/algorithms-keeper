@@ -1,8 +1,12 @@
-from collections.abc import AsyncGenerator
+from __future__ import annotations
+
 from dataclasses import dataclass, field, fields
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from gidgethub.sansio import Event
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 
 def parametrize_id(obj: object) -> str:

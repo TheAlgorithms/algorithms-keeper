@@ -1,16 +1,21 @@
-from collections.abc import AsyncGenerator, Awaitable, Callable
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 import pytest
 import pytest_asyncio
 from aiohttp import web
-from aiohttp.test_utils import TestServer
 from gidgethub import apps, sansio
 
 from algorithms_keeper.api import GitHubAPI, token_cache
 
 from .utils import number, token
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Awaitable, Callable
+
+    from aiohttp.test_utils import TestServer
 
 
 async def mock_return(*args: Any, **kwargs: Any) -> dict[str, str]:

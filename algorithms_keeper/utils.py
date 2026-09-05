@@ -13,15 +13,20 @@ maintain consistency throughout the module and improve readability in files
 that uses all the given functions.
 """
 
+from __future__ import annotations
+
 import urllib.parse
 from base64 import b64decode
-from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import PR_REVIEW_BODY
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from algorithms_keeper.api import GitHubAPI
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,13 @@
-import libcst as cst
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fixit import Invalid, Valid
 
 from algorithms_keeper.parser import lint_rule
+
+if TYPE_CHECKING:
+    import libcst as cst
 
 MESSAGE: str = "Please provide descriptive name for the {nodetype}: `{nodename}`"
 

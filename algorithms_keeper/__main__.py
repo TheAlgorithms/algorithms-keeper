@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
-from collections.abc import MutableMapping
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientSession, web
 from cachetools import LRUCache
@@ -14,6 +15,9 @@ from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.event import main_router
+
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
 
 # TODO(dhruvmanila): Remove this block when it's the default.
 # https://github.com/Instagram/LibCST/issues/285#issuecomment-1011427731

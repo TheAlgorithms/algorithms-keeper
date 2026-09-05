@@ -1,5 +1,6 @@
-from collections.abc import Generator
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 import pytest
@@ -33,6 +34,9 @@ from .utils import (
     sha,
     user,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 # This constant can only contain one invalid filename.
 INVALID = "invalid"

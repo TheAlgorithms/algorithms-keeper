@@ -1,5 +1,6 @@
-from collections.abc import Generator
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from gidgethub.sansio import Event
@@ -25,6 +26,9 @@ from .utils import (
     sha,
     user,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 @pytest.fixture(scope="module", autouse=True)
