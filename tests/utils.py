@@ -1,5 +1,6 @@
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field, fields
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any
 
 from gidgethub.sansio import Event
 
@@ -15,17 +16,18 @@ def parametrize_id(obj: object) -> str:
 
 @dataclass(repr=False, eq=False, frozen=True)
 class ExpectedData:
-    getitem_url: List[str] = field(default_factory=list)
-    getiter_url: List[str] = field(default_factory=list)
-    post_url: List[str] = field(default_factory=list)
-    post_data: List[Dict[str, Any]] = field(default_factory=list)
-    patch_url: List[str] = field(default_factory=list)
-    patch_data: List[Dict[str, Any]] = field(default_factory=list)
-    delete_url: List[str] = field(default_factory=list)
-    delete_data: List[Dict[str, Any]] = field(default_factory=list)
+    getitem_url: list[str] = field(default_factory=list)
+    getiter_url: list[str] = field(default_factory=list)
+    post_url: list[str] = field(default_factory=list)
+    post_data: list[dict[str, Any]] = field(default_factory=list)
+    patch_url: list[str] = field(default_factory=list)
+    patch_data: list[dict[str, Any]] = field(default_factory=list)
+    delete_url: list[str] = field(default_factory=list)
+    delete_data: list[dict[str, Any]] = field(default_factory=list)
 
 
-class MockGitHubAPI:
+# Call history is mutable, so the mock is intentionally unhashable.
+class MockGitHubAPI:  # noqa: PLW1641
     """Mocked GitHubAPI object.
 
     Arguments:
@@ -58,21 +60,21 @@ class MockGitHubAPI:
     def __init__(
         self,
         *,
-        getitem: Optional[Dict[str, Any]] = None,
-        getiter: Optional[Dict[str, Any]] = None,
-        post: Optional[Dict[str, Any]] = None,
+        getitem: dict[str, Any] | None = None,
+        getiter: dict[str, Any] | None = None,
+        post: dict[str, Any] | None = None,
     ) -> None:
         self._getitem_return = getitem
         self._getiter_return = getiter
         self._post_return = post
-        self.getitem_url: List[str] = []
-        self.getiter_url: List[str] = []
-        self.post_url: List[str] = []
-        self.post_data: List[Dict[str, Any]] = []
-        self.patch_url: List[str] = []
-        self.patch_data: List[Dict[str, Any]] = []
-        self.delete_url: List[str] = []
-        self.delete_data: List[Dict[str, Any]] = []
+        self.getitem_url: list[str] = []
+        self.getiter_url: list[str] = []
+        self.post_url: list[str] = []
+        self.post_data: list[dict[str, Any]] = []
+        self.patch_url: list[str] = []
+        self.patch_data: list[dict[str, Any]] = []
+        self.delete_url: list[str] = []
+        self.delete_data: list[dict[str, Any]] = []
 
     @property
     async def access_token(self) -> str:

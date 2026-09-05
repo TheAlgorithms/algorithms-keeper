@@ -19,10 +19,11 @@ digraph "PR stages" {
   "Awaiting changes" -> "Approved" [label="Review approves", color=green]
 }
 """
+
 import asyncio
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 from gidgethub import routing
 from gidgethub.sansio import Event
@@ -37,6 +38,7 @@ from algorithms_keeper.constants import (
     PR_REVIEW_COMMENT,
     Label,
 )
+from algorithms_keeper.event.check_run import check_ci_status_and_label
 from algorithms_keeper.parser import PythonParser
 
 # To disable this check, set the constant to 0.
@@ -50,7 +52,7 @@ logger = logging.getLogger(__package__)
 
 
 async def update_stage_label(
-    gh: GitHubAPI, *, pull_request: dict[str, Any], next_label: Optional[str] = None
+    gh: GitHubAPI, *, pull_request: dict[str, Any], next_label: str | None = None
 ) -> None:
     """Update the stage label of the given pull request.
 
@@ -266,8 +268,6 @@ async def check_ci_ready_for_review_pr(
     removed if the checks are passing or failing. Thus, we need to manually check it
     with respect to the latest commit on head.
     """
-    from algorithms_keeper.event.check_run import check_ci_status_and_label
-
     await check_ci_status_and_label(event, gh, *args, **kwargs)
 
 
@@ -343,7 +343,7 @@ async def check_merge_status(
     pull_request = event.data["pull_request"]
 
     for retry_interval in range(MAX_RETRIES):
-        mergeable: Optional[bool] = pull_request["mergeable"]
+        mergeable: bool | None = pull_request["mergeable"]
         if mergeable is None:
             # We will use the iter value we get as our sleep period between the polls.
             # In the webhook payload, the mergeable status will always be ``None``, so

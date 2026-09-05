@@ -1,4 +1,5 @@
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 from gidgethub.sansio import Event
@@ -82,7 +83,7 @@ def test_command_regex_match(text: str, group: str) -> None:
 
 # Reminder: ``Event.delivery_id`` is used as a short description for the respective
 # test case and as a way to id the specific test case in the parametrized group.
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "event, gh, expected",
     (

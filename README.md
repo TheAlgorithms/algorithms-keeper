@@ -3,7 +3,7 @@
 # algorithms-keeper
 [![CI](https://github.com/TheAlgorithms/algorithms-keeper/actions/workflows/main.yml/badge.svg)](https://github.com/TheAlgorithms/algorithms-keeper/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/TheAlgorithms/algorithms-keeper/branch/master/graph/badge.svg?token=QYAZ665UJL)](https://codecov.io/gh/TheAlgorithms/algorithms-keeper)
-[![code style: black](https://img.shields.io/static/v1?label=code%20style&message=black&color=black)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/)
 [![Checked with mypy](https://img.shields.io/static/v1?label=mypy&message=checked&color=2a6db2&labelColor=505050)](http://mypy-lang.org/)
 
 </div>
@@ -57,7 +57,10 @@ the project and run tests from the repository root:
 ```shell
 uv sync
 uv run pytest
+uv run pre-commit run --all-files
 ```
+
+Ruff handles Python linting and formatting through the pre-commit hooks.
 
 ## Logging
 Logging is done using the standard library logging module. All the API calls made by the bot are being logged at INFO level and `aiohttp.log.access_logger` is logging the POST requests made by GitHub for delivering the payload. Other minor events relevant to the repository is also being logged along with using the using [Sentry](https://sentry.io/). The logs can be viewed best using the following command ([_requires Heroku CLI_](https://devcenter.heroku.com/articles/heroku-cli#download-and-install)):

@@ -1,4 +1,5 @@
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from typing import Any
 
 import aiohttp
 import pytest
@@ -12,7 +13,7 @@ from algorithms_keeper.api import GitHubAPI, token_cache
 from .utils import number, token
 
 
-async def mock_return(*args: Any, **kwargs: Any) -> Dict[str, str]:
+async def mock_return(*args: Any, **kwargs: Any) -> dict[str, str]:
     return {"token": token}
 
 
@@ -24,7 +25,7 @@ async def github_api() -> AsyncGenerator[GitHubAPI, None]:
     assert session.closed is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_initialization() -> None:
     async with aiohttp.ClientSession() as session:
         github_api = GitHubAPI(number, session, "algorithms-keeper")
@@ -36,7 +37,7 @@ async def test_initialization() -> None:
     assert github_api.requester == "algorithms-keeper"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_access_token(
     github_api: GitHubAPI, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -52,7 +53,7 @@ async def test_access_token(
     assert cached_token == token
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_request_with_local_server(
     github_api: GitHubAPI, aiohttp_server: Callable[..., Awaitable[TestServer]]
 ) -> None:
@@ -73,11 +74,11 @@ async def test_request_with_local_server(
     assert body == b"response body"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_headers_and_log(github_api: GitHubAPI) -> None:
     request_headers = sansio.create_headers("algorithms-keeper")
     resp = await github_api._request(
         "GET", "https://api.github.com/rate_limit", request_headers
     )
-    data, rate_limit, _ = sansio.decipher_response(*resp)
+    data, _, _ = sansio.decipher_response(*resp)
     assert "rate" in data

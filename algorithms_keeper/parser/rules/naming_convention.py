@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Collection, Optional
+from typing import TYPE_CHECKING
 
 import libcst as cst
 import libcst.matchers as m
@@ -7,6 +7,9 @@ from fixit import Invalid, Valid
 from libcst.metadata import QualifiedName, QualifiedNameProvider
 
 from algorithms_keeper.parser import lint_rule
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
 
 INVALID_CAMEL_CASE_NAME_COMMENT: str = (
     "Class names should follow the [`CamelCase`]"
@@ -116,7 +119,7 @@ class NamingConventionRule(lint_rule.ReviewLintRule):
         self._assigntarget_counter: int = 0
 
     def visit_Assign(self, node: cst.Assign) -> None:
-        metadata: Optional[Collection[QualifiedName]] = self.get_metadata(
+        metadata: Collection[QualifiedName] | None = self.get_metadata(
             QualifiedNameProvider, node.value, None
         )
 

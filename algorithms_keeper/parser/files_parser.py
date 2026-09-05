@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Collection, Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
+from typing import Any
 
 from algorithms_keeper.constants import Label
 from algorithms_keeper.utils import File

@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from aiohttp import ClientResponse
 from cachetools import TTLCache

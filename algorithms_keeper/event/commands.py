@@ -5,9 +5,11 @@
 including the modified files. As we cannot post review comments on lines not part of
 the diff, this command only modify the labels accordingly.
 """
+
 import logging
 import re
-from typing import Any, Pattern
+from re import Pattern
+from typing import Any
 
 from gidgethub import routing
 from gidgethub.sansio import Event

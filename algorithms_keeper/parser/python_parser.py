@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
+from typing import Any
 
 from fixit import Config, LintRule
 from fixit.engine import LintRunner

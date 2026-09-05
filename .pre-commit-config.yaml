@@ -14,12 +14,8 @@ repos:
         additional_dependencies:
           - tomli
 
-  - repo: https://github.com/psf/black
-    rev: 23.7.0
-    hooks:
-      - id: black
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.285
+    rev: v0.16.6
     hooks:
-      - id: ruff
+      - id: ruff-check
+      - id: ruff-format

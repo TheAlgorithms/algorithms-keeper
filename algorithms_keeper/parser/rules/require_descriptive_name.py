@@ -1,5 +1,3 @@
-from typing import Union
-
 import libcst as cst
 from fixit import Invalid, Valid
 
@@ -75,7 +73,7 @@ class RequireDescriptiveNameRule(lint_rule.ReviewLintRule):
         self._validate_name_length(node, "parameter")
 
     def _validate_name_length(
-        self, node: Union[cst.ClassDef, cst.FunctionDef, cst.Param], nodetype: str
+        self, node: cst.ClassDef | cst.FunctionDef | cst.Param, nodetype: str
     ) -> None:
         nodename = node.name.value
         if len(nodename) == 1:

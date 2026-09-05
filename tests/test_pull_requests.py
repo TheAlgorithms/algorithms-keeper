@@ -1,4 +1,5 @@
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 from urllib.parse import quote
 
 import pytest
@@ -6,6 +7,7 @@ from gidgethub.sansio import Event
 
 from algorithms_keeper import utils
 from algorithms_keeper.constants import Label
+from algorithms_keeper.event import pull_request
 from algorithms_keeper.event.pull_request import pull_request_router
 
 from .test_parser import get_source
@@ -66,7 +68,7 @@ def patch_module(
     monkeypatch.undo()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "event, gh, expected",
     # Pull request opened by the user, the bot found that the user has number of
@@ -166,8 +168,6 @@ async def test_max_pr_by_user(
     # - The value is 0, which signals to disable the check.
     # We cannot rely on the actual constant which could change every now and then. So,
     # we will test the only two cases with monkeypatch.
-    from algorithms_keeper.event import pull_request
-
     if event.delivery_id == MAX_PR_TEST_ENABLED_ID:
         monkeypatch.setattr(pull_request, "MAX_PR_PER_USER", MAX_PR_TEST_NUMBER)
     else:
@@ -176,7 +176,7 @@ async def test_max_pr_by_user(
     assert gh == expected
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "event, gh, expected",
     (

@@ -1,6 +1,5 @@
 import textwrap
 from pathlib import Path
-from typing import List, Optional, Tuple, Type, Union
 
 import pytest
 from fixit import Config, Invalid, LintRule, Valid
@@ -14,10 +13,10 @@ from algorithms_keeper.parser.rules import (
     UseFstringRule,
 )
 
-GenTestCaseType = Tuple[Type[LintRule], Union[Valid, Invalid], str]
+GenTestCaseType = tuple[type[LintRule], Valid | Invalid, str]
 
 # Test every custom rule against its embedded examples.
-CUSTOM_RULES: set[Type[LintRule]] = {
+CUSTOM_RULES: set[type[LintRule]] = {
     NamingConventionRule,
     RequireDoctestRule,
     RequireDescriptiveNameRule,
@@ -47,10 +46,10 @@ def _dedent(src: str) -> str:
     return textwrap.dedent(src)
 
 
-def _gen_all_test_cases(rules: set[Type[LintRule]]) -> List[GenTestCaseType]:
+def _gen_all_test_cases(rules: set[type[LintRule]]) -> list[GenTestCaseType]:
     """Generate all the test cases for the provided rules."""
-    cases: Optional[List[Union[Valid, Invalid]]]
-    all_cases: List[GenTestCaseType] = []
+    cases: list[Valid | Invalid] | None
+    all_cases: list[GenTestCaseType] = []
     for rule in rules:
         if not issubclass(rule, LintRule):
             continue
@@ -67,8 +66,8 @@ def _gen_all_test_cases(rules: set[Type[LintRule]]) -> List[GenTestCaseType]:
     ids=_parametrized_id,
 )
 def test_rules(
-    rule: Type[LintRule],
-    test_case: Union[Valid, Invalid],
+    rule: type[LintRule],
+    test_case: Valid | Invalid,
     test_case_id: str,
 ) -> None:
     """Test all the rules with the generated test cases.

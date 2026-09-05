@@ -1,5 +1,7 @@
+import traceback
+from collections.abc import Collection
 from dataclasses import asdict, dataclass, field
-from typing import Any, Collection, Union
+from typing import Any
 
 from fixit import LintViolation
 from libcst import ParserSyntaxError
@@ -73,12 +75,8 @@ class PullRequestReviewRecord:
                 ReviewComment(report.message, filepath, report.range.start.line)
             )
 
-    def add_error(
-        self, exc: Union[SyntaxError, ParserSyntaxError], filepath: str
-    ) -> None:
+    def add_error(self, exc: SyntaxError | ParserSyntaxError, filepath: str) -> None:
         """Add any exception faced while parsing the source code."""
-        import traceback
-
         message = traceback.format_exc(limit=1)
         # It seems that ``ParserSyntaxError`` is not a subclass of ``SyntaxError``,
         # the same information is stored under a different attribute. There is no
