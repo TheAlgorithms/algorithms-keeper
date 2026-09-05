@@ -86,6 +86,7 @@ async def main(request: web.Request) -> web.Response:
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             if logger.isEnabledFor(logging.DEBUG):
+                # Router callbacks can be callable instances without __name__.
                 callbacks = [
                     getattr(func, "__name__", type(func).__name__)
                     for func in main_router.fetch(event)

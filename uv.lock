@@ -188,7 +188,7 @@ dev = [
     { name = "pytest-aiohttp", specifier = "==1.1.1" },
     { name = "pytest-asyncio", specifier = "==1.4.0" },
     { name = "pytest-cov", specifier = "==7.1.0" },
-    { name = "ty" },
+    { name = "ty", specifier = "==0.0.78" },
 ]
 
 [[package]]
