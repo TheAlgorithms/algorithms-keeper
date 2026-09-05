@@ -1,10 +1,12 @@
+from pathlib import Path
 from typing import Union
 
 import libcst as cst
 import libcst.matchers as m
-from fixit import CstContext, CstLintRule
-from fixit import InvalidTestCase as Invalid
-from fixit import ValidTestCase as Valid
+from fixit import Invalid, Valid
+from libcst.metadata import FilePathProvider
+
+from algorithms_keeper.parser import lint_rule
 
 MISSING_DOCTEST: str = (
     "As there is no test file in this pull request nor any test function or class in "
@@ -14,7 +16,9 @@ MISSING_DOCTEST: str = (
 INIT: str = "__init__"
 
 
-class RequireDoctestRule(CstLintRule):
+class RequireDoctestRule(lint_rule.ReviewLintRule):
+    METADATA_DEPENDENCIES = (FilePathProvider,)
+
     VALID = [
         # Module-level docstring contains doctest.
         Valid(
@@ -150,14 +154,6 @@ class RequireDoctestRule(CstLintRule):
                     pass
             """
         ),
-        # No doctest required in the ``web_programming`` directory.
-        Valid(
-            """
-            def foo():
-                pass
-            """,
-            filename="web_programming/foo.py",
-        ),
     ]
 
     INVALID = [
@@ -206,16 +202,21 @@ class RequireDoctestRule(CstLintRule):
         ),
     ]
 
-    def __init__(self, context: CstContext) -> None:
-        super().__init__(context)
+    def __init__(self) -> None:
+        super().__init__()
         self._skip_doctest: bool = False
         self._temporary: bool = False
 
-    def should_skip_file(self) -> bool:
-        return self.context.file_path.match("web_programming/*")
-
     def visit_Module(self, node: cst.Module) -> None:
-        self._skip_doctest = self._has_testnode(node) or self._has_doctest(node)
+        # LibCST supplies an absolute path; GitHub reviews use relative paths.
+        self._file_path = self.get_metadata(FilePathProvider, node).relative_to(
+            Path.cwd()
+        )
+        self._skip_doctest = (
+            self._file_path.match("web_programming/*")
+            or self._has_testnode(node)
+            or self._has_doctest(node)
+        )
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:
         # Temporary storage of the ``skip_doctest`` value only during the class visit.
@@ -234,9 +235,7 @@ class RequireDoctestRule(CstLintRule):
         if nodename != INIT and not self._has_doctest(node):
             self.report(
                 node,
-                MISSING_DOCTEST.format(
-                    filepath=self.context.file_path, nodename=nodename
-                ),
+                MISSING_DOCTEST.format(filepath=self._file_path, nodename=nodename),
             )
 
     def _has_doctest(

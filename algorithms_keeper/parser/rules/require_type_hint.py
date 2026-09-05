@@ -1,7 +1,7 @@
 import libcst as cst
-from fixit import CstContext, CstLintRule
-from fixit import InvalidTestCase as Invalid
-from fixit import ValidTestCase as Valid
+from fixit import Invalid, Valid
+
+from algorithms_keeper.parser import lint_rule
 
 MISSING_TYPE_HINT: str = "Please provide type hint for the parameter: `{nodename}`"
 
@@ -14,7 +14,7 @@ MISSING_RETURN_TYPE_HINT: str = (
 IGNORE_PARAM: set[str] = {"self", "cls"}
 
 
-class RequireTypeHintRule(CstLintRule):
+class RequireTypeHintRule(lint_rule.ReviewLintRule):
     VALID = [
         Valid(
             """
@@ -107,8 +107,8 @@ class RequireTypeHintRule(CstLintRule):
         ),
     ]
 
-    def __init__(self, context: CstContext) -> None:
-        super().__init__(context)
+    def __init__(self) -> None:
+        super().__init__()
         self._lambda_counter: int = 0
 
     def visit_Lambda(self, node: cst.Lambda) -> None:

@@ -1,48 +1,33 @@
-import importlib
-import inspect
 import logging
 from typing import Any, Iterable, Iterator, Mapping
 
-from fixit import CstLintRule, LintConfig
-from fixit.common.utils import LintRuleCollectionT
-from fixit.rule_lint_engine import lint_file
+from fixit import Config, LintRule
+from fixit.engine import LintRunner
 from libcst import ParserSyntaxError
 
 from algorithms_keeper.parser.files_parser import BaseFilesParser
 from algorithms_keeper.parser.record import PullRequestReviewRecord
-from algorithms_keeper.parser.rules import RequireDoctestRule
+from algorithms_keeper.parser.rules import (
+    NamingConventionRule,
+    RequireDescriptiveNameRule,
+    RequireDoctestRule,
+    RequireTypeHintRule,
+    UseFstringRule,
+)
 from algorithms_keeper.utils import File
 
-RULES_DOTPATH: str = "algorithms_keeper.parser.rules"
-
-DEFAULT_CONFIG: LintConfig = LintConfig(packages=[RULES_DOTPATH])
+# Select only the bot's review rules, independent of Fixit's built-in defaults.
+DEFAULT_RULES: frozenset[type[LintRule]] = frozenset(
+    {
+        NamingConventionRule,
+        RequireDescriptiveNameRule,
+        RequireDoctestRule,
+        RequireTypeHintRule,
+        UseFstringRule,
+    }
+)
 
 logger = logging.getLogger(__package__)
-
-
-def get_rules_from_config(config: LintConfig = DEFAULT_CONFIG) -> LintRuleCollectionT:
-    """Get rules from the packages specified in the lint config file, omitting
-    block-listed rules.
-
-    Custom rules should be imported in the ``__init__`` file  of the rules package
-    along with all the rules used from ``fixit``. Also, make sure all the rule classes
-    have the suffix `Rule`.
-    """
-    rules: LintRuleCollectionT = set()
-    block_list_rules = config.block_list_rules
-    for package in config.packages:
-        pkg = importlib.import_module(package)
-        for name in dir(pkg):
-            if name.endswith("Rule"):
-                obj = getattr(pkg, name)
-                if (
-                    obj is not CstLintRule
-                    and issubclass(obj, CstLintRule)
-                    and not inspect.isabstract(obj)
-                    and name not in block_list_rules
-                ):
-                    rules.add(obj)
-    return rules
 
 
 class PythonParser(BaseFilesParser):
@@ -57,7 +42,7 @@ class PythonParser(BaseFilesParser):
     """
 
     _pr_report: PullRequestReviewRecord
-    _rules: LintRuleCollectionT
+    _rules: set[type[LintRule]]
 
     DOCS_EXTENSIONS: tuple[str, ...] = (".md", ".rst")
 
@@ -92,7 +77,7 @@ class PythonParser(BaseFilesParser):
         self._pr_record = PullRequestReviewRecord()
         # Collection of rules are going to be static for a pull request, so let's
         # extract it out and store it.
-        self._rules = get_rules_from_config()
+        self._rules = set(DEFAULT_RULES)
         # If the pull request contains a test file as per the naming convention, there's
         # no need to run ``RequireDoctestRule``.
         if self._contains_testfile():
@@ -149,13 +134,13 @@ class PythonParser(BaseFilesParser):
     def parse(self, file: File, source: bytes) -> None:
         """Run the lint engine on the given *source* for the *file*."""
         try:
-            reports = lint_file(
-                file.path,
-                source,
-                use_ignore_byte_markers=False,
-                use_ignore_comments=False,
-                config=DEFAULT_CONFIG,
-                rules=self._rules,
+            runner = LintRunner(file.path, source)
+            # Rules retain visitor state and violations; create them for each file.
+            reports = list(
+                runner.collect_violations(
+                    [rule() for rule in self._rules],
+                    Config(path=file.path, enable=[]),
+                )
             )
             self._pr_record.add_comments(reports, file.name)
         except (SyntaxError, ParserSyntaxError) as exc:

@@ -1,11 +1,11 @@
 import libcst as cst
 import libcst.matchers as m
-from fixit import CstLintRule
-from fixit import InvalidTestCase as Invalid
-from fixit import ValidTestCase as Valid
+from fixit import Invalid, Valid
+
+from algorithms_keeper.parser import lint_rule
 
 
-class UseFstringRule(CstLintRule):
+class UseFstringRule(lint_rule.ReviewLintRule):
     MESSAGE: str = (
         "As mentioned in the [Contributing Guidelines]"
         "(https://github.com/TheAlgorithms/Python/blob/master/CONTRIBUTING.md), "
