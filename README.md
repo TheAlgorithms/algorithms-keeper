@@ -57,49 +57,13 @@ these commands from the repository root:
 ```shell
 uv sync --locked
 uv run --locked pre-commit install
-```
-
-`uv sync` installs Python 3.11 if needed, creates `.venv`, and installs the runtime
-and development dependencies from `uv.lock`. The project's existing Python 3.11
-runtime is pinned in `.python-version` for both local development and CI.
-
-If personal uv configuration changes dependency resolution (for example, an
-`exclude-newer` setting), set `UV_NO_CONFIG=1` when running these commands to use
-the same configuration as CI.
-
-Run the tests and all formatting, lint, spelling, and file checks with:
-
-```shell
 uv run --locked pytest
 uv run --locked pre-commit run --all-files
 ```
 
-The pre-commit hooks also run through `uv`, so their dependencies and versions are
-managed alongside the rest of the development tools. Mypy is available with
-`uv run --locked mypy algorithms_keeper/ tests/`; its CI check remains disabled
-until the missing type stubs are addressed.
-
-To run the bot with its GitHub app environment variables configured:
-
-```shell
-uv run --locked python -m algorithms_keeper
-```
-
-For deployments, use `uv sync --locked --no-dev` as the build/install command and
-`uv run --locked --no-dev python -m algorithms_keeper` as the start command, both
-from the repository root. Update any externally configured build commands that
-previously installed requirements files.
-
-### Managing dependencies
-
-Runtime dependencies live in `[project.dependencies]` in `pyproject.toml`, and
-development tools live in `[dependency-groups.dev]`. Use `uv add PACKAGE` or
-`uv add --dev PACKAGE` to add a dependency, and `uv remove PACKAGE` or
-`uv remove --dev PACKAGE` to remove one. To upgrade an existing exact pin, use
-`uv add 'PACKAGE==NEW_VERSION'` (include `--dev` for development dependencies).
-Use `uv lock --upgrade` to update locked versions within the declared constraints.
-Commit both `pyproject.toml` and `uv.lock` when dependencies change. CI uses
-`--locked` to reject an outdated lockfile, and Dependabot updates uv dependencies.
+Run the bot with `uv run --locked python -m algorithms_keeper` after configuring
+its GitHub app environment variables. See the [uv docs](https://docs.astral.sh/uv/)
+for dependency management and other commands.
 
 ## Logging
 Logging is done using the standard library logging module. All the API calls made by the bot are being logged at INFO level and `aiohttp.log.access_logger` is logging the POST requests made by GitHub for delivering the payload. Other minor events relevant to the repository is also being logged along with using the using [Sentry](https://sentry.io/). The logs can be viewed best using the following command ([_requires Heroku CLI_](https://devcenter.heroku.com/articles/heroku-cli#download-and-install)):

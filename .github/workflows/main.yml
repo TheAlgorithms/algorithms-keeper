@@ -15,10 +15,12 @@ jobs:
         with:
           version: "0.11.26"
           enable-cache: true
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.python-version', '.pre-commit-config.yaml') }}
       - name: Install dependencies
-        run: |
-          uv python install
-          uv sync --locked
+        run: uv sync --locked
       - name: Run tests
         run: uv run --locked pytest
       - name: Run pre-commit

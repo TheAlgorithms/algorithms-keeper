@@ -16,17 +16,12 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "black==23.7.0",
-  "codespell==2.2.5",
   "mypy",
   "pre-commit",
-  "pre-commit-hooks==4.4.0",
   "pytest==9.1.1",
   "pytest-aiohttp==1.0.5",
   "pytest-asyncio==1.4.0",
   "pytest-cov==4.1.0",
-  "ruff==0.0.285",
-  "tomli",
 ]
 
 [tool.uv]
