@@ -1,8 +1,10 @@
-from typing import Any, AsyncGenerator, Dict
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict
 
 import aiohttp
 import pytest
 import pytest_asyncio
+from aiohttp import web
+from aiohttp.test_utils import TestServer
 from gidgethub import apps, sansio
 
 from algorithms_keeper.api import GitHubAPI, token_cache
@@ -48,6 +50,27 @@ async def test_access_token(
     monkeypatch.delattr(apps, "get_installation_access_token")
     cached_token = await github_api.access_token
     assert cached_token == token
+
+
+@pytest.mark.asyncio()
+async def test_request_with_local_server(
+    github_api: GitHubAPI, aiohttp_server: Callable[..., Awaitable[TestServer]]
+) -> None:
+    # Exercise the session fixture and server fixture on the test's running loop.
+    async def handler(request: web.Request) -> web.Response:
+        assert request.headers["X-Test"] == "loop-lifecycle"
+        assert await request.read() == b"request body"
+        return web.Response(body=b"response body", headers={"X-Test": "response"})
+
+    app = web.Application()
+    app.router.add_post("/", handler)
+    server = await aiohttp_server(app)
+    status, headers, body = await github_api._request(
+        "POST", str(server.make_url("/")), {"X-Test": "loop-lifecycle"}, b"request body"
+    )
+    assert status == 200
+    assert headers["X-Test"] == "response"
+    assert body == b"response body"
 
 
 @pytest.mark.asyncio()
