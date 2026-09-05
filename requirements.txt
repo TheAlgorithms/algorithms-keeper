@@ -1,6 +1,6 @@
-aiohttp==3.9.0
+aiohttp==3.14.3
 cachetools==5.3.2
 fixit==0.1.4
 gidgethub==5.3.0
 libcst==1.1.0
-sentry-sdk==1.32.0
+sentry-sdk==2.68.1
