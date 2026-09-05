@@ -1,25 +1,37 @@
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+  # Hook dependencies and versions are managed in pyproject.toml and uv.lock.
+  - repo: local
     hooks:
       - id: check-yaml
+        name: check yaml
+        entry: uv run --locked check-yaml
+        language: system
+        types: [yaml]
       - id: end-of-file-fixer
+        name: fix end of files
+        entry: uv run --locked end-of-file-fixer
+        language: system
         types: [python]
       - id: trailing-whitespace
-
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.5
-    hooks:
+        name: trim trailing whitespace
+        entry: uv run --locked trailing-whitespace-fixer
+        language: system
+        types: [text]
       - id: codespell
-        additional_dependencies:
-          - tomli
-
-  - repo: https://github.com/psf/black
-    rev: 23.7.0
-    hooks:
+        name: codespell
+        entry: uv run --locked codespell
+        language: system
+        types: [text]
+        exclude: ^uv\.lock$
       - id: black
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.285
-    hooks:
+        name: black
+        entry: uv run --locked black
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
       - id: ruff
+        name: ruff
+        entry: uv run --locked ruff check --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
