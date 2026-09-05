@@ -93,7 +93,7 @@ async def main(request: web.Request) -> web.Response:
                 ]
                 logger.debug("event=%s callbacks=%s", event_info, callbacks)
             await main_router.dispatch(event, gh)
-        if gh.rate_limit is not None:  # pragma: no cover
+        if gh.rate_limit is not None:
             logger.info(
                 "ratelimit=%s, time_remaining=%s",
                 f"{gh.rate_limit.remaining}/{gh.rate_limit.limit}",
@@ -105,7 +105,7 @@ async def main(request: web.Request) -> web.Response:
         return web.Response(status=500, text=str(err))
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     app = web.Application()
     app.add_routes(routes)
     # Heroku dynamically assigns the app a port, so we can't set the port to a fixed
