@@ -25,8 +25,7 @@ jobs:
         run: uv run --locked pytest
       - name: Run pre-commit checks
         run: uv run --locked pre-commit run --verbose --all-files --show-diff-on-failure
-      # FIXME: mypy is failing due to missing types-* packages
-      # - name: Run mypy
-      #   run: uv run --locked mypy algorithms_keeper/ tests/
+      - name: Run ty
+        run: uv run --locked ty check
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

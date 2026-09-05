@@ -100,7 +100,7 @@ def test_rules(
             "\n".join(str(e) for e in reports),
         )
 
-        report = reports[0]  # type: ignore
+        report = reports[0]
 
         if test_case.range is not None:
             assert test_case.range == report.range

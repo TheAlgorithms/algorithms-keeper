@@ -4,7 +4,7 @@
 [![CI](https://github.com/TheAlgorithms/algorithms-keeper/actions/workflows/main.yml/badge.svg)](https://github.com/TheAlgorithms/algorithms-keeper/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/TheAlgorithms/algorithms-keeper/branch/master/graph/badge.svg?token=QYAZ665UJL)](https://codecov.io/gh/TheAlgorithms/algorithms-keeper)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/)
-[![Checked with mypy](https://img.shields.io/static/v1?label=mypy&message=checked&color=2a6db2&labelColor=505050)](http://mypy-lang.org/)
+[![ty](https://img.shields.io/badge/ty-2a6db2)](https://docs.astral.sh/ty/)
 
 </div>
 
@@ -52,12 +52,13 @@ Some actions of the bot can be triggered using commands:
 ## Development
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then set up
-the project and run tests from the repository root:
+the project, run tests, and check types from the repository root:
 
 ```shell
 uv sync
 uv run pytest
 uv run pre-commit run --all-files
+uv run ty check
 ```
 
 Ruff handles Python linting and formatting through the pre-commit hooks.
