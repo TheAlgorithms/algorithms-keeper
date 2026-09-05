@@ -44,7 +44,7 @@ class NamingConvention(Enum):
 
 
 class NamingConventionRule(lint_rule.ReviewLintRule):
-    METADATA_DEPENDENCIES = (QualifiedNameProvider,)  # type: ignore
+    METADATA_DEPENDENCIES = (QualifiedNameProvider,)
 
     VALID = [
         Valid("type_hint: str"),
@@ -152,7 +152,7 @@ class NamingConventionRule(lint_rule.ReviewLintRule):
     def visit_AssignTarget(self, node: cst.AssignTarget) -> None:
         self._assigntarget_counter += 1
 
-    def leave_AssignTarget(self, node: cst.AssignTarget) -> None:
+    def leave_AssignTarget(self, original_node: cst.AssignTarget) -> None:
         self._assigntarget_counter -= 1
 
     def visit_ClassDef(self, node: cst.ClassDef) -> None:

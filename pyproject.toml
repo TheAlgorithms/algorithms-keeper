@@ -15,34 +15,24 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "mypy",
   "pre-commit",
   "pytest==9.1.1",
   "pytest-aiohttp==1.1.1",
   "pytest-asyncio==1.4.0",
   "pytest-cov==7.1.0",
+  "ty",
 ]
 
 [tool.uv]
 package = false
 
-[tool.mypy]
-ignore_missing_imports = true
-warn_unused_configs = true
-warn_unused_ignores = true
-warn_redundant_casts = true
-warn_return_any = true
-check_untyped_defs = true
-disallow_untyped_defs = true
-disallow_untyped_calls = true
-disallow_untyped_decorators = true
-disallow_subclassing_any = true
-no_implicit_optional = true
+[tool.ty.src]
+include = ["algorithms_keeper", "tests"]
+# Parser fixtures intentionally omit required annotations.
+exclude = ["tests/data"]
 
-[[tool.mypy.overrides]]
-module = "tests.data.*"
-disallow_untyped_defs = false
-check_untyped_defs = false
+[tool.ty.terminal]
+error-on-warning = true
 
 [tool.ruff]
 line-length = 88

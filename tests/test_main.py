@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 import pytest_asyncio
 from aiohttp import web
@@ -6,9 +10,13 @@ from algorithms_keeper import __main__ as main
 
 from .utils import number
 
+if TYPE_CHECKING:
+    from aiohttp.test_utils import TestClient
+    from pytest_aiohttp.plugin import AiohttpClient
+
 
 @pytest_asyncio.fixture()
-async def client(aiohttp_client):  # type: ignore
+async def client(aiohttp_client: AiohttpClient) -> TestClient:
     app = web.Application()
     app.router.add_get("/", main.index)
     app.router.add_get("/health", main.health)
@@ -17,7 +25,7 @@ async def client(aiohttp_client):  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_ping(client):  # type: ignore
+async def test_ping(client: TestClient) -> None:
     headers = {"X-GitHub-Event": "ping", "X-GitHub-Delivery": "1234"}
     data = {"zen": "testing is good"}
     response = await client.post("/", headers=headers, json=data)
@@ -26,7 +34,7 @@ async def test_ping(client):  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_failure(client):  # type: ignore
+async def test_failure(client: TestClient) -> None:
     # Even in the face of an exception, the server should not crash.
     # Missing key headers.
     response = await client.post("/", headers={})
@@ -34,7 +42,7 @@ async def test_failure(client):  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_success(client):  # type: ignore
+async def test_success(client: TestClient) -> None:
     headers = {"X-GitHub-Event": "project", "X-GitHub-Delivery": "1234"}
     # Sending a payload that shouldn't trigger any networking, but no errors
     # either.
@@ -44,7 +52,7 @@ async def test_success(client):  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_index(client):  # type: ignore
+async def test_index(client: TestClient) -> None:
     response = await client.get("/")
     assert response.status == 200
     assert response.headers["content-type"] == "text/html"
@@ -52,7 +60,7 @@ async def test_index(client):  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_health(client):  # type: ignore
+async def test_health(client: TestClient) -> None:
     response = await client.get("/health")
     assert response.status == 200
     assert await response.text() == "OK"

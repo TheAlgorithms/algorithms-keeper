@@ -86,7 +86,10 @@ async def main(request: web.Request) -> web.Response:
             # Give GitHub some time to reach internal consistency.
             await asyncio.sleep(1)
             if logger.isEnabledFor(logging.DEBUG):
-                callbacks = [func.__name__ for func in main_router.fetch(event)]
+                callbacks = [
+                    getattr(func, "__name__", type(func).__name__)
+                    for func in main_router.fetch(event)
+                ]
                 logger.debug("event=%s callbacks=%s", event_info, callbacks)
             await main_router.dispatch(event, gh)
         if gh.rate_limit is not None:  # pragma: no cover
