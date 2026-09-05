@@ -174,7 +174,7 @@ requires-dist = [
     { name = "aiohttp", specifier = "==3.14.3" },
     { name = "cachetools", specifier = "==7.1.8" },
     { name = "fixit", specifier = "==2.2.1" },
-    { name = "gidgethub", specifier = "==5.3.0" },
+    { name = "gidgethub", specifier = "==5.4.0" },
     { name = "libcst", specifier = "==1.1.0" },
     { name = "sentry-sdk", specifier = "==2.68.1" },
 ]
@@ -724,15 +724,15 @@ wheels = [
 
 [[package]]
 name = "gidgethub"
-version = "5.3.0"
+version = "5.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyjwt", extra = ["crypto"] },
     { name = "uritemplate" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/58/6d/c3c7f2b3d2a8249913f214b254d547db2b026ff4c7d38cebd7d88940725c/gidgethub-5.3.0.tar.gz", hash = "sha256:9ece7d37fbceb819b80560e7ed58f936e48a65d37ec5f56db79145156b426a25", size = 125885, upload-time = "2023-05-30T19:50:16.36Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/d4/6374d7a1d276ec23f5bc71a2571d36824cd121693cc2eaefa04484c02551/gidgethub-5.4.0.tar.gz", hash = "sha256:7470d7723d7c1743471a2d62e79c8752fba12b1c0972e4bad57252338a501dbd", size = 126781, upload-time = "2025-06-03T22:10:53.639Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/e6/659924caa8b03cf06395775eb046ed4701913791d2b6afef8a4cf2861c92/gidgethub-5.3.0-py3-none-any.whl", hash = "sha256:4dd92f2252d12756b13f9dd15cde322bfb0d625b6fb5d680da1567ec74b462c0", size = 21244, upload-time = "2023-05-30T19:50:12.491Z" },
+    { url = "https://files.pythonhosted.org/packages/70/48/847be03638905119b9310d15057d18f923c0ec5c846381d2fa2ccc1b7c54/gidgethub-5.4.0-py3-none-any.whl", hash = "sha256:522bd3a846a315c3163925a840930c4c9a0d685d5853afe852fd589cb472daf5", size = 21233, upload-time = "2025-06-03T22:10:52.115Z" },
 ]
 
 [[package]]
