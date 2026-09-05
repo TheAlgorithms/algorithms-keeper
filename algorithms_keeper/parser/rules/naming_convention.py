@@ -3,10 +3,10 @@ from typing import Collection, Optional
 
 import libcst as cst
 import libcst.matchers as m
-from fixit import CstContext, CstLintRule
-from fixit import InvalidTestCase as Invalid
-from fixit import ValidTestCase as Valid
+from fixit import Invalid, Valid
 from libcst.metadata import QualifiedName, QualifiedNameProvider
+
+from algorithms_keeper.parser import lint_rule
 
 INVALID_CAMEL_CASE_NAME_COMMENT: str = (
     "Class names should follow the [`CamelCase`]"
@@ -40,7 +40,7 @@ class NamingConvention(Enum):
         return True
 
 
-class NamingConventionRule(CstLintRule):
+class NamingConventionRule(lint_rule.ReviewLintRule):
     METADATA_DEPENDENCIES = (QualifiedNameProvider,)  # type: ignore
 
     VALID = [
@@ -111,8 +111,8 @@ class NamingConventionRule(CstLintRule):
         ),
     ]
 
-    def __init__(self, context: CstContext) -> None:
-        super().__init__(context)
+    def __init__(self) -> None:
+        super().__init__()
         self._assigntarget_counter: int = 0
 
     def visit_Assign(self, node: cst.Assign) -> None:

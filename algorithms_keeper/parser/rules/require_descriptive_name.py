@@ -1,14 +1,14 @@
 from typing import Union
 
 import libcst as cst
-from fixit import CstLintRule
-from fixit import InvalidTestCase as Invalid
-from fixit import ValidTestCase as Valid
+from fixit import Invalid, Valid
+
+from algorithms_keeper.parser import lint_rule
 
 MESSAGE: str = "Please provide descriptive name for the {nodetype}: `{nodename}`"
 
 
-class RequireDescriptiveNameRule(CstLintRule):
+class RequireDescriptiveNameRule(lint_rule.ReviewLintRule):
     VALID = [
         Valid(
             """

@@ -1,16 +1,16 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Collection, Union
 
-from fixit.common.report import BaseLintRuleReport
+from fixit import LintViolation
 from libcst import ParserSyntaxError
 
 from algorithms_keeper.constants import Label
 
 # Mapping of rule to the appropriate label.
 RULE_TO_LABEL: dict[str, str] = {
-    "RequireDescriptiveNameRule": Label.DESCRIPTIVE_NAME,
-    "RequireDoctestRule": Label.REQUIRE_TEST,
-    "RequireTypeHintRule": Label.TYPE_HINT,
+    "RequireDescriptiveName": Label.DESCRIPTIVE_NAME,
+    "RequireDoctest": Label.REQUIRE_TEST,
+    "RequireTypeHint": Label.TYPE_HINT,
 }
 
 MULTIPLE_COMMENT_SEPARATOR: str = "\n\n"
@@ -58,9 +58,7 @@ class PullRequestReviewRecord:
     # duplication.
     _violated_rules: set[str] = field(default_factory=set, init=False, repr=False)
 
-    def add_comments(
-        self, reports: Collection[BaseLintRuleReport], filepath: str
-    ) -> None:
+    def add_comments(self, reports: Collection[LintViolation], filepath: str) -> None:
         """Construct and add comments from the reports.
 
         If the line on which the comment is to be posted already exists, then the
@@ -68,10 +66,12 @@ class PullRequestReviewRecord:
         same file. This is done to avoid adding multiple comments on the same line.
         """
         for report in reports:
-            self._violated_rules.add(report.code)
-            if self._lineno_exist(report.message, filepath, report.line):
+            self._violated_rules.add(report.rule_name)
+            if self._lineno_exist(report.message, filepath, report.range.start.line):
                 continue
-            self._comments.append(ReviewComment(report.message, filepath, report.line))
+            self._comments.append(
+                ReviewComment(report.message, filepath, report.range.start.line)
+            )
 
     def add_error(
         self, exc: Union[SyntaxError, ParserSyntaxError], filepath: str

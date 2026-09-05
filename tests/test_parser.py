@@ -208,3 +208,69 @@ def test_combinations(
     assert len(parser._pr_record._comments) == expected
     assert len(parser.labels_to_add) == add_count
     assert len(parser.labels_to_remove) == remove_count
+
+
+@pytest.mark.parametrize("filename", ("web_programming/example.py", "other/example.py"))
+def test_doctest_filepath(filename: str) -> None:
+    parser = get_parser(filename)
+    for file in parser.files_to_check(True):
+        parser.parse(file, b"def example() -> None:\n    pass\n")
+    if filename.startswith("web_programming/"):
+        assert parser.collect_comments() == []
+        assert parser.labels_to_add == []
+    else:
+        assert parser.labels_to_add == [Label.REQUIRE_TEST]
+        assert parser.collect_comments() == [
+            {
+                "body": (
+                    "As there is no test file in this pull request nor any test "
+                    f"function or class in the file `{filename}`, "
+                    "please provide doctest for "
+                    "the function `example`"
+                ),
+                "path": filename,
+                "line": 1,
+                "side": "RIGHT",
+            }
+        ]
+
+
+@pytest.mark.parametrize(
+    "directive",
+    ("# lint-ignore", "# lint-fixme", "# lint-ignore: RequireTypeHintRule", "# noqa"),
+)
+def test_review_does_not_honor_suppressions(directive: str) -> None:
+    parser = get_parser("example.py")
+    source = f"{directive}\ndef f(a):  {directive}\n    return None\n".encode()
+    for file in parser.files_to_check(True):
+        parser.parse(file, source)
+    assert set(parser.labels_to_add) == {
+        Label.REQUIRE_TEST,
+        Label.TYPE_HINT,
+        Label.DESCRIPTIVE_NAME,
+    }
+    comments = parser.collect_comments()
+    assert len(comments) == 1
+    assert comments[0]["path"] == "example.py"
+    assert comments[0]["line"] == 2
+
+
+def test_rule_state_is_isolated_between_files() -> None:
+    parser = get_parser("tested.py, untested.py")
+    sources = {
+        "tested.py": b'""">>> example()\n"""\ndef example() -> None:\n    pass\n',
+        "untested.py": b"def example() -> None:\n    pass\n",
+    }
+    for file in parser.files_to_check(True):
+        parser.parse(file, sources[file.name])
+    assert parser.labels_to_add == [Label.REQUIRE_TEST]
+    assert [comment["path"] for comment in parser.collect_comments()] == ["untested.py"]
+
+
+def test_builtin_fixit_rules_are_not_enabled() -> None:
+    parser = get_parser("example.py")
+    for file in parser.files_to_check(True):
+        # Fixit's built-in CompareSingletonPrimitivesByIs would report this.
+        parser.parse(file, b"example = None == None\n")
+    assert parser.collect_comments() == []
+    assert parser.labels_to_add == []
