@@ -49,6 +49,16 @@ Some actions of the bot can be triggered using commands:
 
 ***NOTE: Commands are in BETA and valid only if it is commented on a pull request and only by either a member or owner of the organization.***
 
+## Development
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then set up
+the project and run tests from the repository root:
+
+```shell
+uv sync
+uv run pytest
+```
+
 ## Logging
 Logging is done using the standard library logging module. All the API calls made by the bot are being logged at INFO level and `aiohttp.log.access_logger` is logging the POST requests made by GitHub for delivering the payload. Other minor events relevant to the repository is also being logged along with using the using [Sentry](https://sentry.io/). The logs can be viewed best using the following command ([_requires Heroku CLI_](https://devcenter.heroku.com/articles/heroku-cli#download-and-install)):
 ```shell
