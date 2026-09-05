@@ -19,7 +19,6 @@ dev = [
   "pytest==9.1.1",
   "pytest-aiohttp==1.1.1",
   "pytest-asyncio==1.4.0",
-  "pytest-cov==7.1.0",
   "ty==0.0.78",
 ]
 
@@ -115,7 +114,3 @@ max-args = 6  # Recommended: 5
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
 testpaths = "tests"
-addopts = """\
-  --cov=algorithms_keeper
-  --cov-report=term-missing
-"""

@@ -16,8 +16,3 @@ local/
 .venv/
 env/
 venv/
-
-# Coverage
-.coverage
-coverage.xml
-htmlcov/

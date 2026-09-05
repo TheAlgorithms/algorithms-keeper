@@ -90,7 +90,7 @@ class GitHubAPI(BaseGitHubAPI):
             return response.status, response.headers, await response.read()
 
     @staticmethod
-    def log(response: ClientResponse, body: bytes) -> None:  # pragma: no cover
+    def log(response: ClientResponse, body: bytes) -> None:
         """Log the request-response cycle for the GitHub API calls made by the bot.
 
         The logger information will be useful to know what actions the bot made.

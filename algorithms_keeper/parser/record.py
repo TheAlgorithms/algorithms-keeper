@@ -85,7 +85,7 @@ class PullRequestReviewRecord:
         # It seems that ``ParserSyntaxError`` is not a subclass of ``SyntaxError``,
         # the same information is stored under a different attribute. There is no
         # filename information in ``ParserSyntaxError``, thus the parameter `filepath`.
-        if isinstance(exc, SyntaxError):  # noqa: SIM108, pragma: no cover
+        if isinstance(exc, SyntaxError):  # noqa: SIM108
             lineno = exc.lineno or 1
         else:
             lineno = exc.raw_line
