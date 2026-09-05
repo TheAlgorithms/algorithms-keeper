@@ -1,5 +1,8 @@
+import json
 import logging
 import os
+import re
+from http import HTTPStatus
 from typing import Any, Mapping, MutableMapping
 
 from aiohttp import ClientResponse
@@ -80,11 +83,12 @@ class GitHubAPI(BaseGitHubAPI):
         async with self._session.request(
             method, url, headers=headers, data=body
         ) as response:
-            self.log(response, body)
-            return response.status, response.headers, await response.read()
+            response_body = await response.read()
+            self.log(response, body, response_body)
+            return response.status, response.headers, response_body
 
     @staticmethod
-    def log(response: ClientResponse, body: bytes) -> None:  # pragma: no cover
+    def log(response: ClientResponse, body: bytes, response_body: bytes) -> None:
         """Log the request-response cycle for the GitHub API calls made by the bot.
 
         The logger information will be useful to know what actions the bot made.
@@ -102,6 +106,24 @@ class GitHubAPI(BaseGitHubAPI):
         else:
             loggerlevel = logger.error
             data = body.decode(UTF_8_CHARSET)
+            # Missing issue labels are expected when webhook handlers overlap.
+            # Keep other 404s and repository-label deletions visible as errors.
+            if (
+                response.status == HTTPStatus.NOT_FOUND
+                and response.method == "DELETE"
+                and re.fullmatch(
+                    r"/repos/[^/]+/[^/]+/issues/\d+/labels/[^/]+", response.url.raw_path
+                )
+            ):
+                try:
+                    response_data = json.loads(response_body)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    response_data = None
+                if (
+                    isinstance(response_data, dict)
+                    and response_data.get("message") == "Label does not exist"
+                ):
+                    loggerlevel = logger.info
         version = response.version
         if version is not None:
             version = f"{version.major}.{version.minor}"

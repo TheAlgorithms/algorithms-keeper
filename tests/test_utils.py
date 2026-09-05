@@ -1,12 +1,16 @@
 import urllib.parse
+from http import HTTPStatus
 from pathlib import Path
 from typing import Dict, cast
+from unittest.mock import AsyncMock
 
 import pytest
+from gidgethub import BadRequest
 
 from algorithms_keeper import utils
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import Label
+from algorithms_keeper.event.pull_request import update_stage_label
 
 from .utils import (
     MockGitHubAPI,
@@ -143,6 +147,70 @@ async def test_remove_multiple_labels() -> None:
     )
     assert f"{labels_url}/{parse_label1}" in gh.delete_url
     assert f"{labels_url}/{parse_label2}" in gh.delete_url
+
+
+@pytest.mark.asyncio()
+async def test_remove_missing_label_continues(monkeypatch: pytest.MonkeyPatch) -> None:
+    gh = MockGitHubAPI()
+    delete = AsyncMock(
+        side_effect=[BadRequest(HTTPStatus.NOT_FOUND, "Label does not exist"), None]
+    )
+    monkeypatch.setattr(gh, "delete", delete)
+
+    await utils.remove_label_from_pr_or_issue(
+        cast(GitHubAPI, gh),
+        label=[Label.TYPE_HINT, Label.REQUIRE_TEST],
+        pr_or_issue={"issue_url": issue_url},
+    )
+
+    assert [call.args[0] for call in delete.await_args_list] == [
+        f"{labels_url}/{urllib.parse.quote(Label.TYPE_HINT)}",
+        f"{labels_url}/{urllib.parse.quote(Label.REQUIRE_TEST)}",
+    ]
+
+
+@pytest.mark.asyncio()
+async def test_stage_change_with_stale_labels(monkeypatch: pytest.MonkeyPatch) -> None:
+    gh = MockGitHubAPI()
+    monkeypatch.setattr(
+        gh,
+        "delete",
+        AsyncMock(side_effect=BadRequest(HTTPStatus.NOT_FOUND, "Label does not exist")),
+    )
+
+    await update_stage_label(
+        cast(GitHubAPI, gh),
+        pull_request={"issue_url": issue_url, "labels": [{"name": Label.CHANGE}]},
+        next_label=Label.REVIEW,
+    )
+
+    assert gh.post_data == [{"labels": [Label.REVIEW]}]
+
+
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "status, message",
+    [
+        (HTTPStatus.NOT_FOUND, "Not Found"),
+        (HTTPStatus.FORBIDDEN, "Label does not exist"),
+        (HTTPStatus.FORBIDDEN, "Resource not accessible by integration"),
+    ],
+)
+async def test_remove_label_preserves_other_errors(
+    status: HTTPStatus, message: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    gh = MockGitHubAPI()
+    error = BadRequest(status, message)
+    monkeypatch.setattr(gh, "delete", AsyncMock(side_effect=error))
+
+    with pytest.raises(BadRequest) as exc_info:
+        await utils.remove_label_from_pr_or_issue(
+            cast(GitHubAPI, gh),
+            label=Label.FAILED_TEST,
+            pr_or_issue={"issue_url": issue_url},
+        )
+
+    assert exc_info.value is error
 
 
 @pytest.mark.asyncio()

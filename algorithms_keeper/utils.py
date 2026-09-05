@@ -15,8 +15,11 @@ that uses all the given functions.
 import urllib.parse
 from base64 import b64decode
 from dataclasses import dataclass
+from http import HTTPStatus
 from pathlib import Path
 from typing import Any, Mapping, Optional, Union
+
+from gidgethub import BadRequest
 
 from algorithms_keeper.api import GitHubAPI
 from algorithms_keeper.constants import PR_REVIEW_BODY
@@ -121,10 +124,18 @@ async def remove_label_from_pr_or_issue(
     # or issue) at once.
     for label in label_list:
         parse_label = urllib.parse.quote(label)
-        await gh.delete(
-            f"{labels_url}/{parse_label}",
-            oauth_token=await gh.access_token,
-        )
+        try:
+            await gh.delete(
+                f"{labels_url}/{parse_label}",
+                oauth_token=await gh.access_token,
+            )
+        except BadRequest as exc:
+            # Another webhook may have removed the label since this snapshot.
+            if (
+                exc.status_code != HTTPStatus.NOT_FOUND
+                or str(exc) != "Label does not exist"
+            ):
+                raise
 
 
 async def get_user_open_pr_numbers(
