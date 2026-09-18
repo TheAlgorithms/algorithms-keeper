@@ -10,7 +10,7 @@ dependencies = [
   "fixit==2.2.1",
   "gidgethub==5.4.0",
   "libcst==1.9.0",
-  "sentry-sdk==2.68.1",
+  "sentry-sdk==2.69.2",
 ]
 
 [dependency-groups]
