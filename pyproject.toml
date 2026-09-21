@@ -19,7 +19,7 @@ dev = [
   "pytest==9.1.1",
   "pytest-aiohttp==1.1.1",
   "pytest-asyncio==1.4.0",
-  "ty==0.0.78",
+  "ty==0.0.82",
 ]
 
 [tool.uv]
